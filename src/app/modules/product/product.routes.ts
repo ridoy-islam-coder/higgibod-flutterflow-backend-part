@@ -35,4 +35,11 @@ router.get("/products/categories", auth(USER_ROLE.USER), productController.getCa
 // GET /products/:id/related?category=skates
 router.get("/products/:id/related", auth(USER_ROLE.USER), productController.getRelated);
 
+
+
+
+
+
+
+
 export const productsRoutes = router;
