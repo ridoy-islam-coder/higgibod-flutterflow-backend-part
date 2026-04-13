@@ -11,7 +11,7 @@ const router = Router();
 
 router.get(
   '/me',
-  auth(USER_ROLE.agencies, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.influencer),
   userControllers.getme,
 );
 
@@ -20,14 +20,14 @@ router.get(
 // For login user (user & admin both)
 router.patch(
   '/update-profile',
-  auth(USER_ROLE.agencies, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.influencer),
   upload.single('image'),
   userControllers.updateProfile,
 );
 // //toatal user count
 router.get(
   '/total-count',
-  auth(USER_ROLE.agencies, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.influencer),
   userControllers.getTotalUsersCount,
 );
 router.get(
@@ -51,7 +51,7 @@ router.get(
 
 router.patch(
   '/phone/update',
-  auth(USER_ROLE.agencies, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.influencer),
   userControllers.updatePhoneNumber,
 );
 // router.get(
@@ -62,31 +62,31 @@ router.patch(
 // Block user
 router.patch(
   '/block/:id',
-  auth(USER_ROLE.agencies, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.influencer),
   userControllers.blockUser,
 );
 
 // Unblock user
 router.patch(
   '/unblock/:id',
-  auth(USER_ROLE.agencies, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.influencer),
   userControllers.unblockUser,
 );
 
 router.get(
   '/:id',
-  auth(USER_ROLE.agencies, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.influencer),
   userControllers.getsingleUser,
 );
 router.get(
   '/',
-  auth(USER_ROLE.agencies, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.influencer),
   userControllers.getAllUsers,
 );
 
 router.delete(
   '/delete-account',
-  auth(USER_ROLE.agencies, USER_ROLE.influencer, USER_ROLE.admin),
+  auth(USER_ROLE.USER, USER_ROLE.influencer, USER_ROLE.admin),
   validateRequest(authValidation.deleteAccountZodSchema),
   userControllers.deleteAccount,
 );

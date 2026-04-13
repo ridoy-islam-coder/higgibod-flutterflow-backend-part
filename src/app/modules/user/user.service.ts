@@ -19,9 +19,9 @@ const getme = async (id: string) => {
   return {
     email: result.email,
     fullName: result.fullName,
-    countryCode: result.countryCode,
+    country: result.country,
     phoneNumber: result.phoneNumber,
-    website: result.website,
+    howDidYouHear: result.howDidYouHear,
     categore: result.categore,
     image: result.image ?? {},
   };

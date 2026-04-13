@@ -11,10 +11,10 @@ import { productsRoutes } from '../modules/product/product.routes';
 
 const router = Router();
 const moduleRoutes = [
-  // {
-  //   path: '/users',
-  //   route: userRoutes,
-  // },
+  {
+    path: '/users',
+    route: userRoutes,
+  },
 
   {
     path: '/auth',

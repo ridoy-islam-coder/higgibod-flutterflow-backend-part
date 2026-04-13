@@ -96,32 +96,6 @@ export const register = async (payload: any) => {
 
 
 
-// const verifyEmail = async (email: string, otp: number) => {
-//   const user = await User.findOne({ email });
-
-//   if (!user || !user.verification) {
-//     throw new AppError(404, 'User not found');
-//   }
-
-//   if (user.verification.status) {
-//     throw new AppError(400, 'Already verified');
-//   }
-
-//   if (user.verification.expiresAt < new Date()) {
-//     throw new AppError(400, 'OTP expired');
-//   }
-
-//   if (user.verification.otp !== otp) {
-//     throw new AppError(400, 'Invalid OTP');
-//   }
-
-//   user.isVerified = true;
-//   user.verification.status = true;
-
-//   await user.save();
-
-//   return { message: 'Email verified successfully' };
-// };
 
 
 
@@ -143,47 +117,6 @@ export const register = async (payload: any) => {
 
 
 
-
-
-// const login = async (payload: Tlogin) => {
-//   const user = await User.isUserExist(payload?.email as string);
-//   if (!user) {
-//     throw new AppError(httpStatus.NOT_FOUND, 'User Not Found');
-//   }
-//   if (!user?.isActive) {
-//     throw new AppError(httpStatus.FORBIDDEN, 'This user is blocked ! !');
-//   }
-//   if (user?.isDeleted) {
-//     throw new AppError(httpStatus.FORBIDDEN, 'This user is deleted !');
-//   }
-//   if (!user?.isVerified) {
-//     throw new AppError(httpStatus.BAD_REQUEST, 'user is not verified !');
-//   }
-
-//   if (!(await User.isPasswordMatched(payload.password, user.password))) {
-//     throw new AppError(httpStatus.BAD_REQUEST, 'password do not match');
-//   }
-
-//   const jwtPayload = {
-//     userId: user?._id.toString(),
-//     role: user?.role,
-//   };
-//   const accessToken = createToken(
-//     jwtPayload,
-//     config.jwt.jwt_access_secret as string,
-//     config.jwt.jwt_access_expires_in as string,
-//   );
-
-//   const refreshToken = createToken(
-//     jwtPayload,
-//     config.jwt.jwt_refresh_secret as string,
-//     config.jwt.jwt_refresh_expires_in as string,
-//   );
-//   return {
-//     accessToken,
-//     refreshToken,
-//   };
-// };
 //change password
 const changePassword = async (id: string, payload: TchangePassword) => {
   const user = await User.IsUserExistbyId(id);
@@ -459,58 +392,6 @@ export const userVerifyOtp = async (email: string, otpInput: number) => {
 
 
 
-// export const SetPasswordService = async (
-//   email: string,
-//   newPassword: string,
-// ) => {
-//   const user = await User.findOne({ email }).select('+password');
-
-//   if (!user) {
-//     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
-//   }
-
-//   // OTP verify check
-//   if (!user.verification || user.verification.status !== true) {
-//     throw new AppError(httpStatus.BAD_REQUEST, 'OTP not verified');
-//   }
-
-// if (!newPassword || newPassword.trim() === '') {
-//   throw new AppError(httpStatus.BAD_REQUEST, 'Password cannot be empty');
-// }
-//   // ✅ Hash password
-//   // const hashedPassword = await bcrypt.hash(
-//   //   newPassword,
-//   //   Number(config.bcrypt_salt_rounds),
-//   // );
-//   user.password = newPassword.trim();
-
-//   // ✅ Clear OTP data
-//   // user.verification = {
-//   //   otp: null,
-//   //   expiresAt: null,
-//   //   status: false,
-//   // } as any;
-
-
-//   if (user.verification) {
-//   user.verification.otp = 0; // বা যেটা দিয়ে valid মনে হবে
-//   user.verification.expiresAt = new Date(); // অথবা নতুন Date()
-//   user.verification.status = false;
-// } else {
-//   user.verification = {
-//     otp: 0,
-//     expiresAt: new Date(),
-//     status: false,
-//   };
-// }
-// await user.save();
-
-//   await user.save();
-
-//   return null;
-// };
-
-
 
 
 
@@ -705,7 +586,7 @@ export const authServices = {
   verifyOtpAndResetPassword,
 
   userVerifyOtp,
-  sendVerificationCode,
+  // sendVerificationCode,
   changePassword,
   forgotPassword,
   resetPassword,
