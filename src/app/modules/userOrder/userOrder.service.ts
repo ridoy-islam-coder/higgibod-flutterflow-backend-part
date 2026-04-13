@@ -5,6 +5,7 @@ import { Cart } from "../addtocard/addtotocard.model";
 import { Product } from "../product/product.model";
 import User from "../user/user.model";
 import { Order } from "./userOrder.model";
+import Stripe from 'stripe';
 
  
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
@@ -87,52 +88,57 @@ const createOrder = async (userId: string) => {
     total,
   };
 };
+
+
  
 // ─── 2. Stripe Webhook — payment confirm hoile call hobe ──────────────────
-const handleStripeWebhook = async (
-  rawBody: Buffer,
-  signature: string
-) => {
-  let event: Stripe.Event;
+
+
+
+// const handleStripeWebhook = async (
+//   rawBody: Buffer,
+//   signature: string
+// ) => {
+//   let event: Stripe.Event ;
  
-  try {
-    event = stripe.webhooks.constructEvent(
-      rawBody,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET as string
-    );
-  } catch {
-    throw new Error("Webhook signature verification failed");
-  }
+//   try {
+//     event = stripe.webhooks.constructEvent(
+//       rawBody,
+//       signature,
+//       process.env.STRIPE_WEBHOOK_SECRET as string
+//     );
+//   } catch {
+//     throw new Error("Webhook signature verification failed");
+//   }
  
-  if (event.type === "payment_intent.succeeded") {
-    const paymentIntent = event.data.object as Stripe.PaymentIntent;
+//   if (event.type === "payment_intent.succeeded") {
+//     const paymentIntent = event.data.object as Stripe.PaymentIntent;
  
-    // Update order status to paid
-    await Order.findOneAndUpdate(
-      { stripePaymentIntentId: paymentIntent.id },
-      { paymentStatus: "paid" }
-    );
+//     // Update order status to paid
+//     await Order.findOneAndUpdate(
+//       { stripePaymentIntentId: paymentIntent.id },
+//       { paymentStatus: "paid" }
+//     );
  
-    // Clear user cart after successful payment
-    const order = await Order.findOne({
-      stripePaymentIntentId: paymentIntent.id,
-    });
-    if (order) {
-      await Cart.findOneAndUpdate({ user: order.user }, { items: [] });
-    }
-  }
+//     // Clear user cart after successful payment
+//     const order = await Order.findOne({
+//       stripePaymentIntentId: paymentIntent.id,
+//     });
+//     if (order) {
+//       await Cart.findOneAndUpdate({ user: order.user }, { items: [] });
+//     }
+//   }
  
-  if (event.type === "payment_intent.payment_failed") {
-    const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    await Order.findOneAndUpdate(
-      { stripePaymentIntentId: paymentIntent.id },
-      { paymentStatus: "failed" }
-    );
-  }
+//   if (event.type === "payment_intent.payment_failed") {
+//     const paymentIntent = event.data.object as Stripe.PaymentIntent;
+//     await Order.findOneAndUpdate(
+//       { stripePaymentIntentId: paymentIntent.id },
+//       { paymentStatus: "failed" }
+//     );
+//   }
  
-  return { received: true };
-};
+//   return { received: true };
+// };
  
 // ─── 3. Get Order History ──────────────────────────────────────────────────
 const getOrderHistory = async (
@@ -194,7 +200,7 @@ const cancelOrder = async (orderId: string, userId: string) => {
  
 export const orderService = {
   createOrder,
-  handleStripeWebhook,
+//   handleStripeWebhook,
   getOrderHistory,
   getOrderDetails,
   cancelOrder,

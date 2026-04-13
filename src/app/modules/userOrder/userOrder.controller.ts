@@ -18,15 +18,16 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
 
 
 // Stripe webhook — raw body lagbe, JSON parse korba na
-const stripeWebhook = async (req: Request, res: Response) => {
-  try {
-    const signature = req.headers["stripe-signature"] as string;
-    const result = await orderService.handleStripeWebhook(req.body, signature);
-    res.status(200).json(result);
-  } catch (error: any) {
-    res.status(400).json({ error: error.message });
-  }
-};
+
+// const stripeWebhook = async (req: Request, res: Response) => {
+//   try {
+//     const signature = req.headers["stripe-signature"] as string;
+//     const result = await orderService.handleStripeWebhook(req.body, signature);
+//     res.status(200).json(result);
+//   } catch (error: any) {
+//     res.status(400).json({ error: error.message });
+//   }
+// };
 
 
 const getOrderHistory = catchAsync(async (req: Request, res: Response) => {
@@ -71,7 +72,7 @@ const cancelOrder = catchAsync(async (req: Request, res: Response) => {
 
 export const orderController = {
   createOrder,
-  stripeWebhook,
+  // stripeWebhook,
   getOrderHistory,
   getOrderDetails,
   cancelOrder,
