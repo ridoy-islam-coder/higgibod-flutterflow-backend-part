@@ -136,6 +136,98 @@ export const addProductReviewService = async (req: any) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+const getTrendingProducts = async (limit = 8) => {
+  const products = await Product.aggregate([
+    { $match: { isDeleted: { $ne: true } } },
+    {
+      $addFields: {
+        reviewCount: { $size: "$reviews" },
+        avgRating: { $avg: "$reviews.rating" },
+      },
+    },
+    { $sort: { reviewCount: -1, avgRating: -1 } },
+    { $limit: limit },
+    {
+      $lookup: {
+        from: "users",
+        localField: "host",
+        foreignField: "_id",
+        as: "host",
+        pipeline: [{ $project: { name: 1, profileImage: 1 } }],
+      },
+    },
+    { $unwind: { path: "$host", preserveNullAndEmptyArrays: true } },
+  ]);
+ 
+  return products;
+};
+ 
+ 
+const getFeaturedProducts = async (limit = 5) => {
+  const products = await Product.aggregate([
+    { $match: { isDeleted: { $ne: true }, "reviews.0": { $exists: true } } },
+    {
+      $addFields: {
+        avgRating: { $avg: "$reviews.rating" },
+      },
+    },
+    { $sort: { avgRating: -1 } },
+    { $limit: limit },
+    {
+      $lookup: {
+        from: "users",
+        localField: "host",
+        foreignField: "_id",
+        as: "host",
+        pipeline: [{ $project: { name: 1, profileImage: 1 } }],
+      },
+    },
+    { $unwind: { path: "$host", preserveNullAndEmptyArrays: true } },
+  ]);
+ 
+  return products;
+};
+
+
+
+
+ 
+const getRelatedProducts = async (
+  productId: string,
+  category: string,
+  limit = 6
+) => {
+  return await Product.find({
+    _id: { $ne: productId },
+    category: { $regex: category, $options: "i" },
+    isDeleted: { $ne: true },
+  })
+    .populate("host", "name profileImage")
+    .limit(limit);
+};
+ 
+ 
+const getProductCategories = async () => {
+  const categories = await Product.distinct("category", {
+    isDeleted: { $ne: true },
+  });
+  return categories.filter(Boolean);
+};
+
+
 export const productServices = {
     getAllProductsService,
     getProductDetailsService,
@@ -143,4 +235,9 @@ export const productServices = {
     updateProductService,
     deleteProductService,
     addProductReviewService,
+    // extra features
+  getTrendingProducts,
+  getFeaturedProducts,
+  getRelatedProducts,
+  getProductCategories,
 };

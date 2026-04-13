@@ -16,4 +16,23 @@ router.put("/products/:id", auth(USER_ROLE.USER,), upload.array("images", 10), p
 router.delete("/products/:id", auth(USER_ROLE.USER,), productController.deleteProduct);    // Delete Product
 router.post("/products/:id/review", auth(USER_ROLE.USER,), productController.addProductReview); // Add Review
 
+
+
+
+
+// ─────────────────────────────────────────────────────────────
+// PRODUCT ROUTES (add to existing product router)
+// ─────────────────────────────────────────────────────────────
+// GET /products/trending
+router.get("/products/trending", auth(USER_ROLE.USER), productController.getTrending);
+ 
+// GET /products/featured
+router.get("/products/featured", auth(USER_ROLE.USER), productController.getFeatured);
+ 
+// GET /products/categories
+router.get("/products/categories", auth(USER_ROLE.USER), productController.getCategories);
+ 
+// GET /products/:id/related?category=skates
+router.get("/products/:id/related", auth(USER_ROLE.USER), productController.getRelated);
+
 export const productsRoutes = router;

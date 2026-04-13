@@ -59,6 +59,84 @@ export const addProductReview = catchAsync(async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+// ✅ Exporting all controller functions as an object
+
+
+const getTrending = catchAsync(async (req, res) => {
+  const result = await productServices.getTrendingProducts(
+    req.query.limit ? Number(req.query.limit) : 8
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Trending products fetched",
+    data: result,
+  });
+});
+ 
+ 
+const getFeatured = catchAsync(async (req, res) => {
+  const result = await productServices.getFeaturedProducts(
+    req.query.limit ? Number(req.query.limit) : 5
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Featured products fetched",
+    data: result,
+  });
+});
+ 
+ 
+const getRelated = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const { category } = req.query;
+ 
+  if (!category) {
+    return sendResponse(res, {
+      statusCode: 400,
+      success: false,
+      message: "category query param required",
+      data: null,
+    });
+  }
+ 
+  const result = await productServices.getRelatedProducts(
+    id as string,
+    category as string
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Related products fetched",
+    data: result,
+  });
+});
+ 
+ 
+const getCategories = catchAsync(async (req, res) => {
+  const result = await productServices.getProductCategories();
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Product categories fetched",
+    data: result,
+  });
+});
+ 
+
+
 export const productController = {
     getAllProducts,
     getProductDetails,
@@ -66,4 +144,9 @@ export const productController = {
     updateProduct,
     deleteProduct,
     addProductReview,
+    // extra features
+   getTrending,
+   getFeatured,
+   getRelated,
+   getCategories,
 };

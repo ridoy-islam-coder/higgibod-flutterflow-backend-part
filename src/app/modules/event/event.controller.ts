@@ -91,7 +91,7 @@ export const addReview = catchAsync(async (req, res) => {
 
 
 const searchEvents = catchAsync(async (req, res) => {
-  const result = await eventSearchService.searchEvents({
+  const result = await eventServices.searchEvents({
     q: req.query.q as string,
     category: req.query.category as string,
     country: req.query.country as string,
@@ -113,7 +113,7 @@ const searchEvents = catchAsync(async (req, res) => {
 });
  
 const getFeaturedEvents = catchAsync(async (req, res) => {
-  const result = await eventSearchService.getFeaturedEvents();
+  const result = await eventServices.getFeaturedEvents();
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -132,7 +132,7 @@ const getNearbyEvents = catchAsync(async (req, res) => {
       data: null,
     });
   }
-  const result = await eventSearchService.getNearbyEvents(location);
+  const result = await eventServices.getNearbyEvents(location);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -142,7 +142,7 @@ const getNearbyEvents = catchAsync(async (req, res) => {
 });
  
 const getEventsByOrganizer = catchAsync(async (req, res) => {
-  const result = await eventSearchService.getEventsByOrganizer(req.params.id);
+  const result = await eventServices.getEventsByOrganizer(req.params.id as string);
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -152,7 +152,7 @@ const getEventsByOrganizer = catchAsync(async (req, res) => {
 });
  
 const getAllCategories = catchAsync(async (req, res) => {
-  const result = await eventSearchService.getAllCategories();
+  const result = await eventServices.getAllCategories();
   sendResponse(res, {
     statusCode: 200,
     success: true,
@@ -174,5 +174,11 @@ updateEvent,
 deleteEvent,
 attendEvent,
 addReview,
+// search + extra features
+  searchEvents,
+  getFeaturedEvents,
+  getNearbyEvents,
+  getEventsByOrganizer,
+  getAllCategories,
 
 };

@@ -184,6 +184,137 @@ export const addReviewService = async (req: any) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const searchEvents = async (query: {
+  q?: string;
+  category?: string;
+  country?: string;
+  eventType?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  date?: string;
+  organizer?: string;
+  page?: number;
+  limit?: number;
+}) => {
+  const {
+    q,
+    category,
+    country,
+    eventType,
+    minPrice,
+    maxPrice,
+    date,
+    organizer,
+    page = 1,
+    limit = 10,
+  } = query;
+ 
+  const filter: Record<string, any> = { isDeleted: { $ne: true } };
+ 
+  // Keyword search (title + description)
+  if (q) {
+    filter.$or = [
+      { title: { $regex: q, $options: "i" } },
+      { description: { $regex: q, $options: "i" } },
+    ];
+  }
+ 
+  if (category) filter.category = { $regex: category, $options: "i" };
+  if (country) filter.location = { $regex: country, $options: "i" };
+  if (eventType) filter.category = eventType; // map eventType to category
+  if (organizer) filter.host = organizer;
+ 
+  // Price range
+  if (minPrice !== undefined || maxPrice !== undefined) {
+    filter.price = {};
+    if (minPrice !== undefined) filter.price.$gte = minPrice;
+    if (maxPrice !== undefined) filter.price.$lte = maxPrice;
+  }
+ 
+  // Date filter
+  if (date) {
+    const targetDate = new Date(date);
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(nextDay.getDate() + 1);
+    filter.date = { $gte: targetDate, $lt: nextDay };
+  }
+ 
+  const skip = (page - 1) * limit;
+  const total = await Event.countDocuments(filter);
+  const events = await Event.find(filter)
+    .populate("host", "name email profileImage")
+    .sort({ date: 1 })
+    .skip(skip)
+    .limit(limit);
+ 
+  return {
+    events,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+ 
+const getFeaturedEvents = async () => {
+  // Featured = upcoming events with most attendees
+  return await Event.find({
+    isDeleted: { $ne: true },
+    isPast: false,
+    date: { $gte: new Date() },
+  })
+    .populate("host", "name profileImage")
+    .sort({ attendees: -1, date: 1 })
+    .limit(5);
+};
+ 
+const getNearbyEvents = async (location: string) => {
+  return await Event.find({
+    isDeleted: { $ne: true },
+    isPast: false,
+    location: { $regex: location, $options: "i" },
+    date: { $gte: new Date() },
+  })
+    .populate("host", "name profileImage")
+    .sort({ date: 1 })
+    .limit(10);
+};
+ 
+const getEventsByOrganizer = async (organizerId: string) => {
+  return await Event.find({
+    isDeleted: { $ne: true },
+    host: organizerId,
+  })
+    .populate("host", "name email profileImage")
+    .sort({ createdAt: -1 });
+};
+ 
+const getAllCategories = async () => {
+  const categories = await Event.distinct("category", {
+    isDeleted: { $ne: true },
+  });
+  return categories.filter(Boolean);
+};
+ 
+
 export const eventServices = {
 createEventService,
 getAllEventsService,
@@ -193,4 +324,10 @@ updateEventService,
 deleteEventService,
 attendEventService,
 addReviewService,
+// search + extra features
+ searchEvents,
+  getFeaturedEvents,
+  getNearbyEvents,
+  getEventsByOrganizer,
+  getAllCategories,
 };
