@@ -5,6 +5,9 @@ import { adminRoutes } from '../modules/Dashboard/admin/admin.route';
 import { sosaleMediaRoutes } from '../modules/sociallink/social.routes';
 import { eventRoutes } from '../modules/event/event.routes';
 import { productsRoutes } from '../modules/product/product.routes';
+import { ticketRoutes } from '../modules/Ticke/ticke.routes';
+import { orderRoutes } from '../modules/userOrder/userOrder.routes';
+import { cartRoutes } from '../modules/addtocard/addtocard.routes';
 
 
 
@@ -35,7 +38,25 @@ const moduleRoutes = [
    {
     path: '/products',
     route: productsRoutes,
+  },{
+    path: '/tickets',
+    route: ticketRoutes,
   },
+  {
+    path: '/products',
+    route: productsRoutes,
+  },
+    {
+    path: '/order',
+    route: orderRoutes,
+  },
+  {
+    path: '/card',
+    route: cartRoutes,
+  },
+
+
+
 //   {
 //     path: '/subscription',
 //     route: SubscriptionRoutes,

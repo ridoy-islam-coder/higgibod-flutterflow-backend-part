@@ -9,12 +9,12 @@ import {  productController } from "./product.controller";
 const router = Router();
 
 
-router.get("/products", auth(USER_ROLE.USER,),productController.getAllProducts);           // Manage Products list
-router.get("/products/:id", auth(USER_ROLE.USER,), productController.getProductDetails);   // Product Details
-router.post("/products", auth(USER_ROLE.USER,), upload.array("images", 10), productController.createProduct);  // Add Product
+router.get("/all", auth(USER_ROLE.USER,),productController.getAllProducts);           // Manage Products list
+router.get("/product-details/:id", auth(USER_ROLE.USER,), productController.getProductDetails);   // Product Details
+router.post("/create-products", auth(USER_ROLE.USER,), upload.array("images", 10), productController.createProduct);  // Add Product
 router.put("/products/:id", auth(USER_ROLE.USER,), upload.array("images", 10), productController.updateProduct); // Edit Product
 router.delete("/products/:id", auth(USER_ROLE.USER,), productController.deleteProduct);    // Delete Product
-router.post("/products/:id/review", auth(USER_ROLE.USER,), productController.addProductReview); // Add Review
+router.post("/review/:id", auth(USER_ROLE.USER,), productController.addProductReview); // Add Review
 
 
 
@@ -24,7 +24,7 @@ router.post("/products/:id/review", auth(USER_ROLE.USER,), productController.add
 // PRODUCT ROUTES (add to existing product router)
 // ─────────────────────────────────────────────────────────────
 // GET /products/trending
-router.get("/products/trending", auth(USER_ROLE.USER), productController.getTrending);
+router.get("/trending", auth(USER_ROLE.USER), productController.getTrending);
  
 // GET /products/featured
 router.get("/products/featured", auth(USER_ROLE.USER), productController.getFeatured);

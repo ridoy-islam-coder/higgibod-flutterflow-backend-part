@@ -17,11 +17,11 @@ const orderSchema = new Schema<IOrder>(
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     items: [orderItemSchema],
     shippingAddress: {
-      fullName: { type: String, required: true },
+      fullName: { type: String, },//required: true 
       phone: { type: String, default: "" },
-      address: { type: String, required: true },
-      city: { type: String, required: true },
-      country: { type: String, required: true },
+      address: { type: String, },// required: true },
+      city: { type: String,  },//required: true
+      country: { type: String,  },// required: true },
       postalCode: { type: String, default: "" },
     },
     subtotal: { type: Number, required: true },

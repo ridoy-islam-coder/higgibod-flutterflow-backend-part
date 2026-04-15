@@ -25,7 +25,7 @@ const ticketSchema = new Schema<ITicket>(
     },
     attendeeName: {
       type: String,
-      required: true,
+      // required: true,
     },
     attendeeEmail: {
       type: String,

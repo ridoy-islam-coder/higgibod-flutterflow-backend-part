@@ -22,15 +22,15 @@ const router = Router();
 // );
  
 // POST /orders — cart theke order create + stripe payment intent
-router.post("/", auth(USER_ROLE.USER), orderController.createOrder);
+router.post("/create-orders", auth(USER_ROLE.USER), orderController.createOrder);
  
 // GET /orders — order history
-router.get("/", auth(USER_ROLE.USER), orderController.getOrderHistory);
+router.get("/order-history", auth(USER_ROLE.USER), orderController.getOrderHistory);
  
 // GET /orders/:id — single order details
-router.get("/:id", auth(USER_ROLE.USER), orderController.getOrderDetails);
+router.get("/order-details/:id", auth(USER_ROLE.USER), orderController.getOrderDetails);
  
 // PATCH /orders/:id/cancel — order cancel
-router.patch("/:id/cancel", auth(USER_ROLE.USER), orderController.cancelOrder);
+router.patch("/cancel/:id", auth(USER_ROLE.USER), orderController.cancelOrder);
  
 export const orderRoutes = router;

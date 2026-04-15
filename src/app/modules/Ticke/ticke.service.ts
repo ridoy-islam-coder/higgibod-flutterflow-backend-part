@@ -5,9 +5,10 @@ import QRCode from "qrcode";
 import { Event } from "../event/event.model";
 import User from "../user/user.model";
 import { Ticket } from "./ticke.model";
+import config from "../../config";
 
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 
 // ─── Unique ticket number generate ────────────────────────────────────────
 const generateTicketNumber = (): string => {

@@ -1,6 +1,7 @@
 
 // order.service.ts
 
+import config from "../../config";
 import { Cart } from "../addtocard/addtotocard.model";
 import { Product } from "../product/product.model";
 import User from "../user/user.model";
@@ -8,7 +9,7 @@ import { Order } from "./userOrder.model";
 import Stripe from 'stripe';
 
  
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string);
+const stripe = new Stripe(config.stripe.stripe_secret_key as string);
  
 // ─── 1. Create Order + Stripe Payment Intent ───────────────────────────────
 const createOrder = async (userId: string) => {
@@ -16,15 +17,15 @@ const createOrder = async (userId: string) => {
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
  
-  if (
-    !user.address?.address ||
-    !user.address?.city ||
-    !user.address?.country
-  ) {
-    throw new Error(
-      "Please complete your shipping address in profile before placing order"
-    );
-  }
+  // if (
+  //   !user.address?.address ||
+  //   !user.address?.city ||
+  //   !user.address?.country
+  // ) {
+  //   throw new Error(
+  //     "Please complete your shipping address in profile before placing order"
+  //   );
+  // }
  
   // Get user cart
   const cart = await Cart.findOne({ user: userId }).populate("items.product");
@@ -69,10 +70,10 @@ const createOrder = async (userId: string) => {
     shippingAddress: {
       fullName: user.name,
       phone: user.phone || "",
-      address: user.address.address,
-      city: user.address.city,
-      country: user.address.country,
-      postalCode: user.address.postalCode || "",
+      // address: user.address.address,
+      // city: user.address.city,
+      // country: user.address.country,
+      // postalCode: user.address.postalCode || "",
     },
     subtotal,
     shippingCost: totalShipping,
