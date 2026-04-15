@@ -24,7 +24,7 @@ router.get(
 // POST /personalization         — step by step save
 // body: { interests?, skillLevel?, yearsSkating? }
 router.post(
-  "/",
+  "/create",
   auth(USER_ROLE.USER),
   personalizationController.savePersonalization
 );

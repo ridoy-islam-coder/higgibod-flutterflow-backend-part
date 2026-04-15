@@ -315,6 +315,33 @@ const getAllCategories = async () => {
 };
  
 
+
+
+
+
+
+// ─── Get all upcoming events (isPast = false) ───────────────────────────────
+const getUpcomingEvents = async () => {
+  const events = await Event.find({ isPast: false })
+    .populate("host", "name email profileImage")
+    .sort({ date: 1 });
+  return events;
+};
+ 
+// ─── Get all previous events (isPast = true) ────────────────────────────────
+const getPreviousEvents = async () => {
+  const events = await Event.find({ isPast: true })
+    .populate("host", "name email profileImage")
+    .sort({ date: -1 });
+  return events;
+};
+ 
+
+
+
+
+
+
 export const eventServices = {
 createEventService,
 getAllEventsService,
@@ -330,4 +357,6 @@ addReviewService,
   getNearbyEvents,
   getEventsByOrganizer,
   getAllCategories,
+  getUpcomingEvents,
+  getPreviousEvents,
 };

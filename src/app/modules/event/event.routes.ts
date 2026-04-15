@@ -49,5 +49,6 @@ router.get("/organizer/:id", auth(USER_ROLE.USER), eventcontroller.getEventsByOr
 router.get("/categories", auth(USER_ROLE.USER), eventcontroller.getAllCategories);
 
 
+router.get("/events",auth(USER_ROLE.USER), eventcontroller.getEvents);           // GET /api/events?isPast=true|false
 
 export const eventRoutes = router;

@@ -8,6 +8,7 @@ import { productsRoutes } from '../modules/product/product.routes';
 import { ticketRoutes } from '../modules/Ticke/ticke.routes';
 import { orderRoutes } from '../modules/userOrder/userOrder.routes';
 import { cartRoutes } from '../modules/addtocard/addtocard.routes';
+import { personalizationRoutes } from '../modules/Personalizationuser/Personalization.routes';
 
 
 
@@ -53,6 +54,10 @@ const moduleRoutes = [
   {
     path: '/card',
     route: cartRoutes,
+  },
+  {
+    path: '/personalization',
+    route: personalizationRoutes,
   },
 
 

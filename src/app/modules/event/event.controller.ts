@@ -162,7 +162,30 @@ const getAllCategories = catchAsync(async (req, res) => {
 });
 
 
+// ─── GET /api/events?isPast=true|false ───────────────────────────────────────
+const getEvents = catchAsync(async (req, res) => {
+  try {
+    const isPast = req.query.isPast === "true";
+    const events = isPast
+      ? await eventServices.getPreviousEvents()
+      : await eventServices.getUpcomingEvents();
+        sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Events fetched successfully",
+    data: events,
+  });
+  
+  } catch (error: any) {
+       sendResponse(res, {
+    statusCode: 500,
+    success: false,
+    message: "Something went wrong",
+    data: null,
+  });
 
+  }
+});
 
 
 export const eventcontroller = {
@@ -180,5 +203,6 @@ addReview,
   getNearbyEvents,
   getEventsByOrganizer,
   getAllCategories,
+  getEvents,
 
 };
