@@ -1,19 +1,23 @@
-import { Document, Types } from "mongoose";
+import { Types } from "mongoose";
 
-export interface IImageFile {
+export interface IReviewImage {
   id: string;
   url: string;
 }
 
 export interface IReview {
+  _id?: Types.ObjectId;
   user: Types.ObjectId;
   rating: number;
   comment: string;
+  images?: IReviewImage[];   // ✅ image support added
+  isAnonymous?: boolean;     // ✅ anonymous posting support
   createdAt?: Date;
   updatedAt?: Date;
 }
 
-export interface IEvent extends Document {
+export interface IEvent {
+  _id?: Types.ObjectId;
   title: string;
   category?: string;
   date: Date;
@@ -21,8 +25,8 @@ export interface IEvent extends Document {
   location?: string;
   description?: string;
   price?: number;
-  coverImage?: IImageFile;  // ← updated
-  gallery?: IImageFile[];   // ← updated
+  coverImage?: { id: string; url: string };
+  gallery?: { id: string; url: string }[];
   host: Types.ObjectId;
   attendees?: Types.ObjectId[];
   reviews?: IReview[];

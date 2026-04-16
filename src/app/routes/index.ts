@@ -9,6 +9,7 @@ import { ticketRoutes } from '../modules/Ticke/ticke.routes';
 import { orderRoutes } from '../modules/userOrder/userOrder.routes';
 import { cartRoutes } from '../modules/addtocard/addtocard.routes';
 import { personalizationRoutes } from '../modules/Personalizationuser/Personalization.routes';
+import { wishlistRoutes } from '../modules/Wishlist/wishlist.routes';
 
 
 
@@ -59,8 +60,13 @@ const moduleRoutes = [
     path: '/personalization',
     route: personalizationRoutes,
   },
+    {
+    path: '/wishlist',
+    route: wishlistRoutes,
+  },
+ 
 
-
+  
 
 //   {
 //     path: '/subscription',

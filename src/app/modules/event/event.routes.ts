@@ -49,6 +49,25 @@ router.get("/organizer/:id", auth(USER_ROLE.USER), eventcontroller.getEventsByOr
 router.get("/categories", auth(USER_ROLE.USER), eventcontroller.getAllCategories);
 
 
-router.get("/events",auth(USER_ROLE.USER), eventcontroller.getEvents);           // GET /api/events?isPast=true|false
+router.get("/events",auth(USER_ROLE.USER), eventcontroller.getEvents);   // GET /api/events?isPast=true|false
+
+
+
+
+
+
+
+
+
+
+
+
+// POST   /api/events/:eventId/reviews
+// ✅ multer field name: "images" (same style as gallery in event)
+router.post("/create-review/:eventId", auth(USER_ROLE.USER), upload.fields([{ name: "image", maxCount: 1 }]), eventcontroller.addReviewadd);
+
+
+
+
 
 export const eventRoutes = router;

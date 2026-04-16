@@ -1,4 +1,5 @@
 import AppError from "../../error/AppError";
+import { deleteManyFromS3, uploadToS3 } from "../../utils/fileHelper";
 import { Event } from "./event.model";
 
 
@@ -339,9 +340,6 @@ const getPreviousEvents = async () => {
 
 
 
-
-
-
 export const eventServices = {
 createEventService,
 getAllEventsService,
@@ -359,4 +357,7 @@ addReviewService,
   getAllCategories,
   getUpcomingEvents,
   getPreviousEvents,
+
+
+
 };
