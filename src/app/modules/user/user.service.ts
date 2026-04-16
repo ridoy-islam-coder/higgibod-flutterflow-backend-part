@@ -221,7 +221,7 @@ const blockUser = async (id: string) => {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  if (user.role === 'admin' || user.role === 'agencies' || user.role === 'influencer') {
+  if (user.role === 'admin' || user.role === 'USER' || user.role === 'influencer') {
     throw new AppError(httpStatus.BAD_REQUEST, 'You cannot block an admin');
   }
   if (!user.isActive) {

@@ -2,6 +2,7 @@
 
 // personalization.service.ts
 
+import User from "../user/user.model";
 import { Personalization } from "./Personalization.model";
 
  
@@ -25,36 +26,103 @@ const savePersonalization = async (
   return personalization;
 };
  
-// ─── 2. Complete personalization — last step e call hobe ──────────────────
-const completePersonalization = async (userId: string) => {
-  const personalization = await Personalization.findOneAndUpdate(
+
+
+
+
+const updatePersonalizationkk = async (
+  userId: string,
+  payload: {
+    interests?: string[];
+    skillLevel?: string;
+    yearsSkating?: string;
+  }
+) => {
+  const { interests, skillLevel, yearsSkating } = payload;
+
+  const result = await Personalization.findOneAndUpdate(
     { user: userId },
-    { isCompleted: true },
+    {
+      $set: {
+        ...(interests && { interests }),
+        ...(skillLevel && { skillLevel }),
+        ...(yearsSkating && { yearsSkating }),
+      },
+    },
+    {
+      new: true,
+      upsert: true,
+    }
+  );
+
+  return result;
+};
+ 
+
+
+
+
+const getPersonalizationByUser = async (userId: string) => {
+  const result = await Personalization.findOne({ user: userId })
+    .populate("user"); // user details আনবে
+
+  return result;
+};
+
+
+//full profile update  api 
+const updateProfileWithPersonalization = async (
+  userId: string,
+  payload: any,
+  image?: any
+) => {
+  const {
+    interests,
+    skillLevel,
+    yearsSkating,
+    isCompleted,
+    ...userFields
+  } = payload;
+
+  // 1️⃣ USER update (image included)
+  const updatedUser = await User.findByIdAndUpdate(
+    userId,
+    {
+      $set: {
+        ...userFields,
+        ...(image && { image }),
+      },
+    },
     { new: true }
   );
- 
-  if (!personalization) throw new Error("Personalization not found");
-  return personalization;
-};
- 
-// ─── 3. Get personalization — user er data dekhte ─────────────────────────
-const getPersonalization = async (userId: string) => {
-  const personalization = await Personalization.findOne({ user: userId });
-  return personalization || null;
-};
- 
-// ─── 4. Check completed — registration er por redirect korte ──────────────
-const isPersonalizationCompleted = async (userId: string) => {
-  const personalization = await Personalization.findOne({ user: userId });
+
+  // 2️⃣ PERSONALIZATION update
+  const updatedPersonalization = await Personalization.findOneAndUpdate(
+    { user: userId },
+    {
+      $set: {
+        ...(interests && { interests }),
+        ...(skillLevel && { skillLevel }),
+        ...(yearsSkating && { yearsSkating }),
+        ...(isCompleted !== undefined && { isCompleted }),
+      },
+    },
+    {
+      new: true,
+      upsert: true,
+    }
+  );
+
   return {
-    isCompleted: personalization?.isCompleted || false,
-    hasStarted: !!personalization,
+    user: updatedUser,
+    personalization: updatedPersonalization,
   };
 };
- 
+
+
 export const personalizationService = {
   savePersonalization,
-  completePersonalization,
-  getPersonalization,
-  isPersonalizationCompleted,
+ getPersonalizationByUser,
+  updatePersonalizationkk,
+  updateProfileWithPersonalization,
 };

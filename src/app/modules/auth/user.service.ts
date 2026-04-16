@@ -577,6 +577,38 @@ export const verifyOtpAndResetPassword = catchAsync(async (req, res) => {
   });
 });
 
+
+
+
+
+
+
+
+export const changeLanguage = catchAsync(async (req, res) => {
+  const userId = req.user.id;
+  const { language } = req.body;
+
+  if (!language) {
+    throw new AppError(400, "Language is required");
+  }
+
+  if (!["en", "ar"].includes(language)) {
+    throw new AppError(400, "Invalid language");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { language },
+    { new: true }
+  );
+
+  res.status(200).json({
+    success: true,
+    message: "Language updated successfully",
+    data: user,
+  });
+});
+
 export const authServices = {
   register,
 
@@ -586,9 +618,10 @@ export const authServices = {
   verifyOtpAndResetPassword,
 
   userVerifyOtp,
-  // sendVerificationCode,
+  sendVerificationCode,
   changePassword,
   forgotPassword,
   resetPassword,
   refreshToken,
+  changeLanguage,
 };

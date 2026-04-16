@@ -4,7 +4,7 @@ import validateRequest from "../../middleware/validateRequest";
 import { USER_ROLE } from "../user/user.constant";
 import { authValidation } from "./auth.validation"; 
 import { authControllers } from "./user.controller";
-import { authServices } from "./user.service";
+import { authServices, changeLanguage } from "./user.service";
 
 
 
@@ -30,6 +30,9 @@ router.patch('/reset-password', authControllers.resetPassword);
 router.post('/send-otp',validateRequest(authValidation.requestOtpZodSchema), authControllers.sendOtp,);
 router.post('/verify-otp',validateRequest(authValidation.verifyEmailZodSchemar), authControllers.verifyOtpOnly,);
 router.patch('/forget-password', authServices.verifyOtpAndResetPassword,);
+
+// Language change route
+router.patch('/change-language', auth(USER_ROLE.USER,), changeLanguage);
 
 
 

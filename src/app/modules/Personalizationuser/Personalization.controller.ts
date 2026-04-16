@@ -4,6 +4,9 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { personalizationService } from "./Personalization.service";
+import { uploadToS3 } from "../../utils/fileHelper";
+
+
 
  
  
@@ -22,50 +25,93 @@ const savePersonalization = catchAsync(async (req: Request, res: Response) => {
 });
  
  
-const completePersonalization = catchAsync(
-  async (req: Request, res: Response) => {
-    const result = await personalizationService.completePersonalization(
-      req.user._id
-    );
-    sendResponse(res, {
-      statusCode: 200,
-      success: true,
-      message: "Personalization completed",
-      data: result,
-    });
-  }
-);
  
  
-const getPersonalization = catchAsync(async (req: Request, res: Response) => {
-  const result = await personalizationService.getPersonalization(req.user._id);
+
+ 
+
+
+
+
+
+
+const updatePersonalization = catchAsync(async (req: Request, res: Response) => {
+  const { interests, skillLevel, yearsSkating } = req.body;
+
+  const result = await personalizationService.savePersonalization(
+    req.user._id,
+    { interests, skillLevel, yearsSkating }
+  );
+
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Personalization fetched",
+    message: "Personalization saved",
     data: result,
   });
 });
- 
- 
-const checkPersonalizationStatus = catchAsync(
-  async (req: Request, res: Response) => {
-    const result = await personalizationService.isPersonalizationCompleted(
-      req.user._id
-    );
-    sendResponse(res, {
-      statusCode: 200,
-      success: true,
-      message: "Personalization status fetched",
-      data: result,
-    });
+
+//GEL  Personalization er data dekhte ─────────────────────────
+
+const getPersonalization = catchAsync(async (req: Request, res: Response) => {
+  const result = await personalizationService.getPersonalizationByUser(
+    req.user._id
+  );
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Personalization fetched successfully",
+    data: result,
+  });
+});
+
+
+
+
+const updateProfile = catchAsync(async (req: Request, res: Response) => {
+  let image;
+
+  // 1️⃣ Upload image if provided
+  if (req.file) {
+    image = await uploadToS3(req.file, "profile/");
   }
-);
- 
- 
+
+  // 2️⃣ ONLY FROM TOKEN (SECURE)
+  const userId = req.user._id;
+
+  // 3️⃣ Build update data
+  const updateData: Record<string, any> = {
+    ...req.body,
+    ...(image && { image }),
+  };
+
+  // 4️⃣ Remove forbidden fields (security)
+  const forbiddenFields = ["role", "isVerified"];
+  forbiddenFields.forEach((key) => delete updateData[key]);
+
+  // 5️⃣ Call service (User + Personalization update)
+  const result =
+    await personalizationService.updateProfileWithPersonalization(
+      userId,
+      updateData,
+      image
+    );
+
+  // 6️⃣ Response
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Profile updated successfully",
+    data: result,
+  });
+});
+
+
 export const personalizationController = {
   savePersonalization,
-  completePersonalization,
   getPersonalization,
-  checkPersonalizationStatus,
+  updatePersonalization,
+  updateProfile,
+
 };

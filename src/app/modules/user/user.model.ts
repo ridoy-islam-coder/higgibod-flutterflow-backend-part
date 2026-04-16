@@ -76,6 +76,13 @@ const UserSchema = new Schema<TUser, UserModel>(
     passwordChangedAt: {
       type: Date,
     },
+    
+    language: {
+      type: String,
+      enum: ["en", "ar"],
+      default: "en",
+    },
+
     accountType: {
       type: String,
       enum: ['emailvarifi', 'google', 'facebook', 'linkedin', 'apple'],

@@ -40,7 +40,7 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
   }
 
   // Check role
-  const isAdmin = req.user.role === 'agencies' || req.user.role === 'influencer';
+  const isAdmin = req.user.role === 'USER' || req.user.role === 'influencer';
 
   // User can update own profile, admin can update others
   const userIdToUpdate =

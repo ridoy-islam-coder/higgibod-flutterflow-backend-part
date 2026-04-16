@@ -358,6 +358,4 @@ addReviewService,
   getUpcomingEvents,
   getPreviousEvents,
 
-
-
 };
