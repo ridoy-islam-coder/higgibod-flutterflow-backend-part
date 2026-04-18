@@ -21,7 +21,7 @@ router.post('/appleLogin', authControllers.appleLogin);
 router.post('/codeVerification', authControllers.codeVerification,);
 router.post('/userVerifyOtp', authControllers.verifyOtpController,);
 
-router.patch('/change-password',auth(USER_ROLE.USER, USER_ROLE.influencer),authControllers.changePassword,);
+router.patch('/change-password',auth(USER_ROLE.USER, USER_ROLE.MARCHANT),authControllers.changePassword,);
 router.patch('/reset-password', authControllers.resetPassword);
 
 

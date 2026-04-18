@@ -1,16 +1,12 @@
 import { Router } from 'express';
-import { getInstagramProfileController, getTikTokProfileController, getYoutubeChannelDataController } from './social.controller';
+import { AuthControllers } from './social.controller';
 
 
 
 const router = Router();
-
-
-router.get("/youtube/:username",getYoutubeChannelDataController);
-
-router.get("/tiktok/:username", getTikTokProfileController);
-
-router.get("/instagram/:username", getInstagramProfileController);
+// POST /api/v1/auth/register  ← User + SocialLink একসাথে save
+router.post('/register', AuthControllers.register);
+ 
 
 
 export const sosaleMediaRoutes = router;

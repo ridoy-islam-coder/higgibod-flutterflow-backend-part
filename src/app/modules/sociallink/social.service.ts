@@ -1,216 +1,158 @@
+import AppError from "../../error/AppError";
+import httpStatus from 'http-status';
+import User from "../user/user.model";
+import SocialLink from "./soscial.model";
+import { createToken } from "../auth/auth.utils";
+import config from "../../config";
 
-// social.service.ts
-import axios from "axios";
-import puppeteer from "puppeteer";
-const YOUTUBE_API_KEY = "AIzaSyAMLTu3H38-hb9jnUREr28YNB5KeHI4eyA";
+const register = async (payload: {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  role: string;
+  country?: string;
+  phoneNumber?: string;
+  howDidYouHear?: string;
+  subscribeToEmails?: boolean;
+  termsAccepted: boolean;
 
+  shopName?: string;
+  shopLink?: string;
+  facebook?: string;
+  instagram?: string;
+  linkedin?: string;
+  twitter?: string;
+  youtube?: string;
+  tiktok?: string;
+  website?: string;
+}) => {
+  const {
+    fullName,
+    email,
+    password,
+    confirmPassword,
+    role,
+    country,
+    phoneNumber,
+    howDidYouHear,
+    subscribeToEmails,
+    termsAccepted,
 
-export const getYoutubeChannelDataService = async (username: string) => {
-  const clean = username.replace(/^@/, "");
+    shopName,
+    shopLink,
+    facebook,
+    instagram,
+    linkedin,
+    twitter,
+    youtube,
+    tiktok,
+    website,
+  } = payload;
 
-  let channel: any = null;
-
-  // 1️⃣ TRY OFFICIAL forHandle (NEW SYSTEM)
-  try {
-    const handleRes = await axios.get(
-      "https://www.googleapis.com/youtube/v3/channels",
-      {
-        params: {
-          part: "snippet,statistics",
-          forHandle: clean,
-          key: YOUTUBE_API_KEY
-        }
-      }
+  // ── Validations ─────────────────────────────────
+  if (!termsAccepted) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'You must accept the Terms and Conditions.',
     );
-
-    if (handleRes.data.items && handleRes.data.items.length > 0) {
-      channel = handleRes.data.items[0];
-    }
-  } catch (err) {
-    // ignore, fallback below
   }
 
-  // 2️⃣ FALLBACK: Search channel
-  if (!channel) {
-    const searchRes = await axios.get(
-      "https://www.googleapis.com/youtube/v3/search",
-      {
-        params: {
-          part: "snippet",
-          q: clean,
-          type: "channel",
-          maxResults: 1,
-          key: YOUTUBE_API_KEY
-        }
-      }
+  if (password !== confirmPassword) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Passwords do not match.',
     );
-
-    if (!searchRes.data.items || searchRes.data.items.length === 0) {
-      throw new Error("CHANNEL_NOT_FOUND");
-    }
-
-    const channelId = searchRes.data.items[0].id.channelId;
-
-    const channelRes = await axios.get(
-      "https://www.googleapis.com/youtube/v3/channels",
-      {
-        params: {
-          part: "snippet,statistics",
-          id: channelId,
-          key: YOUTUBE_API_KEY
-        }
-      }
-    );
-
-    if (!channelRes.data.items || channelRes.data.items.length === 0) {
-      throw new Error("CHANNEL_NOT_FOUND");
-    }
-
-    channel = channelRes.data.items[0];
   }
 
-  // 🛑 Safety
-  if (!channel) {
-    throw new Error("CHANNEL_NOT_FOUND");
+  if (password.length < 6) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Password must be at least 6 characters long.',
+    );
   }
 
-  // 3️⃣ FETCH VIDEOS (SAFE METHOD)
-  const videoRes = await axios.get(
-    "https://www.googleapis.com/youtube/v3/search",
-    {
-      params: {
-        part: "snippet",
-        channelId: channel.id,
-        type: "video",
-        order: "date",
-        maxResults: 10,
-        key: YOUTUBE_API_KEY
-      }
+  // ── Duplicate check ─────────────────────────────
+  const existingEmail = await User.findOne({ email });
+  if (existingEmail) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      'An account with this email already exists.',
+    );
+  }
+
+  if (phoneNumber) {
+    const existingPhone = await User.findOne({ phoneNumber });
+    if (existingPhone) {
+      throw new AppError(
+        httpStatus.CONFLICT,
+        'An account with this phone number already exists.',
+      );
     }
+  }
+
+  // ── PART 1: Create User ─────────────────────────
+  const user = await User.create({
+    fullName,
+    email,
+    password,
+    role,
+    country: country || undefined,
+    phoneNumber: phoneNumber || undefined,
+    howDidYouHear: howDidYouHear || '',
+    subscribeToEmails: subscribeToEmails ?? false,
+    termsAccepted,
+    accountType: 'emailvarifi',
+    isVerified: false,
+    isActive: true,
+    needsPasswordChange: false,
+  });
+
+  // ── PART 2: Create SocialLink (if provided) ─────
+  const hasSocialData =
+    shopName || shopLink || facebook || instagram ||
+    linkedin || twitter || youtube || tiktok || website;
+
+  if (hasSocialData) {
+    await SocialLink.create({
+      user: user._id,
+      shopName: shopName || '',
+      shopLink: shopLink || '',
+      facebook: facebook || '',
+      instagram: instagram || '',
+      linkedin: linkedin || '',
+      twitter: twitter || '',
+      youtube: youtube || '',
+      tiktok: tiktok || '',
+      website: website || '',
+    });
+  }
+
+  // ── Generate Token ──────────────────────────────
+  const jwtPayload = {
+    userId: user?._id.toString(),
+    role: user?.role,
+  };
+
+  const accessToken = createToken(
+    jwtPayload,
+    config.jwt.jwt_access_secret as string,
+    config.jwt.jwt_access_expires_in as string,
   );
 
   return {
-    channel: {
-      id: channel.id,
-      title: channel.snippet.title,
-      description: channel.snippet.description,
-      subscribers: channel.statistics.subscriberCount,
-      views: channel.statistics.viewCount,
-      videos: channel.statistics.videoCount,
-      thumbnail: channel.snippet.thumbnails.high.url
+    accessToken,
+    user: {
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      isVerified: user.isVerified,
     },
-    videos: videoRes.data.items.map((item: any) => ({
-      videoId: item.id.videoId,
-      title: item.snippet.title,
-      thumbnail: item.snippet.thumbnails.high.url,
-      publishedAt: item.snippet.publishedAt
-    }))
   };
 };
 
+export const authServices = {
+  register,
 
-export const getTikTokProfileWithStats = async (username: string) => {
-  const clean = username.replace(/^@/, "");
-
-  const browser = await puppeteer.launch({
-    headless: true,
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
-
-  try {
-    const page = await browser.newPage();
-
-    await page.setUserAgent(
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120 Safari/537.36"
-    );
-
-    await page.goto(`https://www.tiktok.com/@${clean}`, {
-      waitUntil: "networkidle2",
-      timeout: 60000,
-    });
-
-    await page.waitForSelector("script#__UNIVERSAL_DATA_FOR_REHYDRATION__", {
-      timeout: 30000,
-    });
-
-    const json = await page.$eval(
-      "script#__UNIVERSAL_DATA_FOR_REHYDRATION__",
-      (el) => el.textContent
-    );
-
-    if (!json) throw new Error("PROFILE_NOT_FOUND");
-
-    const data: any = JSON.parse(json);
-
-    const user =
-      data.__DEFAULT_SCOPE__?.["webapp.user-detail"]?.userInfo?.user;
-
-    const stats =
-      data.__DEFAULT_SCOPE__?.["webapp.user-detail"]?.userInfo?.stats;
-
-    const itemList =
-      data.__DEFAULT_SCOPE__?.["webapp.user-detail"]?.itemList || [];
-
-    if (!user || !stats) throw new Error("PROFILE_DATA_MISSING");
-
-    const videos = itemList.slice(0, 10).map((item: any) => ({
-      videoId: item.id,
-      title: item.desc,
-      thumbnail: item.video?.cover,
-      publishedAt: item.createTime
-        ? new Date(item.createTime * 1000).toISOString()
-        : null,
-    }));
-
-    return {
-      username: clean,
-      nickname: user.nickname,
-      followers: stats.followerCount,
-      following: stats.followingCount,
-      likes: stats.heartCount,
-      totalVideos: stats.videoCount,
-      profileUrl: `https://www.tiktok.com/@${clean}`,
-      videos,
-    };
-  } catch (error: any) {
-    console.error("TikTok Puppeteer error:", error.message);
-    throw new Error("TIKTOK_PROFILE_NOT_FOUND");
-  } finally {
-    await browser.close();
-  }
-};
-
-
-
-
-
-const IG_USER_ID = process.env.IG_USER_ID!;
-const ACCESS_TOKEN = process.env.INSTAGRAM_ACCESS_TOKEN!;
-
-export const getInstagramProfileService = async () => {
-  try {
-    const res = await axios.get(
-      `https://graph.facebook.com/v19.0/${IG_USER_ID}`,
-      {
-        params: {
-          fields:
-            "username,name,followers_count,follows_count,media_count,profile_picture_url",
-          access_token: ACCESS_TOKEN,
-        },
-      }
-    );
-
-    return {
-      username: res.data.username,
-      name: res.data.name,
-      followers: res.data.followers_count,
-      following: res.data.follows_count,
-      totalPosts: res.data.media_count,
-      profilePic: res.data.profile_picture_url,
-      profileUrl: `https://www.instagram.com/${res.data.username}/`,
-    };
-  } catch (error: any) {
-    console.error("Instagram Graph API error:", error.response?.data);
-    throw new Error("INSTAGRAM_PROFILE_NOT_FOUND");
-  }
 };
