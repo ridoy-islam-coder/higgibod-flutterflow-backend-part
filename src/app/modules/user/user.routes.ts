@@ -86,7 +86,7 @@ router.get(
 
 router.delete(
   '/delete-account',
-  auth(USER_ROLE.USER, USER_ROLE.influencer, USER_ROLE.admin),
+  auth(USER_ROLE.USER, USER_ROLE.MARCHANT),
   validateRequest(authValidation.deleteAccountZodSchema),
   userControllers.deleteAccount,
 );

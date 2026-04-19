@@ -8,7 +8,7 @@ import upload from '../../middleware/fileUpload';
 
 const router = Router();
 // POST /api/v1/auth/register  ← User + SocialLink একসাথে save
-router.post('/register', socialControllers.register);
+router.post('/register',  upload.single('image'),  socialControllers.register);
 router.put('/profile', socialControllers.updateProfile);
 router.patch('/update-profile',auth(USER_ROLE.USER,USER_ROLE.MARCHANT), upload.fields([{ name: 'profileImage', maxCount: 1 },{ name: 'coverImage', maxCount: 1 },]),socialControllers.updateProfile,);
 

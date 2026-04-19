@@ -6,16 +6,16 @@ import sendResponse from "../../utils/sendResponse";
 import { sosalServices } from "./social.service";
 
 // Register + Merchant Profile একসাথে
-const register = catchAsync(async (req: Request, res: Response) => {
-  const result = await sosalServices.register(req.body);
-    console.log("🚀 ~ file: social.controller.ts:17 ~ register ~ result:", result)
-  sendResponse(res, {
-    statusCode: httpStatus.CREATED,
-    success: true,
-    message: 'Registration completed successfully.',
-    data: result,
-  });
-});
+// const register = catchAsync(async (req: Request, res: Response) => {
+//   const result = await sosalServices.register(req.body);
+//     console.log("🚀 ~ file: social.controller.ts:17 ~ register ~ result:", result)
+//   sendResponse(res, {
+//     statusCode: httpStatus.CREATED,
+//     success: true,
+//     message: 'Registration completed successfully.',
+//     data: result,
+//   });
+// });
  
 // Login
 // const login = catchAsync(async (req: Request, res: Response) => {
@@ -58,6 +58,51 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+
+
+
+
+
+
+
+export const register = catchAsync(async (req: Request, res: Response) => {
+
+
+  //  Service call (ALL DATA + IMAGE)
+  const result = await sosalServices.register({
+    ...req.body,
+
+    // 🔥 image file
+    file: req.file,
+
+    // 🔥 social fields explicitly (optional but safe)
+    shopName: req.body.shopName,
+    shopLink: req.body.shopLink,
+    facebook: req.body.facebook,
+    instagram: req.body.instagram,
+    linkedin: req.body.linkedin,
+    twitter: req.body.twitter,
+    youtube: req.body.youtube,
+    tiktok: req.body.tiktok,
+    website: req.body.website,
+  });
+
+  //  Response
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Registration completed successfully.',
+    data: result,
+  });
+});
+
+
+
+
+
+
+
 
  
 export const socialControllers = {

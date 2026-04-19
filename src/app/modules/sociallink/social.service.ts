@@ -8,155 +8,155 @@ import { deleteFromS3, deleteManyFromS3, uploadToS3 } from "../../utils/fileHelp
 import mongoose from "mongoose";
 import { JwtPayload } from "jsonwebtoken";
 
-const register = async (payload: {
-  fullName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  role: string;
-  country?: string;
-  phoneNumber?: string;
-  howDidYouHear?: string;
-  subscribeToEmails?: boolean;
-  termsAccepted: boolean;
+// const register = async (payload: {
+//   fullName: string;
+//   email: string;
+//   password: string;
+//   confirmPassword: string;
+//   role: string;
+//   country?: string;
+//   phoneNumber?: string;
+//   howDidYouHear?: string;
+//   subscribeToEmails?: boolean;
+//   termsAccepted: boolean;
 
-  shopName?: string;
-  shopLink?: string;
-  facebook?: string;
-  instagram?: string;
-  linkedin?: string;
-  twitter?: string;
-  youtube?: string;
-  tiktok?: string;
-  website?: string;
-}) => {
-  const {
-    fullName,
-    email,
-    password,
-    confirmPassword,
-    role,
-    country,
-    phoneNumber,
-    howDidYouHear,
-    subscribeToEmails,
-    termsAccepted,
+//   shopName?: string;
+//   shopLink?: string;
+//   facebook?: string;
+//   instagram?: string;
+//   linkedin?: string;
+//   twitter?: string;
+//   youtube?: string;
+//   tiktok?: string;
+//   website?: string;
+// }) => {
+//   const {
+//     fullName,
+//     email,
+//     password,
+//     confirmPassword,
+//     role,
+//     country,
+//     phoneNumber,
+//     howDidYouHear,
+//     subscribeToEmails,
+//     termsAccepted,
 
-    shopName,
-    shopLink,
-    facebook,
-    instagram,
-    linkedin,
-    twitter,
-    youtube,
-    tiktok,
-    website,
-  } = payload;
+//     shopName,
+//     shopLink,
+//     facebook,
+//     instagram,
+//     linkedin,
+//     twitter,
+//     youtube,
+//     tiktok,
+//     website,
+//   } = payload;
 
-  // ── Validations ─────────────────────────────────
-  if (!termsAccepted) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'You must accept the Terms and Conditions.',
-    );
-  }
+//   // ── Validations ─────────────────────────────────
+//   if (!termsAccepted) {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       'You must accept the Terms and Conditions.',
+//     );
+//   }
 
-  if (password !== confirmPassword) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'Passwords do not match.',
-    );
-  }
+//   if (password !== confirmPassword) {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       'Passwords do not match.',
+//     );
+//   }
 
-  if (password.length < 6) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'Password must be at least 6 characters long.',
-    );
-  }
+//   if (password.length < 6) {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       'Password must be at least 6 characters long.',
+//     );
+//   }
 
-  // ── Duplicate check ─────────────────────────────
-  const existingEmail = await User.findOne({ email });
-  if (existingEmail) {
-    throw new AppError(
-      httpStatus.CONFLICT,
-      'An account with this email already exists.',
-    );
-  }
+//   // ── Duplicate check ─────────────────────────────
+//   const existingEmail = await User.findOne({ email });
+//   if (existingEmail) {
+//     throw new AppError(
+//       httpStatus.CONFLICT,
+//       'An account with this email already exists.',
+//     );
+//   }
 
-  if (phoneNumber) {
-    const existingPhone = await User.findOne({ phoneNumber });
-    if (existingPhone) {
-      throw new AppError(
-        httpStatus.CONFLICT,
-        'An account with this phone number already exists.',
-      );
-    }
-  }
+//   if (phoneNumber) {
+//     const existingPhone = await User.findOne({ phoneNumber });
+//     if (existingPhone) {
+//       throw new AppError(
+//         httpStatus.CONFLICT,
+//         'An account with this phone number already exists.',
+//       );
+//     }
+//   }
 
-  // ── PART 1: Create User ─────────────────────────
-  const user = await User.create({
-    fullName,
-    email,
-    password,
-    role,
-    country: country || undefined,
-    phoneNumber: phoneNumber || undefined,
-    howDidYouHear: howDidYouHear || '',
-    subscribeToEmails: subscribeToEmails ?? false,
-    termsAccepted,
-    accountType: 'emailvarifi',
-    isVerified: false,
-    isActive: true,
-    needsPasswordChange: false,
-  });
+//   // ── PART 1: Create User ─────────────────────────
+//   const user = await User.create({
+//     fullName,
+//     email,
+//     password,
+//     role,
+//     country: country || undefined,
+//     phoneNumber: phoneNumber || undefined,
+//     howDidYouHear: howDidYouHear || '',
+//     subscribeToEmails: subscribeToEmails ?? false,
+//     termsAccepted,
+//     accountType: 'emailvarifi',
+//     isVerified: false,
+//     isActive: true,
+//     needsPasswordChange: false,
+//   });
 
-  console.log("🚀 ~ file: social.controller.ts:122 ~ register ~ user:", user)
-  // ── PART 2: Create SocialLink (if provided) ─────
-  const hasSocialData =
-    shopName || shopLink || facebook || instagram ||
-    linkedin || twitter || youtube || tiktok || website;
+//   console.log("🚀 ~ file: social.controller.ts:122 ~ register ~ user:", user)
+//   // ── PART 2: Create SocialLink (if provided) ─────
+//   const hasSocialData =
+//     shopName || shopLink || facebook || instagram ||
+//     linkedin || twitter || youtube || tiktok || website;
 
-  if (hasSocialData) {
-    await SocialLink.create({
-      user: user._id,
-      shopName: shopName || '',
-      shopLink: shopLink || '',
-      facebook: facebook || '',
-      instagram: instagram || '',
-      linkedin: linkedin || '',
-      twitter: twitter || '',
-      youtube: youtube || '',
-      tiktok: tiktok || '',
-      website: website || '',
-    });
-  }
+//   if (hasSocialData) {
+//     await SocialLink.create({
+//       user: user._id,
+//       shopName: shopName || '',
+//       shopLink: shopLink || '',
+//       facebook: facebook || '',
+//       instagram: instagram || '',
+//       linkedin: linkedin || '',
+//       twitter: twitter || '',
+//       youtube: youtube || '',
+//       tiktok: tiktok || '',
+//       website: website || '',
+//     });
+//   }
 
-  console.log("🚀 ~ file: social.controller.ts:149 ~ register ~ user._id:", hasSocialData)
+//   console.log("🚀 ~ file: social.controller.ts:149 ~ register ~ user._id:", hasSocialData)
 
-  // ── Generate Token ──────────────────────────────
-  const jwtPayload = {
-    userId: user?._id.toString(),
-    role: user?.role,
-  };
+//   // ── Generate Token ──────────────────────────────
+//   const jwtPayload = {
+//     userId: user?._id.toString(),
+//     role: user?.role,
+//   };
 
-  const accessToken = createToken(
-    jwtPayload,
-    config.jwt.jwt_access_secret as string,
-    config.jwt.jwt_access_expires_in as string,
-  );
+//   const accessToken = createToken(
+//     jwtPayload,
+//     config.jwt.jwt_access_secret as string,
+//     config.jwt.jwt_access_expires_in as string,
+//   );
 
-  return {
-    accessToken,
-    user: {
-      _id: user._id,
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-      isVerified: user.isVerified,
-    },
-  };
-};
+//   return {
+//     accessToken,
+//     user: {
+//       _id: user._id,
+//       fullName: user.fullName,
+//       email: user.email,
+//       role: user.role,
+//       isVerified: user.isVerified,
+//     },
+//   };
+// };
 
 
 
@@ -282,6 +282,140 @@ const getProfile = async (user: JwtPayload) => {
 
 
 
+
+
+
+
+
+
+export const register = async (payload: any) => {
+  const {
+    fullName,
+    email,
+    password,
+    confirmPassword,
+    role,
+    country,
+    phoneNumber,
+    howDidYouHear,
+    subscribeToEmails,
+    termsAccepted,
+
+    // 🔥 social fields
+    shopName,
+    shopLink,
+    facebook,
+    instagram,
+    linkedin,
+    twitter,
+    youtube,
+    tiktok,
+    website,
+
+    file, // 👈 image
+  } = payload;
+
+  // ✅ Validations
+  if (!termsAccepted) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Accept terms first');
+  }
+
+  if (password !== confirmPassword) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Password not match');
+  }
+
+  if (password.length < 6) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Password too short');
+  }
+
+  // ✅ Duplicate check
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    throw new AppError(httpStatus.CONFLICT, 'Email already exists');
+  }
+
+  if (phoneNumber) {
+    const existingPhone = await User.findOne({ phoneNumber });
+    if (existingPhone) {
+      throw new AppError(httpStatus.CONFLICT, 'Phone already exists');
+    }
+  }
+
+  // ✅ Upload Image
+  let uploadedImage;
+  if (file) {
+    uploadedImage = await uploadToS3(file, 'user');
+  }
+
+  // ✅ Create User
+  const user = await User.create({
+    fullName,
+    email,
+    password,
+    role,
+    image: uploadedImage
+      ? {
+          id: uploadedImage.id,
+          url: uploadedImage.url,
+        }
+      : undefined,
+
+    country: country || undefined,
+    phoneNumber: phoneNumber || undefined,
+    howDidYouHear: howDidYouHear || '',
+    subscribeToEmails: subscribeToEmails ?? false,
+    termsAccepted,
+    accountType: 'emailvarifi',
+    isVerified: false,
+    isActive: true,
+    needsPasswordChange: false,
+  });
+
+  // ✅ Create Social Links (if any data exists)
+  const hasSocialData =
+    shopName || shopLink || facebook || instagram ||
+    linkedin || twitter || youtube || tiktok || website;
+
+  if (hasSocialData) {
+    await SocialLink.create({
+      user: user._id,
+      shopName: shopName || '',
+      shopLink: shopLink || '',
+      facebook: facebook || '',
+      instagram: instagram || '',
+      linkedin: linkedin || '',
+      twitter: twitter || '',
+      youtube: youtube || '',
+      tiktok: tiktok || '',
+      website: website || '',
+    });
+  }
+
+
+  // ── Generate Token ──────────────────────────────
+  const jwtPayload = {
+    userId: user?._id.toString(),
+    role: user?.role,
+  };
+
+  const accessToken = createToken(
+    jwtPayload,
+    config.jwt.jwt_access_secret as string,
+    config.jwt.jwt_access_expires_in as string,
+  );
+
+  return {
+    user: {
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      image: user.image,
+      isVerified: user.isVerified,
+    },
+    accessToken
+  };
+};
 
 
 
