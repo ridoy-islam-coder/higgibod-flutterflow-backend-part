@@ -37,8 +37,12 @@ router.get("/products/:id/related", auth(USER_ROLE.USER), productController.getR
 
 
 
+// 📊 SUMMARY API (totalOrders, totalProducts, totalSales)
+router.get("/summary",  auth(USER_ROLE.USER), productController.getDashboardSummary);
 
 
+// 📈 MONTHLY EARNINGS API
+router.get("/monthly", auth(USER_ROLE.USER), productController.getMonthlyEarnings);
 
 
 

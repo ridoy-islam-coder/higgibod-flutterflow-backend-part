@@ -135,6 +135,35 @@ const getCategories = catchAsync(async (req, res) => {
   });
 });
  
+//dasbord extra features end here
+
+
+// 📊 GET DASHBOARD DATA (SUMMARY + MONTHLY)
+export const getDashboardSummary = catchAsync(async (req, res) => {
+  const result = await productServices.getDashboardSummaryService(req);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Dashboard summary fetched successfully",
+    data: result,
+  });
+});
+
+
+
+
+export const getMonthlyEarnings = catchAsync(async (req, res) => {
+  const result = await productServices.getMonthlyEarningsService(req);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Monthly earnings fetched successfully",
+    data: result,
+  });
+});
+
 
 
 export const productController = {
@@ -149,4 +178,6 @@ export const productController = {
    getFeatured,
    getRelated,
    getCategories,
+  getDashboardSummary,
+  getMonthlyEarnings,
 };

@@ -1,12 +1,17 @@
 import { Router } from 'express';
-import { AuthControllers } from './social.controller';
+import {  socialControllers } from './social.controller';
+import { USER_ROLE } from '../user/user.constant';
+import auth from '../../middleware/auth.middleware';
+import upload from '../../middleware/fileUpload';
 
 
 
 const router = Router();
 // POST /api/v1/auth/register  ← User + SocialLink একসাথে save
-router.post('/register', AuthControllers.register);
- 
+router.post('/register', socialControllers.register);
+router.put('/profile', socialControllers.updateProfile);
+router.patch('/update-profile',auth(USER_ROLE.USER,USER_ROLE.MARCHANT), upload.fields([{ name: 'profileImage', maxCount: 1 },{ name: 'coverImage', maxCount: 1 },]),socialControllers.updateProfile,);
 
+router.get('/profile',auth(USER_ROLE.USER,USER_ROLE.MARCHANT),socialControllers.getProfile,);
 
 export const sosaleMediaRoutes = router;

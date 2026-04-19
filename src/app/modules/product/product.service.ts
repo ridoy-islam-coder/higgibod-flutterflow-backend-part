@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import AppError from "../../error/AppError";
+import { Order } from "../userOrder/userOrder.model";
 import { Product } from "./product.model";
 
 
@@ -228,6 +230,83 @@ const getProductCategories = async () => {
 };
 
 
+
+
+
+// 📊 DASHBOARD SERVICE
+// 📊 SUMMARY SERVICE
+export const getDashboardSummaryService = async (req: any) => {
+  const adminId = req.user.id;
+
+  const totalProducts = await Product.countDocuments({
+    host: adminId,
+  });
+
+  const orders = await Order.find();
+
+  let totalOrders = 0;
+  let totalSales = 0;
+
+  for (const order of orders) {
+    let isAdminOrder = false;
+
+    for (const item of order.items) {
+      const product = await Product.findById(item.product);
+
+      if (product && product.host.toString() === adminId) {
+        isAdminOrder = true;
+
+        totalSales += item.price * item.quantity;
+      }
+    }
+
+    if (isAdminOrder) {
+      totalOrders++;
+    }
+  }
+
+  return {
+    totalOrders,
+    totalProducts,
+    totalSales,
+  };
+};
+
+
+export const getMonthlyEarningsService = async (req: any) => {
+  const adminId = req.user?.id;
+
+  const orders = await Order.find()
+    .populate("items.product", "host price quantity");
+
+  const monthlyMap: Record<number, number> = {};
+
+  orders.forEach((order: any) => {
+    const adminItems = order.items.filter(
+      (item: any) =>
+        item.product?.host?.toString() === adminId
+    );
+
+    if (adminItems.length > 0) {
+      const month = new Date(order.createdAt).getMonth() + 1;
+
+      let total = 0;
+
+      adminItems.forEach((item: any) => {
+        total += item.price * item.quantity;
+      });
+
+      monthlyMap[month] = (monthlyMap[month] || 0) + total;
+    }
+  });
+
+  return Object.keys(monthlyMap).map((m) => ({
+    month: Number(m),
+    total: monthlyMap[Number(m)],
+  }));
+};
+
+
 export const productServices = {
     getAllProductsService,
     getProductDetailsService,
@@ -240,4 +319,6 @@ export const productServices = {
   getFeaturedProducts,
   getRelatedProducts,
   getProductCategories,
+  getDashboardSummaryService,
+  getMonthlyEarningsService,
 };

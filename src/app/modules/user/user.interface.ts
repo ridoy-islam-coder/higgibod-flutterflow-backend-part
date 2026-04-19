@@ -43,6 +43,10 @@ export interface TUser {
   isDeleted: boolean;
   verification: Verification;
   language: string;
+    coverImage?: {       // 👈 এটা add koro
+    id: string;
+    url: string;
+  };
   accountType?: 'emailvarifi' | 'google' | 'facebook' | 'linkedin' | 'apple';
   country: string;
   fcmToken?: string;

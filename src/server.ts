@@ -11,7 +11,7 @@ const startServer = async () => {
     await mongoose.connect(config.database_url as string);
     console.log('Database connected');
 
-    app.listen(port, () => {
+    app.listen(port, "0.0.0.0", () => {
      startupLogger(Number(port));
     });
   } catch (err) {

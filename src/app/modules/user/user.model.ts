@@ -119,12 +119,15 @@ const UserSchema = new Schema<TUser, UserModel>(
       expiresAt: Date,
       status: {
         type: String,
-        enum: ['active', 'expired', 'cancelled'],
-        default: 'active',
+         enum: ['active', 'expired', 'cancelled', 'none'],
+         default: 'none',
       },
     },
 
-
+   coverImage: {       
+      type: imageSchema,
+      required: false,
+    },
 
 
 
