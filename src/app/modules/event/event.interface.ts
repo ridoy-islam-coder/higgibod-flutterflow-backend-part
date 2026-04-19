@@ -16,13 +16,19 @@ export interface IReview {
   updatedAt?: Date;
 }
 
+export interface ILocation {
+  type: "Point";
+  coordinates: [longitude: number, latitude: number]; // [lng, lat]
+}
+
+
 export interface IEvent {
   _id?: Types.ObjectId;
   title: string;
   category?: string;
   date: Date;
   time?: string;
-  location?: string;
+  location?: ILocation;
   description?: string;
   price?: number;
   coverImage?: { id: string; url: string };

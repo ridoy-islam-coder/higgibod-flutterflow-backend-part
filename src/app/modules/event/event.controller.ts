@@ -8,17 +8,18 @@ import { eventServices } from "./event.service";
 import httpStatus  from 'http-status';
 
 
-export const createEvent = catchAsync(async (req , res) => {
+
+
+
+export const createEvent = catchAsync(async (req, res) => {
   let coverImage;
   let gallery: { id: string; url: string }[] = [];
 
-  // ✅ cover image upload
   if (req.files && (req.files as any).coverImage) {
     const coverFile = (req.files as any).coverImage[0];
     coverImage = await uploadToS3(coverFile, 'events/cover');
   }
 
-  // ✅ gallery images upload
   if (req.files && (req.files as any).gallery) {
     const galleryFiles = (req.files as any).gallery;
     gallery = await uploadManyToS3(
@@ -29,7 +30,12 @@ export const createEvent = catchAsync(async (req , res) => {
     );
   }
 
-  const result = await eventServices.createEventService(req, coverImage, gallery);
+  const result = await eventServices.createEventService(
+    req.body,
+    req.user,
+    coverImage,
+    gallery
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
@@ -38,7 +44,6 @@ export const createEvent = catchAsync(async (req , res) => {
     data: result,
   });
 });
-
 
 
 

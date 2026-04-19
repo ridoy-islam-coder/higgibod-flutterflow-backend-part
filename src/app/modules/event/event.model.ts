@@ -39,7 +39,20 @@ const eventSchema = new Schema<IEvent>(
     category: { type: String, default: "" },
     date: { type: Date, required: true },
     time: { type: String, default: "" },
-    location: { type: String, default: "" },
+    // location: { type: String, default: "" },
+
+    location: {
+     type: {
+       type: String,
+      enum: ['Point'],
+    // default: 'Point'
+     },
+     coordinates: {
+      type: [Number],
+    
+    },
+  },
+
     description: { type: String, default: "" },
     price: { type: Number, default: 0 },
     coverImage: {
@@ -68,6 +81,8 @@ const eventSchema = new Schema<IEvent>(
   }
 );
 
+
+eventSchema.index({ location: "2dsphere" });
 // filter deleted events automatically
 eventSchema.pre("find", function (next) {
   this.find({ isDeleted: { $ne: true } });

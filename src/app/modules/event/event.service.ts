@@ -3,25 +3,41 @@ import { deleteManyFromS3, uploadToS3 } from "../../utils/fileHelper";
 import { Event } from "./event.model";
 
 
-// event.create
+
+
 export const createEventService = async (
-  req: any,
+  body: any,
+  user: any,
   coverImage?: { id: string; url: string },
   gallery?: { id: string; url: string }[]
 ) => {
-  const userId = req.user?.id;
   const {
     title,
     category,
     date,
     time,
-    location,
     description,
     price,
-  } = req.body;
+
+    longitude,
+    latitude,
+  } = body;
 
   if (!title || !date) {
     throw new AppError(400, 'Title and date are required');
+  }
+
+  // ✅ Geo location build
+  let geoLocation;
+
+  if (longitude && latitude) {
+    geoLocation = {
+      type: "Point",
+      coordinates: [
+        parseFloat(longitude),
+        parseFloat(latitude),
+      ],
+    };
   }
 
   const event = await Event.create({
@@ -29,18 +45,16 @@ export const createEventService = async (
     category: category || "",
     date,
     time: time || "",
-    location: location || "",
+    location: geoLocation, // 🔥 HERE
     description: description || "",
     price: price || 0,
     coverImage: coverImage || { id: "", url: "" },
     gallery: gallery || [],
-    host: userId,
+    host: user?.id,
   });
 
   return event;
 };
-
-
 
 
 
