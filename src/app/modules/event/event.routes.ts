@@ -4,6 +4,7 @@ import { USER_ROLE } from "../user/user.constant";
 import upload from "../../middleware/fileUpload";
 import auth from "../../middleware/auth.middleware";
 import { eventcontroller } from "./event.controller";
+import { map } from "zod";
 
 
 const router = Router();
@@ -67,7 +68,11 @@ router.get("/events",auth(USER_ROLE.USER), eventcontroller.getEvents);   // GET 
 router.post("/create-review/:eventId", auth(USER_ROLE.USER), upload.fields([{ name: "image", maxCount: 1 }]), eventcontroller.addReviewadd);
 
 
+//map
+// GET /api/events/map-suggestions?address=Dhaka
+router.get("/map-suggestions", auth(USER_ROLE.USER), eventcontroller.getAutoSuggestions);
 
+router.get("/nearby-events", auth(USER_ROLE.USER), eventcontroller.getNearbyEventsController);
 
 
 export const eventRoutes = router;

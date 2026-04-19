@@ -11,6 +11,7 @@ export default {
      database_url: process.env.DATABASE_URL,
      node_env: process.env.NODE_ENV,
      port: process.env.PORT,
+     google_maps_api_key: process.env.GOOGLE_MAPS_API,
      
 
      bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,

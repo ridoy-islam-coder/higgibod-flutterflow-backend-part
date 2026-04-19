@@ -273,6 +273,54 @@ export const addReviewadd = catchAsync(async (req, res) => {
 
 
 
+
+
+
+
+export const getAutoSuggestions = catchAsync(
+  async (req , res) => {
+    const { address } = req.query;
+
+    const suggestions = await eventServices.getmapSuggestions(address as string);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Suggestions fetched successfully",
+      data: suggestions,
+    });
+  }
+);
+
+
+
+
+
+export const getNearbyEventsController = catchAsync(
+  async (req, res) => {
+    const { lat, lng, radius } = req.query;
+
+    console.log("Received coordinates:", { lat, lng, radius }); // Debug log
+
+    const events = await eventServices.getsearchEvents(
+      Number(lat),
+      Number(lng),
+      radius ? Number(radius) : 10
+    );
+    console.log("Nearby events:", events); // Debug log
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Nearby events fetched successfully",
+      data: events,
+    });
+  }
+);
+
+
+
+
 export const eventcontroller = {
 createEvent,
 getAllEvents,
@@ -290,5 +338,7 @@ addReview,
   getAllCategories,
   getEvents,
   addReviewadd,
+  getAutoSuggestions,
+  getNearbyEventsController,
 
 };

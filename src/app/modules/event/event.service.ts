@@ -1,6 +1,8 @@
+import axios from "axios";
 import AppError from "../../error/AppError";
 import { deleteManyFromS3, uploadToS3 } from "../../utils/fileHelper";
 import { Event } from "./event.model";
+import config from "../../config";
 
 
 
@@ -354,6 +356,94 @@ const getPreviousEvents = async () => {
 
 
 
+
+
+
+
+
+const GOOGLE_MAPS_API =config.google_maps_api_key;
+
+export const getmapSuggestions = async (address: string) => {
+  if (!address) {
+    throw new AppError(400, "Address is required");
+  }
+
+  if (!GOOGLE_MAPS_API) {
+    throw new AppError(500, "Google Maps API key not found");
+  }
+
+  const autoUrl = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(
+    address
+  )}&types=geocode&key=${GOOGLE_MAPS_API}`;
+
+  const autoResponse = await axios.get(autoUrl);
+
+  if (autoResponse.data.status !== "OK") {
+    throw new AppError(
+      400,
+      autoResponse.data.error_message || "Failed to fetch suggestions"
+    );
+  }
+
+  const predictions = autoResponse.data.predictions;
+
+
+  const results = await Promise.all(
+    predictions.map(async (place: any) => {
+      const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=geometry&key=${GOOGLE_MAPS_API}`;
+
+      const detailsResponse = await axios.get(detailsUrl);
+
+      const location = detailsResponse.data.result.geometry.location;
+
+      return {
+        address: place.description,
+        lat: location.lat,
+        lng: location.lng,
+      };
+    })
+  );
+
+  return results;
+};
+
+
+
+
+
+export const getsearchEvents = async (
+  latitude: number,
+  longitude: number,
+  radiusInKm: number = 10
+) => {
+  if (!latitude || !longitude) {
+    throw new Error("Latitude and Longitude required");
+  }
+
+  const radiusInMeters = radiusInKm * 1000;
+
+  const events = await Event.find({
+    location: {
+      $near: {
+        $geometry: {
+          type: "Point",
+          coordinates: [longitude, latitude], // ⚠️ IMPORTANT: [lng, lat]
+        },
+        $maxDistance: radiusInMeters,
+      },
+       
+    },
+  }) .limit(1); // 🔥 only 1 nearest event;
+
+
+  return events;
+};
+
+
+
+
+
+
 export const eventServices = {
 createEventService,
 getAllEventsService,
@@ -371,5 +461,7 @@ addReviewService,
   getAllCategories,
   getUpcomingEvents,
   getPreviousEvents,
+  getmapSuggestions,
+  getsearchEvents,
 
 };

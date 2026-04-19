@@ -12,6 +12,7 @@ import { personalizationRoutes } from '../modules/Personalizationuser/Personaliz
 import { wishlistRoutes } from '../modules/Wishlist/wishlist.routes';
 import { PlanRoutes } from '../modules/subPlan/subplan.routes';
 import { PaymentRoutes } from '../modules/subPayment/subpayment.routes';
+import { eventWishlistRoutes } from '../modules/Eventwishlist/wishlist.routes';
 
 
 
@@ -74,7 +75,10 @@ const moduleRoutes = [
     path: '/subscription',
     route: PaymentRoutes,
   },
-  
+   {
+    path: '/eventWishlist',
+    route: eventWishlistRoutes,
+  },
 
 
   
