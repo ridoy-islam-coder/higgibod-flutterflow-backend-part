@@ -12,8 +12,11 @@ const router = express.Router();
 router.post('/validate-promo', auth(UserRole.USER), PaymentController.validatePromo);
 router.post('/activate-trial', auth(UserRole.USER), PaymentController.activateTrial);
 
-router.post('/confirm', auth(UserRole.USER), PaymentController.confirmPayment);
+
 router.post('/create-checkout', auth(UserRole.USER), PaymentController.createCheckout);
+router.get('/cancel', auth(UserRole.USER), PaymentController.paymentCancel);
+router.get('/success',  PaymentController.paymentSuccess);
+
 
 // Stripe Webhook — raw body দরকার
 // router.post(
