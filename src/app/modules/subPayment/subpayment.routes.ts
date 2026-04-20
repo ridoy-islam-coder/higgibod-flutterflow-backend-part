@@ -14,7 +14,7 @@ router.post('/activate-trial', auth(UserRole.USER), PaymentController.activateTr
 
 
 router.post('/create-checkout', auth(UserRole.USER), PaymentController.createCheckout);
-router.get('/cancel', auth(UserRole.USER), PaymentController.paymentCancel);
+router.get('/cancel', PaymentController.paymentCancel);
 router.get('/success',  PaymentController.paymentSuccess);
 
 
