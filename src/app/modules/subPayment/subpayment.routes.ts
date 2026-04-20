@@ -1,13 +1,23 @@
+
+// src/modules/payment/payment.routes.ts
 import express from 'express';
-import { PaymentControllers } from './subpayment.controller';
-import { USER_ROLE } from '../user/user.constant';
+import { UserRole } from '../user/user.interface';
 import auth from '../../middleware/auth.middleware';
+import { PaymentController } from './subpayment.controller';
 
 const router = express.Router();
- 
-// ── Checkout & Payment ───────────────────────────────────────────────────────
-router.post('/checkout', auth(USER_ROLE.USER), PaymentControllers.checkout);
-router.post('/free-trial/start', auth(USER_ROLE.USER,USER_ROLE.MARCHANT), PaymentControllers.startFreeTrial);
-router.get('/history', auth(USER_ROLE.USER), PaymentControllers.getPaymentHistory);
- 
+
+// User routes (auth লাগবে)
+router.post('/validate-promo', auth(UserRole.USER), PaymentController.validatePromo);
+router.post('/activate-trial', auth(UserRole.USER), PaymentController.activateTrial);
+router.post('/create-intent', auth(UserRole.USER), PaymentController.createPaymentIntent);
+router.post('/confirm', auth(UserRole.USER), PaymentController.confirmPayment);
+
+// Stripe Webhook — raw body দরকার
+// router.post(
+//   '/webhook',
+//   express.raw({ type: 'application/json' }),
+//   PaymentController.stripeWebhook,
+// );
+
 export const PaymentRoutes = router;

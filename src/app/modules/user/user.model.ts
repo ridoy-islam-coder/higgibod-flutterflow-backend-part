@@ -110,19 +110,42 @@ const UserSchema = new Schema<TUser, UserModel>(
         default: false,
       },
    
-    subscription: {
-      plan: {
-        type: Schema.Types.ObjectId,
-        ref: 'Subscription',
-      },
-      startsAt: Date,
-      expiresAt: Date,
-      status: {
-        type: String,
-         enum: ['active', 'expired', 'cancelled', 'none'],
-         default: 'none',
-      },
-    },
+    // subscription: {
+    //   plan: {
+    //     type: Schema.Types.ObjectId,
+    //     ref: 'Subscription',
+    //   },
+    //   startsAt: Date,
+    //   expiresAt: Date,
+    //   status: {
+    //     type: String,
+    //      enum: ['active', 'expired', 'cancelled', 'none'],
+    //      default: 'none',
+    //   },
+    // },
+   
+
+  subscription: {
+  plan: {
+    type: Schema.Types.ObjectId,
+    ref: 'SubscriptionPlan',
+  },
+  stripeCustomerId: { type: String },
+  stripeSubscriptionId: { type: String },
+  startsAt: Date,
+  expiresAt: Date,
+  trialEndsAt: Date,        // ← নতুন
+  promoCodeUsed: {          // ← নতুন
+    type: Schema.Types.ObjectId,
+    ref: 'PromoCode',
+  },
+  status: {
+    type: String,
+    enum: ['active', 'trialing', 'expired', 'cancelled', 'none'],
+    default: 'none',
+  },
+},
+
 
    coverImage: {       
       type: imageSchema,

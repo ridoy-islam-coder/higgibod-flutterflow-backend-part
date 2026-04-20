@@ -1,54 +1,85 @@
+// src/modules/payment/payment.controller.ts
 import { Request, Response } from 'express';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
-
 import httpStatus from 'http-status';
-import { paymentServices } from './subpayment.service';
+import { PromoCodeService } from '../PromoCode/promocode.service';
+import { PaymentService } from './subpayment.service';
 
-// STEP 4b ─ Start Free Trial
-const startFreeTrial = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?.id;
 
-  const result = await paymentServices.startFreeTrial(userId);
-
+// Promo code validate করো (checkout এ apply বাটনে)
+const validatePromo = catchAsync(async (req: Request, res: Response) => {
+  const { code, planId } = req.body;
+  const result = await PromoCodeService.validatePromoCode(code, planId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: '30-day free trial started successfully.',
+    message: 'Promo code validated',
     data: result,
   });
 });
 
-// STEP 5 ─ Checkout
-const checkout = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?.id;
+// Free trial activate (promo = 100% free)
+const activateTrial = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user._id;
+  const { planId, promoCodeId, trialDays } = req.body;
 
-  const result = await paymentServices.checkout(userId, req.body);
-
+  const result = await PaymentService.activateFreeTrial(
+    userId, planId, promoCodeId, trialDays,
+  );
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Payment successful! Subscription activated.',
+    message: result.message,
     data: result,
   });
 });
 
-// Get Payment History
-const getPaymentHistory = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?.id;
+// Stripe Payment Intent তৈরি করো
+const createPaymentIntent = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user._id;
+  const { planId, promoCodeId } = req.body;
 
-  const result = await paymentServices.getPaymentHistory(userId);
-
+  const result = await PaymentService.createPaymentIntent(
+    userId, planId, promoCodeId,
+  );
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: 'Payment history retrieved successfully.',
+    message: 'Payment intent created',
     data: result,
   });
 });
 
-export const PaymentControllers = {
-  startFreeTrial,
-  checkout,
-  getPaymentHistory,
+// Payment confirm করো
+const confirmPayment = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user._id;
+  const { planId, paymentIntentId, promoCodeId } = req.body;
+
+  const result = await PaymentService.confirmPaymentAndActivate(
+    userId, planId, paymentIntentId, promoCodeId,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: result.message,
+    data: result,
+  });
+});
+
+
+
+// Stripe Webhook
+// const stripeWebhook = catchAsync(async (req: Request, res: Response) => {
+//   const signature = req.headers['stripe-signature'] as string;
+//   const result = await PaymentService.handleStripeWebhook(req.body, signature);
+//   res.json(result);
+// });
+
+export const PaymentController = {
+  validatePromo,
+  activateTrial,
+  createPaymentIntent,
+  confirmPayment,
+//   stripeWebhook,
 };

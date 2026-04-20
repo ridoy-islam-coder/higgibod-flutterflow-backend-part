@@ -1,77 +1,105 @@
-import { Request, Response } from "express";
-import httpStatus from "http-status";
-import catchAsync from "../../utils/catchAsync";
-import sendResponse from "../../utils/sendResponse";
-import { planServices } from "./subplan.service";
+// src/modules/subscription/subscriptionPlan.controller.ts
+import { Request, Response } from 'express';
+import catchAsync from '../../utils/catchAsync';
+import sendResponse from '../../utils/sendResponse';
+import httpStatus from 'http-status';
+import { SubscriptionPlanService } from './subplan.service';
 
 
-// Create
+// ─── Admin: Create Plan ──────────────────────────────────────────────────────
 const createPlan = catchAsync(async (req: Request, res: Response) => {
-  const result = await planServices.createPlan(req.body);
+  const result = await SubscriptionPlanService.createPlan(req.body);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "Plan created successfully.",
+    message: 'Subscription plan created successfully',
     data: result,
   });
 });
 
-// Get All
+// ─── Admin: Get All Plans ────────────────────────────────────────────────────
 const getAllPlans = catchAsync(async (req: Request, res: Response) => {
-  const result = await planServices.getAllPlans();
+  const result = await SubscriptionPlanService.getAllPlans();
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Plans retrieved successfully.",
+    message: 'All subscription plans retrieved successfully',
     data: result,
   });
 });
 
-// Get Single
+// ─── User + Admin: Get Active Plans ─────────────────────────────────────────
+const getActivePlans = catchAsync(async (req: Request, res: Response) => {
+  const result = await SubscriptionPlanService.getActivePlans();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Active subscription plans retrieved successfully',
+    data: result,
+  });
+});
+
+// ─── Admin: Get Single Plan ──────────────────────────────────────────────────
 const getSinglePlan = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const result = await planServices.getSinglePlan(id as string);
+  const result = await SubscriptionPlanService.getSinglePlan(id as any);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Plan retrieved successfully.",
+    message: 'Subscription plan retrieved successfully',
     data: result,
   });
 });
 
-// Update
+// ─── Admin: Update Plan ──────────────────────────────────────────────────────
 const updatePlan = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const result = await planServices.updatePlan(id as string, req.body);
+  const result = await SubscriptionPlanService.updatePlan(id as any, req.body);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Plan updated successfully.",
+    message: 'Subscription plan updated successfully',
     data: result,
   });
 });
 
-// Delete
+// ─── Admin: Toggle Active/Inactive ──────────────────────────────────────────
+const togglePlan = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await SubscriptionPlanService.togglePlan(id as any);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `Plan ${result.isActive ? 'activated' : 'deactivated'} successfully`,
+    data: result,
+  });
+});
+
+// ─── Admin: Delete Plan ──────────────────────────────────────────────────────
 const deletePlan = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const result = await planServices.deletePlan(id as string);
+  const result = await SubscriptionPlanService.deletePlan(id as any);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Plan deleted successfully.",
+    message: 'Subscription plan deleted successfully',
     data: result,
   });
 });
 
-export const planControllers = {
+export const SubscriptionPlanController = {
   createPlan,
   getAllPlans,
+  getActivePlans,
   getSinglePlan,
   updatePlan,
+  togglePlan,
   deletePlan,
 };
