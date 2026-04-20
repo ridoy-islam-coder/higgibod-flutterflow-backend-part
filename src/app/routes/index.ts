@@ -13,6 +13,7 @@ import { wishlistRoutes } from '../modules/Wishlist/wishlist.routes';
 import { PlanRoutes } from '../modules/subPlan/subplan.routes';
 import { PaymentRoutes } from '../modules/subPayment/subpayment.routes';
 import { eventWishlistRoutes } from '../modules/Eventwishlist/wishlist.routes';
+import { PromoCodeRoutes } from '../modules/PromoCode/promocode.routes';
 
 
 
@@ -79,7 +80,13 @@ const moduleRoutes = [
     path: '/eventWishlist',
     route: eventWishlistRoutes,
   },
+    {
+    path: '/promocode',
+    route: PromoCodeRoutes,
+  },
 
+
+  
 
   
   

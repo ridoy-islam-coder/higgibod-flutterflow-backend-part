@@ -10,11 +10,11 @@ const router = express.Router();
 router.post('/validate', auth(UserRole.USER), PromoCodeController.validatePromoCode);
 
 // ─── Admin Routes ────────────────────────────────────────────────────────────
-router.post('/', auth(UserRole.admin), PromoCodeController.createPromoCode);
-router.get('/', auth(UserRole.admin), PromoCodeController.getAllPromoCodes);
-router.get('/:id', auth(UserRole.admin), PromoCodeController.getSinglePromoCode);
-router.patch('/:id', auth(UserRole.admin), PromoCodeController.updatePromoCode);
-router.patch('/:id/toggle', auth(UserRole.admin), PromoCodeController.togglePromoCode);
-router.delete('/:id', auth(UserRole.admin), PromoCodeController.deletePromoCode);
+router.post('/create-promo-code', auth(UserRole.USER), PromoCodeController.createPromoCode);
+router.get('/promo-codes', auth(UserRole.admin), PromoCodeController.getAllPromoCodes);
+router.get('/promo-codes/:id', auth(UserRole.admin), PromoCodeController.getSinglePromoCode);
+router.patch('/promo-codes/:id', auth(UserRole.admin), PromoCodeController.updatePromoCode);
+router.patch('/promo-codes/:id/toggle', auth(UserRole.admin), PromoCodeController.togglePromoCode);
+router.delete('/promo-codes/:id', auth(UserRole.admin), PromoCodeController.deletePromoCode);
 
 export const PromoCodeRoutes = router;

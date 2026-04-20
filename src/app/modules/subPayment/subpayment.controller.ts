@@ -76,10 +76,47 @@ const confirmPayment = catchAsync(async (req: Request, res: Response) => {
 //   res.json(result);
 // });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// payment.controller.ts
+const createCheckout = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user._id.toString();
+  const { planId, promoCodeId } = req.body;
+
+  const result = await PaymentService.createCheckoutSession(
+    userId,
+    planId,
+    promoCodeId,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Checkout session created',
+    data: result,
+  });
+});
+
+
+
+
 export const PaymentController = {
   validatePromo,
   activateTrial,
   createPaymentIntent,
   confirmPayment,
 //   stripeWebhook,
+createCheckout,
 };

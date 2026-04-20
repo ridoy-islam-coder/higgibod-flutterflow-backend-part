@@ -656,6 +656,96 @@ export const userResetPassword = catchAsync(
 //   });
 // });
 
+
+
+
+
+
+
+
+
+// const loginUser = async (payload: { email: string; password: string }) => {
+//   const user = await User.isUserExist(payload.email);
+
+//   if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+//   if (user.isDeleted) throw new AppError(httpStatus.FORBIDDEN, 'User is deleted');
+//   if (!user.isActive) throw new AppError(httpStatus.FORBIDDEN, 'User is inactive');
+
+//   const isPasswordMatch = await User.isPasswordMatched(
+//     payload.password,
+//     user.password,
+//   );
+//   if (!isPasswordMatch)
+//     throw new AppError(httpStatus.UNAUTHORIZED, 'Incorrect password');
+
+//   // ─── Subscription Check ──────────────────────────────────────────
+//   const subStatus = user.subscription?.status;
+
+//   // Trial শেষ হয়েছে কিনা check
+//   if (subStatus === 'trialing' && user.subscription?.expiresAt) {
+//     if (new Date() > user.subscription.expiresAt) {
+//       await User.findByIdAndUpdate(user._id, {
+//         'subscription.status': 'expired',
+//       });
+//       // Login দেবে তবে frontend কে জানাবে payment দরকার
+//       const jwtPayload = { _id: user._id, role: user.role, email: user.email };
+//       const accessToken = createToken(jwtPayload, config.jwt_access_secret as string, config.jwt_access_expires_in as string);
+
+//       return {
+//         accessToken,
+//         needsPayment: true,          // ← Frontend এই flag দেখে payment page এ নিয়ে যাবে
+//         subscriptionStatus: 'expired',
+//       };
+//     }
+//   }
+
+//   // কোনো subscription নেই — payment করতে হবে
+//   if (!subStatus || subStatus === 'none' || subStatus === 'cancelled') {
+//     const jwtPayload = { _id: user._id, role: user.role, email: user.email };
+//     const accessToken = createToken(jwtPayload, config.jwt_access_secret as string, config.jwt_access_expires_in as string);
+
+//     return {
+//       accessToken,
+//       needsPayment: true,            // ← Frontend payment page এ নিয়ে যাবে
+//       subscriptionStatus: subStatus || 'none',
+//     };
+//   }
+//   // ─────────────────────────────────────────────────────────────────
+
+//   const jwtPayload = { _id: user._id, role: user.role, email: user.email };
+//   const accessToken = createToken(
+//     jwtPayload,
+//     config.jwt_access_secret as string,
+//     config.jwt_access_expires_in as string,
+//   );
+
+//   return {
+//     accessToken,
+//     needsPayment: false,
+//     subscriptionStatus: subStatus,
+//   };
+// };
+
+
+
+
+
+// // যেকোনো protected route এ checkSubscription যোগ করুন
+// import checkSubscription from '../../middlewares/checkSubscription';
+
+// // Example:
+// router.get(
+//   '/dashboard',
+//   auth(UserRole.user),
+//   checkSubscription,          // ← subscription না থাকলে 402 error
+//   DashboardController.getData,
+// );
+
+
+
+
+
+
 export const authControllers = {
   login,
   sendOtp,

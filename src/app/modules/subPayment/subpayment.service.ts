@@ -96,11 +96,11 @@ const createPaymentIntent = async (
     amount: finalAmount,
     currency: plan.currency || 'usd',
     customer: stripeCustomerId,
-    metadata: {
-      userId,
-      planId,
-      promoCodeId: promoCodeId || '',
-    },
+   metadata: {
+    userId: userId.toString(),        // ← .toString() যোগ করো
+    planId: planId.toString(),        // ← .toString() যোগ করো
+    promoCodeId: promoCodeId ? promoCodeId.toString() : '',  // ← .toString() যোগ করো
+  },
   });
 
   return {
@@ -194,9 +194,104 @@ const confirmPaymentAndActivate = async (
 //   return { received: true };
 // };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+const createCheckoutSession = async (
+  userId: string,
+  planId: string,
+  promoCodeId?: string,
+) => {
+  const user = await User.findById(userId);
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+
+  const plan = await SubscriptionPlan.findById(planId);
+  if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
+
+  // Stripe Customer খোঁজো বা তৈরি করো
+  let stripeCustomerId = user.subscription?.stripeCustomerId;
+  if (!stripeCustomerId) {
+    const customer = await stripe.customers.create({
+      email: user.email,
+      name: user.fullName,
+    });
+    stripeCustomerId = customer.id;
+    await User.findByIdAndUpdate(userId, {
+      'subscription.stripeCustomerId': customer.id,
+    });
+  }
+
+  // ─── Type fix ─────────────────────────────────────────────────────
+  const discounts: { coupon: string }[] = [];
+
+  if (promoCodeId) {
+    const promo = await PromoCode.findById(promoCodeId);
+    if (promo) {
+      let stripeCoupon;
+
+      if (promo.discountType === 'percentage') {
+        stripeCoupon = await stripe.coupons.create({
+          percent_off: promo.discountValue,
+          duration: 'once',
+        });
+      } else if (promo.discountType === 'fixed') {
+        stripeCoupon = await stripe.coupons.create({
+          amount_off: promo.discountValue * 100,
+          currency: plan.currency || 'usd',
+          duration: 'once',
+        });
+      }
+
+      if (stripeCoupon) {
+        discounts.push({ coupon: stripeCoupon.id });
+      }
+    }
+  }
+
+  // Checkout Session তৈরি
+  const session = await stripe.checkout.sessions.create({
+    customer: stripeCustomerId,
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price: plan.stripePriceId,
+        quantity: 1,
+      },
+    ],
+    mode: 'payment',
+    discounts: discounts.length > 0 ? discounts : undefined,
+    metadata: {
+      userId: userId.toString(),
+      planId: planId.toString(),
+      promoCodeId: promoCodeId ? promoCodeId.toString() : '',
+    },
+    success_url: `${config.frontend_url}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${config.frontend_url}/payment/cancel`,
+  });
+
+  return {
+    checkoutUrl: session.url,
+    sessionId: session.id,
+  };
+};
+
+
+
+
 export const PaymentService = {
   activateFreeTrial,
   createPaymentIntent,
   confirmPaymentAndActivate,
 //   handleStripeWebhook,
+  createCheckoutSession,
 };

@@ -13,11 +13,11 @@ const router = express.Router();
 router.get('/active', SubscriptionPlanController.getActivePlans);
 
 // ─── Admin Routes ────────────────────────────────────────────────────────────
-router.post('/', auth(UserRole.admin), SubscriptionPlanController.createPlan);
-router.get('/', auth(UserRole.admin), SubscriptionPlanController.getAllPlans);
-router.get('/:id', auth(UserRole.admin), SubscriptionPlanController.getSinglePlan);
-router.patch('/:id', auth(UserRole.admin), SubscriptionPlanController.updatePlan);
-router.patch('/:id/toggle', auth(UserRole.admin), SubscriptionPlanController.togglePlan);
-router.delete('/:id', auth(UserRole.admin), SubscriptionPlanController.deletePlan);
+router.post('/create-subplan', auth(UserRole.USER), SubscriptionPlanController.createPlan);
+router.get('/subplan', auth(UserRole.USER), SubscriptionPlanController.getAllPlans);
+router.get('/subplan/:id', auth(UserRole.admin), SubscriptionPlanController.getSinglePlan);
+router.patch('/subplan/:id', auth(UserRole.admin), SubscriptionPlanController.updatePlan);
+router.patch('/subplan/:id/toggle', auth(UserRole.admin), SubscriptionPlanController.togglePlan);
+router.delete('/subplan/:id', auth(UserRole.admin), SubscriptionPlanController.deletePlan);
 
 export const PlanRoutes = router;
