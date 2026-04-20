@@ -35,21 +35,7 @@ const activateTrial = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// Stripe Payment Intent তৈরি করো
-const createPaymentIntent = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user._id;
-  const { planId, promoCodeId } = req.body;
 
-  const result = await PaymentService.createPaymentIntent(
-    userId, planId, promoCodeId,
-  );
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Payment intent created',
-    data: result,
-  });
-});
 
 // Payment confirm করো
 const confirmPayment = catchAsync(async (req: Request, res: Response) => {
@@ -115,7 +101,7 @@ const createCheckout = catchAsync(async (req: Request, res: Response) => {
 export const PaymentController = {
   validatePromo,
   activateTrial,
-  createPaymentIntent,
+  
   confirmPayment,
 //   stripeWebhook,
 createCheckout,

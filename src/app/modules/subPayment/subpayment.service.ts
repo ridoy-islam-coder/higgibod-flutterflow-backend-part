@@ -52,64 +52,108 @@ const activateFreeTrial = async (
   };
 };
 
-// ─── 2. Create Stripe Payment Intent (Paid plan) ─────────────────────────────
-const createPaymentIntent = async (
-  userId: string,
-  planId: string,
-  promoCodeId?: string,
-) => {
-  const user = await User.findById(userId);
-  if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
 
-  const plan = await SubscriptionPlan.findById(planId);
-  if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
 
-  let finalAmount = plan.price * 100; // Stripe cents এ নেয়
-  let couponId: string | undefined;
 
-  // Promo code discount apply
-  if (promoCodeId) {
-    const promo = await PromoCode.findById(promoCodeId);
-    if (promo && promo.discountType === 'percentage') {
-      const discountAmount = Math.round(finalAmount * (promo.discountValue / 100));
-      finalAmount = finalAmount - discountAmount;
-    } else if (promo && promo.discountType === 'fixed') {
-      finalAmount = Math.max(0, finalAmount - promo.discountValue * 100);
-    }
-  }
+// const createCheckoutSession = async (
+//   userId: string,
+//   planId: string,
+//   promoCodeId?: string,
+// ) => {
+//   const user = await User.findById(userId);
+//   if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
 
-  // Stripe Customer তৈরি বা খোঁজা
-  let stripeCustomerId = user.subscription?.stripeCustomerId;
-  if (!stripeCustomerId) {
-    const customer = await stripe.customers.create({
-      email: user.email,
-      name: user.fullName,
-    });
-    stripeCustomerId = customer.id;
-    await User.findByIdAndUpdate(userId, {
-      'subscription.stripeCustomerId': customer.id,
-    });
-  }
+//   const plan = await SubscriptionPlan.findById(planId);
+//   if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
 
-  // Payment Intent তৈরি
-  const paymentIntent = await stripe.paymentIntents.create({
-    amount: finalAmount,
-    currency: plan.currency || 'usd',
-    customer: stripeCustomerId,
-   metadata: {
-    userId: userId.toString(),        // ← .toString() যোগ করো
-    planId: planId.toString(),        // ← .toString() যোগ করো
-    promoCodeId: promoCodeId ? promoCodeId.toString() : '',  // ← .toString() যোগ করো
-  },
-  });
+//   // ─── Stripe Customer খোঁজো বা তৈরি করো ──────────────────────────
+//   let stripeCustomerId = user.subscription?.stripeCustomerId;
+//   if (!stripeCustomerId) {
+//     const customer = await stripe.customers.create({
+//       email: user.email,
+//       name: user.fullName,
+//     });
+//     stripeCustomerId = customer.id;
+//     await User.findByIdAndUpdate(userId, {
+//       'subscription.stripeCustomerId': customer.id,
+//     });
+//   }
 
-  return {
-    clientSecret: paymentIntent.client_secret,
-    amount: finalAmount / 100,
-    currency: plan.currency,
-    paymentIntentId: paymentIntent.id,
-  };
-};
+//   // ─── Promo Code Discount Apply ────────────────────────────────────
+//   const discounts: { coupon: string }[] = [];
+
+//   if (promoCodeId) {
+//     const promo = await PromoCode.findById(promoCodeId);
+//     if (promo) {
+//       let stripeCoupon;
+
+//       if (promo.discountType === 'percentage') {
+//         // Percentage discount — যেমন 50% off
+//         stripeCoupon = await stripe.coupons.create({
+//           percent_off: promo.discountValue,
+//           duration: 'once',
+//         });
+//       } else if (promo.discountType === 'fixed') {
+//         // Fixed amount discount — যেমন $10 off
+//         stripeCoupon = await stripe.coupons.create({
+//           amount_off: promo.discountValue * 100, // cents এ
+//           currency: plan.currency || 'usd',
+//           duration: 'once',
+//         });
+//       } else if (promo.discountType === 'free_trial') {
+//         // Free trial হলে এখানে আসবে না
+//         // কারণ free trial আগেই isFree: true দিয়ে
+//         // activateFreeTrial এ handle হয়ে যাবে
+//         throw new AppError(
+//           httpStatus.BAD_REQUEST,
+//           'Free trial promo should use activate-trial API',
+//         );
+//       }
+
+//       if (stripeCoupon) {
+//         discounts.push({ coupon: stripeCoupon.id });
+//       }
+//     }
+//   }
+
+//   // ─── Checkout Session তৈরি ────────────────────────────────────────
+//   const session = await stripe.checkout.sessions.create({
+//     customer: stripeCustomerId,
+//     payment_method_types: ['card'],
+//     line_items: [
+//       {
+//         price: plan.stripePriceId,
+//         quantity: 1,
+//       },
+//     ],
+//     mode: 'subscription',
+//     subscription_data: {
+//       metadata: {
+//         userId: userId.toString(),
+//         planId: planId.toString(),
+//         promoCodeId: promoCodeId ? promoCodeId.toString() : '',
+//       },
+//     },
+//     discounts: discounts.length > 0 ? discounts : undefined,
+//     metadata: {
+//       userId: userId.toString(),
+//       planId: planId.toString(),
+//       promoCodeId: promoCodeId ? promoCodeId.toString() : '',
+//     },
+//     success_url: `${config.frontend_url}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+//     cancel_url: `${config.frontend_url}/payment/cancel`,
+//   });
+
+//   return {
+//     checkoutUrl: session.url,       // ← Browser এ open করো
+//     sessionId: session.id,
+//     amount: plan.price,             // ← Original price
+//     currency: plan.currency,
+//     hasDiscount: discounts.length > 0,  // ← Discount আছে কিনা
+//   };
+// };
+
+
 
 // ─── 3. Confirm Payment & Activate Subscription ───────────────────────────────
 const confirmPaymentAndActivate = async (
@@ -161,6 +205,9 @@ const confirmPaymentAndActivate = async (
     expiresAt,
   };
 };
+
+
+
 
 // ─── 4. Stripe Webhook (production এ দরকার) ──────────────────────────────────
 
@@ -257,27 +304,33 @@ const createCheckoutSession = async (
       }
     }
   }
-
-  // Checkout Session তৈরি
-  const session = await stripe.checkout.sessions.create({
-    customer: stripeCustomerId,
-    payment_method_types: ['card'],
-    line_items: [
-      {
-        price: plan.stripePriceId,
-        quantity: 1,
-      },
-    ],
-    mode: 'payment',
-    discounts: discounts.length > 0 ? discounts : undefined,
+// Checkout Session তৈরি
+const session = await stripe.checkout.sessions.create({
+  customer: stripeCustomerId,
+  payment_method_types: ['card'],
+  line_items: [
+    {
+      price: plan.stripePriceId,
+      quantity: 1,
+    },
+  ],
+  mode: 'subscription',          // ✅ এখানে change করুন
+  subscription_data: {           // ✅ এটা যোগ করুন
     metadata: {
       userId: userId.toString(),
       planId: planId.toString(),
       promoCodeId: promoCodeId ? promoCodeId.toString() : '',
     },
-    success_url: `${config.frontend_url}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${config.frontend_url}/payment/cancel`,
-  });
+  },
+  discounts: discounts.length > 0 ? discounts : undefined,
+  metadata: {
+    userId: userId.toString(),
+    planId: planId.toString(),
+    promoCodeId: promoCodeId ? promoCodeId.toString() : '',
+  },
+  success_url: `${config.frontend_url}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+  cancel_url: `${config.frontend_url}/payment/cancel`,
+});
 
   return {
     checkoutUrl: session.url,
@@ -290,7 +343,7 @@ const createCheckoutSession = async (
 
 export const PaymentService = {
   activateFreeTrial,
-  createPaymentIntent,
+ 
   confirmPaymentAndActivate,
 //   handleStripeWebhook,
   createCheckoutSession,
