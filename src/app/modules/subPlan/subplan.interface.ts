@@ -1,20 +1,22 @@
+import { Model, Types } from 'mongoose';
 
-import { Document } from 'mongoose';
- 
-export interface IPlan extends Document {
-  name: 'Starter' | 'Pro';
+// ─── Plan Name Type ──────────────────────────────────────────────────────────
+export type TPlanName = 'starter' | 'pro';
+export type TInterval = 'month' | 'year';
+
+// ─── Subscription Plan Type ──────────────────────────────────────────────────
+export type TSubscriptionPlan = {
+  _id?: Types.ObjectId;
+  name: TPlanName;
   description: string;
-  price: {
-    monthly: number;
-    threeMonth: number;
-    sixMonth: number;
-    yearly: number;
-  };
+  price: number; // in cents → 2999 = $29.99
+  currency: string;
+  interval: TInterval;
+  trialDays: number;
+  stripePriceId: string;
   features: string[];
   isActive: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
- 
-export type TBillingInterval = 'monthly' | 'threeMonth' | 'sixMonth' | 'yearly';
- 
+};
+
+// ─── Model Type ──────────────────────────────────────────────────────────────
+export type SubscriptionPlanModel = Model<TSubscriptionPlan>;

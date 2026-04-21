@@ -1,93 +1,29 @@
-// src/modules/promoCode/promoCode.controller.ts
 import { Request, Response } from 'express';
+import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
-import httpStatus from 'http-status';
 import { PromoCodeService } from './promocode.service';
 
 
-// ─── Admin: Create Promo Code ────────────────────────────────────────────────
-const createPromoCode = catchAsync(async (req: Request, res: Response) => {
+// ─── Admin: Generate PromoCode ────────────────────────────────────────────────
+const generatePromoCode = catchAsync(async (req: Request, res: Response) => {
   const adminId = req.user._id;
-  const result = await PromoCodeService.createPromoCode(req.body, adminId);
+  const { planId, expiresInDays } = req.body;
 
+  const result = await PromoCodeService.generatePromoCode(planId, adminId, expiresInDays);
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: 'Promo code created successfully',
+    message: 'Promo code generated successfully',
     data: result,
   });
 });
 
-// ─── Admin: Get All Promo Codes ──────────────────────────────────────────────
-const getAllPromoCodes = catchAsync(async (req: Request, res: Response) => {
-  const result = await PromoCodeService.getAllPromoCodes();
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Promo codes retrieved successfully',
-    data: result,
-  });
-});
-
-// ─── Admin: Get Single Promo Code ────────────────────────────────────────────
-const getSinglePromoCode = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await PromoCodeService.getSinglePromoCode(id as any);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Promo code retrieved successfully',
-    data: result,
-  });
-});
-
-// ─── Admin: Update Promo Code ────────────────────────────────────────────────
-const updatePromoCode = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await PromoCodeService.updatePromoCode(id as any, req.body);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Promo code updated successfully',
-    data: result,
-  });
-});
-
-// ─── Admin: Delete Promo Code ────────────────────────────────────────────────
-const deletePromoCode = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await PromoCodeService.deletePromoCode(id as any);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: 'Promo code deleted successfully',
-    data: result,
-  });
-});
-
-// ─── Admin: Toggle Active/Inactive ──────────────────────────────────────────
-const togglePromoCode = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await PromoCodeService.togglePromoCode(id as any);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: `Promo code ${result.isActive ? 'activated' : 'deactivated'} successfully`,
-    data: result,
-  });
-});
-
-// ─── User: Validate Promo Code (Checkout এ Apply বাটনে) ─────────────────────
+// ─── User: Validate PromoCode ─────────────────────────────────────────────────
 const validatePromoCode = catchAsync(async (req: Request, res: Response) => {
   const { code, planId } = req.body;
-  const result = await PromoCodeService.validatePromoCode(code, planId);
 
+  const result = await PromoCodeService.validatePromoCode(code, planId);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -96,12 +32,32 @@ const validatePromoCode = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// ─── Admin: Get All PromoCodes ────────────────────────────────────────────────
+const getAllPromoCodes = catchAsync(async (req: Request, res: Response) => {
+  const result = await PromoCodeService.getAllPromoCodes();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Promo codes fetched successfully',
+    data: result,
+  });
+});
+
+// ─── Admin: Delete PromoCode ──────────────────────────────────────────────────
+const deletePromoCode = catchAsync(async (req: Request, res: Response) => {
+  const result = await PromoCodeService.deletePromoCode(req.params.id as string);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Promo code deleted successfully',
+    data: result,
+  });
+});
+
+// ─── Export ───────────────────────────────────────────────────────────────────
 export const PromoCodeController = {
-  createPromoCode,
-  getAllPromoCodes,
-  getSinglePromoCode,
-  updatePromoCode,
-  deletePromoCode,
-  togglePromoCode,
+  generatePromoCode,
   validatePromoCode,
+  getAllPromoCodes,
+  deletePromoCode,
 };

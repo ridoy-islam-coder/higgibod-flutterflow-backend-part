@@ -1,41 +1,59 @@
+import { model, Schema } from 'mongoose';
+import { SubscriptionPlanModel, TSubscriptionPlan } from './subplan.interface';
 
-import mongoose, { Schema } from 'mongoose';
-import { IPlan } from './subplan.interface';
- 
-const PlanSchema: Schema = new Schema(
+// ─── Schema ──────────────────────────────────────────────────────────────────
+const SubscriptionPlanSchema = new Schema<TSubscriptionPlan, SubscriptionPlanModel>(
   {
     name: {
       type: String,
-      enum: ['Starter', 'Pro'],
+      enum: ['starter', 'pro'],
       required: true,
       unique: true,
     },
     description: {
       type: String,
-      default: '',
+      required: true,
     },
     price: {
-      monthly: { type: Number, required: true },
-      threeMonth: { type: Number, required: true },
-      sixMonth: { type: Number, required: true },
-      yearly: { type: Number, required: true },
+      type: Number,
+      required: true, // cents e.g. 2999 = $29.99
+    },
+    currency: {
+      type: String,
+      default: 'usd',
+    },
+    interval: {
+      type: String,
+      enum: ['month', 'year'],
+      default: 'month',
+    },
+    trialDays: {
+      type: Number,
+      default: 30,
+    },
+    stripePriceId: {
+      type: String,
+      required: true,
     },
     features: [
       {
         type: String,
       },
     ],
-    currency: {
-    ctype: String,
-    default: "usd",
-    },
     isActive: {
       type: Boolean,
       default: true,
     },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
- 
-export default mongoose.model<IPlan>('Plan', PlanSchema);
- 
+
+// ─── Model ───────────────────────────────────────────────────────────────────
+const SubscriptionPlan = model<TSubscriptionPlan, SubscriptionPlanModel>(
+  'SubscriptionPlan',
+  SubscriptionPlanSchema,
+);
+
+export default SubscriptionPlan;

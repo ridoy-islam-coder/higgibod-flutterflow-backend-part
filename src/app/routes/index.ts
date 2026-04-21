@@ -14,6 +14,7 @@ import { PlanRoutes } from '../modules/subPlan/subplan.routes';
 import { PaymentRoutes } from '../modules/subPayment/subpayment.routes';
 import { eventWishlistRoutes } from '../modules/Eventwishlist/wishlist.routes';
 import { PromoCodeRoutes } from '../modules/PromoCode/promocode.routes';
+// import { PromoCodeRoutes } from '../modules/PromoCode/promocode.routes';
 
 
 

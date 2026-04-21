@@ -1,7 +1,9 @@
-import { Schema, model } from 'mongoose';
-import { IPayment } from './subpayment.interface';
+import { model, Schema } from 'mongoose';
+import { PaymentHistoryModel, TPaymentHistory } from './subpayment.interface';
 
-const paymentSchema = new Schema<IPayment>(
+
+// ─── Schema ───────────────────────────────────────────────────────────────────
+const PaymentHistorySchema = new Schema<TPaymentHistory, PaymentHistoryModel>(
   {
     user: {
       type: Schema.Types.ObjectId,
@@ -10,68 +12,59 @@ const paymentSchema = new Schema<IPayment>(
     },
     plan: {
       type: Schema.Types.ObjectId,
-      ref: 'Plan',
+      ref: 'SubscriptionPlan',
       required: true,
     },
-    // ← Plan name directly save — user দেখলেই বুঝবে কোন plan
-    planName: {
-      type: String,
-      enum: ['Starter', 'Pro'],
-      required: true,
+    promoCode: {
+      type: Schema.Types.ObjectId,
+      ref: 'PromoCode',
+      default: null,
     },
-    // ← কোন billing cycle এ কিনেছে
-    billingCycle: {
+    stripeSessionId: {
       type: String,
-      enum: ['monthly', 'threeMonth', 'sixMonth', 'yearly'],
       required: true,
+      unique: true,
+    },
+    stripeSubscriptionId: {
+      type: String,
+    },
+    stripeInvoiceId: {
+      type: String,
     },
     amount: {
       type: Number,
-      required: true,
+      required: true, // cents
     },
     currency: {
       type: String,
-      required: true,
       default: 'usd',
-      lowercase: true,
     },
     status: {
       type: String,
-      enum: ['pending', 'succeeded', 'failed', 'refunded'],
+      enum: ['succeeded', 'failed', 'pending', 'refunded'],
       default: 'pending',
-    },
-    paymentMethod: {
-      type: String,
-      enum: ['stripe', 'paypal', 'manual'],
-      required: true,
-    },
-    stripePaymentIntentId: {
-      type: String,
-      default: null,
-    },
-    promoCode: {
-      type: String,
-      default: null,
-    },
-    discountAmount: {
-      type: Number,
-      default: 0,
     },
     isTrial: {
       type: Boolean,
       default: false,
     },
-    periodStart: {
-      type: Date,
-      required: true,
+    trialDays: {
+      type: Number,
+      default: 0,
     },
-    periodEnd: {
+    paidAt: {
       type: Date,
-      required: true,
     },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
 
-const Payment = model<IPayment>('Payment', paymentSchema);
-export default Payment;
+// ─── Model ────────────────────────────────────────────────────────────────────
+const PaymentHistory = model<TPaymentHistory, PaymentHistoryModel>(
+  'PaymentHistory',
+  PaymentHistorySchema,
+);
+
+export default PaymentHistory;

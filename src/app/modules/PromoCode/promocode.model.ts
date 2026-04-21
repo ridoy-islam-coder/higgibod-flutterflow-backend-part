@@ -1,8 +1,9 @@
-// src/modules/promoCode/promoCode.model.ts
 import { model, Schema } from 'mongoose';
-import { TPromoCode } from './promocode.interface';
+import { PromoCodeModel, TPromoCode } from './promocode.interface';
 
-const PromoCodeSchema = new Schema<TPromoCode>(
+
+// ─── Schema ───────────────────────────────────────────────────────────────────
+const PromoCodeSchema = new Schema<TPromoCode, PromoCodeModel>(
   {
     code: {
       type: String,
@@ -11,38 +12,23 @@ const PromoCodeSchema = new Schema<TPromoCode>(
       uppercase: true,
       trim: true,
     },
-    discountType: {
-      type: String,
-      enum: ['percentage', 'fixed', 'free_trial'],
+    plan: {
+      type: Schema.Types.ObjectId,
+      ref: 'SubscriptionPlan',
       required: true,
-    },
-    discountValue: {
-      type: Number,
-      required: true,
-      default: 0,
     },
     trialDays: {
       type: Number,
-      default: 0,
-    },
-    applicablePlans: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: 'Subscription',
-      },
-    ],
-    maxUses: {
-      type: Number,
       required: true,
-      default: 1,
     },
-    usedCount: {
-      type: Number,
-      default: 0,
+    usedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
     },
-    isActive: {
+    isUsed: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     expiresAt: {
       type: Date,
@@ -52,9 +38,17 @@ const PromoCodeSchema = new Schema<TPromoCode>(
       ref: 'User',
       required: true,
     },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
   },
-  { timestamps: true },
+  {
+    timestamps: true,
+  },
 );
 
-const PromoCode = model<TPromoCode>('PromoCode', PromoCodeSchema);
+// ─── Model ────────────────────────────────────────────────────────────────────
+const PromoCode = model<TPromoCode, PromoCodeModel>('PromoCode', PromoCodeSchema);
+
 export default PromoCode;

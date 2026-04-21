@@ -1,87 +1,95 @@
-
 import httpStatus from 'http-status';
 import AppError from '../../error/AppError';
-import { IPlan } from './subplan.interface';
 import SubscriptionPlan from './subplan.model';
- 
-// ─── Admin: Create Plan ──────────────────────────────────────────────────────
-const createPlan = async (payload: Partial<IPlan>) => {
-  // Same name already exists check
-  const exists = await SubscriptionPlan.findOne({ name: payload.name });
-  if (exists) {
-    throw new AppError(httpStatus.CONFLICT, `"${payload.name}" plan already exists`);
+import { TSubscriptionPlan } from './subplan.interface';
+
+
+// ─── Create Plan ─────────────────────────────────────────────────────────────
+import Stripe from 'stripe';
+import config from '../../config';
+
+
+const stripe = new Stripe(config.stripe.stripe_secret_key as string, {
+  apiVersion: '2026-03-25.dahlia',
+});
+
+export const createPlan = async (payload: any) => {
+  const isExist = await SubscriptionPlan.findOne({ name: payload.name });
+
+  if (isExist) {
+    throw new Error(`${payload.name} already exists`);
   }
- 
-  const plan = await SubscriptionPlan.create(payload);
-  return plan;
+
+  // ─── 1. Create Stripe Product ───
+  const product = await stripe.products.create({
+    name: payload.name,
+    description: payload.description,
+  });
+
+  // ─── 2. Create Stripe Price AUTO ───
+  const price = await stripe.prices.create({
+    unit_amount: payload.price * 100, // dollars → cents
+    currency: payload.currency || 'usd',
+    recurring: {
+      interval: payload.interval || 'month',
+    },
+    product: product.id,
+  });
+
+  // ─── 3. Save in DB ───
+  const result = await SubscriptionPlan.create({
+    ...payload,
+    stripePriceId: price.id, // AUTO SAVE
+  });
+
+  return result;
 };
- 
-// ─── Admin: Get All Plans (active + inactive) ────────────────────────────────
+
+// ─── Get All Plans ───────────────────────────────────────────────────────────
 const getAllPlans = async () => {
-  return SubscriptionPlan.find().sort({ createdAt: 1 });
+  const result = await SubscriptionPlan.find({ isActive: true });
+  return result;
 };
- 
-// ─── Public / User: Get Active Plans only ───────────────────────────────────
-const getActivePlans = async () => {
-  return SubscriptionPlan.find({ isActive: true }).sort({ createdAt: 1 });
-};
- 
-// ─── Admin: Get Single Plan by ID ────────────────────────────────────────────
-const getSinglePlan = async (id: string) => {
-  const plan = await SubscriptionPlan.findById(id);
-  if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
-  return plan;
-};
- 
-// ─── Admin: Update Plan ──────────────────────────────────────────────────────
-const updatePlan = async (id: string, payload: Partial<IPlan>) => {
-  const plan = await SubscriptionPlan.findById(id);
-  if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
- 
-  // price object partially update করার জন্য merge করো
-  if (payload.price) {
-    payload.price = {
-      monthly: payload.price.monthly ?? plan.price.monthly,
-      threeMonth: payload.price.threeMonth ?? plan.price.threeMonth,
-      sixMonth: payload.price.sixMonth ?? plan.price.sixMonth,
-      yearly: payload.price.yearly ?? plan.price.yearly,
-    };
+
+// ─── Get Single Plan ─────────────────────────────────────────────────────────
+const getPlanById = async (id: string) => {
+  const result = await SubscriptionPlan.findById(id);
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Subscription plan not found');
   }
- 
-  const updated = await SubscriptionPlan.findByIdAndUpdate(
-    id,
-    { $set: payload },
-    { new: true, runValidators: true },
-  );
- 
-  return updated;
+  return result;
 };
- 
-// ─── Admin: Toggle Plan active/inactive ──────────────────────────────────────
-const togglePlan = async (id: string) => {
-  const plan = await SubscriptionPlan.findById(id);
-  if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
- 
-  plan.isActive = !plan.isActive;
-  await plan.save();
-  return plan;
+
+// ─── Update Plan ─────────────────────────────────────────────────────────────
+const updatePlan = async (id: string, payload: Partial<TSubscriptionPlan>) => {
+  const result = await SubscriptionPlan.findByIdAndUpdate(id, payload, {
+    new: true,
+    runValidators: true,
+  });
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Subscription plan not found');
+  }
+  return result;
 };
- 
-// ─── Admin: Delete Plan ──────────────────────────────────────────────────────
+
+// ─── Delete Plan ─────────────────────────────────────────────────────────────
 const deletePlan = async (id: string) => {
-  const plan = await SubscriptionPlan.findById(id);
-  if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
- 
-  await SubscriptionPlan.findByIdAndDelete(id);
-  return { deleted: true };
+  const result = await SubscriptionPlan.findByIdAndUpdate(
+    id,
+    { isActive: false },
+    { new: true },
+  );
+  if (!result) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Subscription plan not found');
+  }
+  return result;
 };
- 
+
+// ─── Export ──────────────────────────────────────────────────────────────────
 export const SubscriptionPlanService = {
   createPlan,
   getAllPlans,
-  getActivePlans,
-  getSinglePlan,
+  getPlanById,
   updatePlan,
-  togglePlan,
   deletePlan,
 };

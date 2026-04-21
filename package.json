@@ -37,7 +37,7 @@
     "nodemailer": "^7.0.5",
     "puppeteer": "^24.37.5",
     "qrcode": "^1.5.4",
-    "stripe": "^22.0.1",
+    "stripe": "^22.0.2",
     "zod": "^4.2.1"
   },
   "devDependencies": {
@@ -50,7 +50,6 @@
     "@types/moment": "^2.11.29",
     "@types/multer": "^2.0.0",
     "@types/nodemailer": "^7.0.0",
-    "@types/stripe": "^8.0.416",
     "nodemon": "^3.1.10",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.9.2"

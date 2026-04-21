@@ -1,814 +1,278 @@
-// // src/modules/payment/payment.service.ts
-// import Stripe from 'stripe';
-// import config from '../../config';
-// import User from '../user/user.model';
-
-// import httpStatus from 'http-status';
-// import { Types } from 'mongoose';
-// import PromoCode from '../PromoCode/promocode.model';
-// import AppError from '../../error/AppError';
-// import SubscriptionPlan from '../subPlan/subplan.model';
-
-// const stripe = new Stripe(config.stripe.stripe_secret_key as string);
-
-// // ─── 1. Free Trial Activation (Promo = 100% free) ────────────────────────────
-// const activateFreeTrial = async (
-//   userId: string,
-//   planId: string,
-//   promoCodeId: string,
-//   trialDays: number,
-// ) => {
-//   const now = new Date();
-//   const trialEndsAt = new Date(now);
-//   trialEndsAt.setDate(trialEndsAt.getDate() + trialDays);
-
-//   // User subscription update
-//   const user = await User.findByIdAndUpdate(
-//     userId,
-//     {
-//       $set: {
-//         'subscription.plan': new Types.ObjectId(planId),
-//         'subscription.promoCodeUsed': new Types.ObjectId(promoCodeId),
-//         'subscription.status': 'trialing',
-//         'subscription.startsAt': now,
-//         'subscription.trialEndsAt': trialEndsAt,
-//         'subscription.expiresAt': trialEndsAt,
-//         isVerified: true,
-//       },
-//     },
-//     { new: true },
-//   );
-
-//   // Promo code usage বাড়াও
-//   await PromoCode.findByIdAndUpdate(promoCodeId, {
-//     $inc: { usedCount: 1 },
-//   });
-
-//   return {
-//     success: true,
-//     message: `Free trial activated for ${trialDays} days`,
-//     trialEndsAt,
-//     user,
-//   };
-// };
-
-
-
-
-// const createCheckoutSession = async (
-//   userId: string,
-//   planId: string,
-//   promoCodeId?: string,
-// ) => {
-//   const user = await User.findById(userId);
-//   if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
-
-//   const plan = await SubscriptionPlan.findById(planId);
-//   if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
-
-//   // ─── Stripe Customer খোঁজো বা তৈরি করো ──────────────────────────
-//   let stripeCustomerId = user.subscription?.stripeCustomerId;
-//   if (!stripeCustomerId) {
-//     const customer = await stripe.customers.create({
-//       email: user.email,
-//       name: user.fullName,
-//     });
-//     stripeCustomerId = customer.id;
-//     await User.findByIdAndUpdate(userId, {
-//       'subscription.stripeCustomerId': customer.id,
-//     });
-//   }
-
-//   // ─── Promo Code Discount Apply ────────────────────────────────────
-//   const discounts: { coupon: string }[] = [];
-
-//   if (promoCodeId) {
-//     const promo = await PromoCode.findById(promoCodeId);
-//     if (promo) {
-//       let stripeCoupon;
-
-//       if (promo.discountType === 'percentage') {
-//         // Percentage discount — যেমন 50% off
-//         stripeCoupon = await stripe.coupons.create({
-//           percent_off: promo.discountValue,
-//           duration: 'once',
-//         });
-//       } else if (promo.discountType === 'fixed') {
-//         // Fixed amount discount — যেমন $10 off
-//         stripeCoupon = await stripe.coupons.create({
-//           amount_off: promo.discountValue * 100, // cents এ
-//           currency: plan.currency || 'usd',
-//           duration: 'once',
-//         });
-//       } else if (promo.discountType === 'free_trial') {
-//         // Free trial হলে এখানে আসবে না
-//         // কারণ free trial আগেই isFree: true দিয়ে
-//         // activateFreeTrial এ handle হয়ে যাবে
-//         throw new AppError(
-//           httpStatus.BAD_REQUEST,
-//           'Free trial promo should use activate-trial API',
-//         );
-//       }
-
-//       if (stripeCoupon) {
-//         discounts.push({ coupon: stripeCoupon.id });
-//       }
-//     }
-//   }
-
-//   // ─── Checkout Session তৈরি ────────────────────────────────────────
-//   const session = await stripe.checkout.sessions.create({
-//     customer: stripeCustomerId,
-//     payment_method_types: ['card'],
-//     line_items: [
-//       {
-//         price: plan.stripePriceId,
-//         quantity: 1,
-//       },
-//     ],
-//     mode: 'subscription',
-//     subscription_data: {
-//       metadata: {
-//         userId: userId.toString(),
-//         planId: planId.toString(),
-//         promoCodeId: promoCodeId ? promoCodeId.toString() : '',
-//       },
-//     },
-//     discounts: discounts.length > 0 ? discounts : undefined,
-//     metadata: {
-//       userId: userId.toString(),
-//       planId: planId.toString(),
-//       promoCodeId: promoCodeId ? promoCodeId.toString() : '',
-//     },
-//   success_url: `${config.backend_url}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-//   cancel_url: `${config.backend_url}/subscription/cancel`,
-//   });
-
-//   return {
-//     checkoutUrl: session.url,       // ← Browser এ open করো
-//     sessionId: session.id,
-//     amount: plan.price,             // ← Original price
-//     currency: plan.currency,
-//     hasDiscount: discounts.length > 0,  // ← Discount আছে কিনা
-//   };
-// };
-
-
-
-// // ─── 3. Confirm Payment & Activate Subscription ───────────────────────────────
-
-// // const confirmPaymentAndActivate = async (
-// //   userId: string,
-// //   planId: string,
-// //   paymentIntentId: string,
-// //   promoCodeId?: string,
-// // ) => {
-// //   // Stripe থেকে payment verify
-// //   const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
-
-// //   if (paymentIntent.status !== 'succeeded') {
-// //     throw new AppError(httpStatus.BAD_REQUEST, 'Payment not successful');
-// //   }
-
-// //   const plan = await SubscriptionPlan.findById(planId);
-// //   if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
-
-// //   const now = new Date();
-// //   const expiresAt = new Date(now);
-// //   if (plan.interval === 'monthly') expiresAt.setMonth(expiresAt.getMonth() + 1);
-// //   else expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-
-// //   // User subscription activate
-// //   await User.findByIdAndUpdate(userId, {
-// //     $set: {
-// //       'subscription.plan': new Types.ObjectId(planId),
-// //       'subscription.status': 'active',
-// //       'subscription.startsAt': now,
-// //       'subscription.expiresAt': expiresAt,
-// //       'subscription.stripeSubscriptionId': paymentIntentId,
-// //       ...(promoCodeId && {
-// //         'subscription.promoCodeUsed': new Types.ObjectId(promoCodeId),
-// //       }),
-// //       isVerified: true,
-// //     },
-// //   });
-
-// //   // Promo code use count বাড়াও
-// //   if (promoCodeId) {
-// //     await PromoCode.findByIdAndUpdate(promoCodeId, {
-// //       $inc: { usedCount: 1 },
-// //     });
-// //   }
-
-// //   return {
-// //     success: true,
-// //     message: 'Subscription activated successfully',
-// //     expiresAt,
-// //   };
-// // };
-
-
-
-
-// // ─── 4. Stripe Webhook (production এ দরকার) ──────────────────────────────────
-
-// // const handleStripeWebhook = async (
-// //   rawBody: Buffer,
-// //   signature: string,
-// // ) => {
-// //   const webhookSecret = config.stripe_webhook_secret as string;
-
-// //   let event: Stripe.Event;
-// //   try {
-// //     event = stripe.webhooks.constructEvent(rawBody, signature, webhookSecret);
-// //   } catch {
-// //     throw new AppError(httpStatus.BAD_REQUEST, 'Webhook signature verification failed');
-// //   }
-
-// //   if (event.type === 'payment_intent.succeeded') {
-// //     const paymentIntent = event.data.object as Stripe.PaymentIntent;
-// //     const { userId, planId, promoCodeId } = paymentIntent.metadata;
-// //     await confirmPaymentAndActivate(userId, planId, paymentIntent.id, promoCodeId);
-// //   }
-
-// //   if (event.type === 'customer.subscription.deleted') {
-// //     const subscription = event.data.object as Stripe.Subscription;
-// //     await User.findOneAndUpdate(
-// //       { 'subscription.stripeSubscriptionId': subscription.id },
-// //       { 'subscription.status': 'cancelled' },
-// //     );
-// //   }
-
-// //   return { received: true };
-// // };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// // const createCheckoutSession = async (
-// //   userId: string,
-// //   planId: string,
-// //   promoCodeId?: string,
-// // ) => {
-// //   const user = await User.findById(userId);
-// //   if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
-
-// //   const plan = await SubscriptionPlan.findById(planId);
-// //   if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
-
-// //   // Stripe Customer খোঁজো বা তৈরি করো
-// //   let stripeCustomerId = user.subscription?.stripeCustomerId;
-// //   if (!stripeCustomerId) {
-// //     const customer = await stripe.customers.create({
-// //       email: user.email,
-// //       name: user.fullName,
-// //     });
-// //     stripeCustomerId = customer.id;
-// //     await User.findByIdAndUpdate(userId, {
-// //       'subscription.stripeCustomerId': customer.id,
-// //     });
-// //   }
-
-// //   // ─── Type fix ─────────────────────────────────────────────────────
-// //   const discounts: { coupon: string }[] = [];
-
-// //   if (promoCodeId) {
-// //     const promo = await PromoCode.findById(promoCodeId);
-// //     if (promo) {
-// //       let stripeCoupon;
-
-// //       if (promo.discountType === 'percentage') {
-// //         stripeCoupon = await stripe.coupons.create({
-// //           percent_off: promo.discountValue,
-// //           duration: 'once',
-// //         });
-// //       } else if (promo.discountType === 'fixed') {
-// //         stripeCoupon = await stripe.coupons.create({
-// //           amount_off: promo.discountValue * 100,
-// //           currency: plan.currency || 'usd',
-// //           duration: 'once',
-// //         });
-// //       }
-
-// //       if (stripeCoupon) {
-// //         discounts.push({ coupon: stripeCoupon.id });
-// //       }
-// //     }
-// //   }
-// // // Checkout Session তৈরি
-// // const session = await stripe.checkout.sessions.create({
-// //   customer: stripeCustomerId,
-// //   payment_method_types: ['card'],
-// //   line_items: [
-// //     {
-// //       price: plan.stripePriceId,
-// //       quantity: 1,
-// //     },
-// //   ],
-// //   mode: 'subscription',          // ✅ এখানে change করুন
-// //   subscription_data: {           // ✅ এটা যোগ করুন
-// //     metadata: {
-// //       userId: userId.toString(),
-// //       planId: planId.toString(),
-// //       promoCodeId: promoCodeId ? promoCodeId.toString() : '',
-// //     },
-// //   },
-// //   discounts: discounts.length > 0 ? discounts : undefined,
-// //   metadata: {
-// //     userId: userId.toString(),
-// //     planId: planId.toString(),
-// //     promoCodeId: promoCodeId ? promoCodeId.toString() : '',
-// //   },
-// // success_url: `${config.backend_url}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-// // cancel_url: `${config.backend_url}/subscription/cancel`,
-// // });
-
-// //   return {
-// //     checkoutUrl: session.url,
-// //     sessionId: session.id,
-// //   };
-// // };
-
-
-
-// const confirmCheckoutSession = async (userId: string, sessionId: string) => {
-//   // Stripe থেকে session verify করো
-//   const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-//   if (session.payment_status !== 'paid') {
-//     throw new AppError(httpStatus.BAD_REQUEST, 'Payment not completed');
-//   }
-
-//   const { planId, promoCodeId } = session.metadata as {
-//     planId: string;
-//     promoCodeId: string;
-//   };
-
-//   const plan = await SubscriptionPlan.findById(planId);
-//   if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
-
-//   const now = new Date();
-//   const expiresAt = new Date();
-//   if (plan.interval === 'monthly') {
-//     expiresAt.setMonth(now.getMonth() + 1);
-//   } else {
-//     expiresAt.setFullYear(now.getFullYear() + 1);
-//   }
-
-//   // ─── DB তে save করো ──────────────────────────────────────────────
-//   await User.findByIdAndUpdate(userId, {
-//     $set: {
-//       'subscription.plan': planId,
-//       'subscription.stripePaymentIntentId': session.subscription as string,
-//       'subscription.stripeCustomerId': session.customer as string,  // ← এটাও save করো
-//       'subscription.status': 'active',
-//       'subscription.startsAt': now,
-//       'subscription.expiresAt': expiresAt,
-//       ...(promoCodeId && {
-//         'subscription.promoCodeUsed': promoCodeId,
-//       }),
-//       isVerified: true,
-//     },
-//   });
-
-//   // Promo use count বাড়াও
-//   if (promoCodeId) {
-//     await PromoCode.findByIdAndUpdate(promoCodeId, {
-//       $inc: { usedCount: 1 },
-//     });
-//   }
-
-//   return {
-//     success: true,
-//     message: 'Subscription activated successfully',
-//     expiresAt,
-//   };
-// };
-
-
-
-
-
-// // ─── Payment Success Handler ──────────────────────────────────────────────────
-// const handlePaymentSuccess = async (sessionId: string) => {
-//   if (!sessionId)
-//     throw new AppError(httpStatus.BAD_REQUEST, 'Session ID not found');
-
-//   const session = await stripe.checkout.sessions.retrieve(sessionId);
-
-//   if (session.payment_status !== 'paid')
-//     throw new AppError(httpStatus.BAD_REQUEST, 'Payment not completed');
-
-//   const { userId, planId, promoCodeId } = session.metadata as {
-//     userId: string;
-//     planId: string;
-//     promoCodeId: string;
-//   };
-
-//   const plan = await SubscriptionPlan.findById(planId);
-//   if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
-
-//   const now = new Date();
-//   const expiresAt = new Date();
-//   if (plan.interval === 'monthly') {
-//     expiresAt.setMonth(now.getMonth() + 1);
-//   } else {
-//     expiresAt.setFullYear(now.getFullYear() + 1);
-//   }
-
-//   await User.findByIdAndUpdate(userId, {
-//     $set: {
-//       'subscription.plan': planId,
-//       'subscription.stripePaymentIntentId': session.subscription as string,
-//       'subscription.stripeCustomerId': session.customer as string,
-//       'subscription.status': 'active',
-//       'subscription.startsAt': now,
-//       'subscription.expiresAt': expiresAt,
-//       ...(promoCodeId && {
-//         'subscription.promoCodeUsed': promoCodeId,
-//       }),
-//       isVerified: true,
-//     },
-//   });
-
-//   if (promoCodeId) {
-//     await PromoCode.findByIdAndUpdate(promoCodeId, {
-//       $inc: { usedCount: 1 },
-//     });
-//   }
-
-//   return {
-//     userId,
-//     planId,
-//     sessionId,
-//     expiresAt,
-//   };
-// };
-
-// export const PaymentService = {
-//   activateFreeTrial,
-//  handlePaymentSuccess,
-//  confirmCheckoutSession,
-// //   handleStripeWebhook,
-//   createCheckoutSession,
-// };
-
-
-
-
-import Stripe from 'stripe';
 import httpStatus from 'http-status';
+// এটা দাও
+import Stripe from 'stripe';
 import { Types } from 'mongoose';
-import config from '../../config';
 import AppError from '../../error/AppError';
-import User from '../user/user.model';
 import SubscriptionPlan from '../subPlan/subplan.model';
+
+import PaymentHistory from './subpayment.model';
+import User from '../user/user.model';
 import PromoCode from '../PromoCode/promocode.model';
-import Payment from './subpayment.model';
-import { TBillingCycle } from './subpayment.interface';
+import config from '../../config';
 
-const stripe = new Stripe(config.stripe.stripe_secret_key as string);
+// ── Stripe instance ──
+const stripe = new Stripe(config.stripe.stripe_secret_key as string, {
+  apiVersion: '2026-03-25.dahlia',
+});
 
-// ─── Helper: billing cycle অনুযায়ী expiry date বের করো ─────────────────────
-// তোমার IPlan model এ interval নেই — তাই billingCycle parameter নাও
-const calcExpiresAt = (from: Date, billingCycle: TBillingCycle): Date => {
-  const d = new Date(from);
-  if (billingCycle === 'monthly') d.setMonth(d.getMonth() + 1);
-  else if (billingCycle === 'threeMonth') d.setMonth(d.getMonth() + 3);
-  else if (billingCycle === 'sixMonth') d.setMonth(d.getMonth() + 6);
-  else if (billingCycle === 'yearly') d.setFullYear(d.getFullYear() + 1);
-  return d;
-};
-
-// ─── 1. Free Trial Activation ────────────────────────────────────────────────
-const activateFreeTrial = async (
-  userId: string,
-  planId: string,
-  promoCodeId: string,
-  billingCycle: TBillingCycle,
-  trialDays: number,
-) => {
-  const plan = await SubscriptionPlan.findById(planId);
-  if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
-
-  const now = new Date();
-  const trialEndsAt = new Date(now);
-  trialEndsAt.setDate(trialEndsAt.getDate() + trialDays);
-
-  // ─── User subscription update ─────────────────────────────────────
-  const user = await User.findByIdAndUpdate(
-    userId,
-    {
-      $set: {
-        'subscription.plan': new Types.ObjectId(planId),
-        'subscription.planName': plan.name,          // ← plan name save
-        'subscription.promoCodeUsed': new Types.ObjectId(promoCodeId),
-        'subscription.status': 'trialing',
-        'subscription.billingCycle': billingCycle,
-        'subscription.startsAt': now,
-        'subscription.trialEndsAt': trialEndsAt,
-        'subscription.expiresAt': trialEndsAt,
-        isVerified: true,
-      },
-    },
-    { new: true },
-  );
-
-  // ─── Payment record save ──────────────────────────────────────────
-  await Payment.create({
-    user: userId,
-    plan: planId,
-    planName: plan.name,                             // ← plan name save
-    billingCycle,
-    amount: 0,
-    currency: 'usd',
-    status: 'succeeded',
-    paymentMethod: 'stripe',
-    promoCode: promoCodeId,
-    discountAmount: plan.price[billingCycle],        // full amount discounted
-    isTrial: true,
-    periodStart: now,
-    periodEnd: trialEndsAt,
-  });
-
-  // ─── Promo code usage বাড়াও ──────────────────────────────────────
-  await PromoCode.findByIdAndUpdate(promoCodeId, {
-    $inc: { usedCount: 1 },
-  });
-
-  return {
-    success: true,
-    message: `Free trial activated for ${trialDays} days`,
-    planName: plan.name,
-    trialEndsAt,
-    user,
-  };
-};
-
-// ─── 2. Create Stripe Checkout Session ───────────────────────────────────────
+// ─── Create Checkout Session ──────────────────────────────────────────────────
 const createCheckoutSession = async (
   userId: string,
   planId: string,
-  billingCycle: TBillingCycle,
-  promoCodeId?: string,
+  promoCode?: string,
 ) => {
-  const user = await User.findById(userId);
-  if (!user) throw new AppError(httpStatus.NOT_FOUND, 'User not found');
-
   const plan = await SubscriptionPlan.findById(planId);
-  if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
+  if (!plan || !plan.isActive) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Subscription plan not found');
+  }
 
-  // ─── Stripe Customer খোঁজো বা তৈরি করো ──────────────────────────
-  let stripeCustomerId = user.subscription?.stripeCustomerId;
-  if (!stripeCustomerId) {
-    const customer = await stripe.customers.create({
-      email: user.email,
-      name: user.fullName,
-    });
-    stripeCustomerId = customer.id;
+  let trialDays = 0;
+  let promoCodeId: string | null = null;
+
+  if (promoCode) {
+    const promo = await PromoCode.findOne({ code: promoCode.toUpperCase() });
+
+    if (!promo || !promo.isActive) {
+      throw new AppError(httpStatus.NOT_FOUND, 'Invalid promo code');
+    }
+    if (promo.isUsed) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Promo code already used');
+    }
+    if (promo.expiresAt && promo.expiresAt < new Date()) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Promo code has expired');
+    }
+    if (promo.plan.toString() !== planId) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'Promo code is not valid for this plan');
+    }
+
+    trialDays = promo.trialDays;
+    promoCodeId = promo._id.toString();
+  }
+
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    mode: 'subscription',
+    payment_method_types: ['card'],
+    line_items: [
+      {
+        price: plan.stripePriceId,
+        quantity: 1,
+      },
+    ],
+    ...(trialDays > 0 && {
+      subscription_data: {
+        trial_period_days: trialDays,
+      },
+    }),
+    // metadata: {
+    //   userId,
+    //   planId,
+    //   promoCodeId: promoCodeId ?? '',
+    //   trialDays: trialDays.toString(),
+    // },
+
+
+  metadata: {
+  userId: userId.toString(),
+  planId: planId.toString(),
+  promoCodeId: promoCodeId ? promoCodeId.toString() : '',
+  trialDays: trialDays.toString(),
+},
+    success_url: `${config.backend_url}/payment/subscription?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${config.backend_url}/subscription/cancel`,
+  };
+
+  const session = await stripe.checkout.sessions.create(sessionParams);
+
+  await PaymentHistory.create({
+    user: new Types.ObjectId(userId),
+    plan: new Types.ObjectId(planId),
+    promoCode: promoCodeId ? new Types.ObjectId(promoCodeId) : null,
+    stripeSessionId: session.id,
+    amount: trialDays > 0 ? 0 : plan.price,
+    currency: plan.currency ?? 'usd',
+    status: 'pending',
+    isTrial: trialDays > 0,
+    trialDays,
+  });
+
+  return { url: session.url };
+};
+
+// ─── Stripe Webhook Handler ───────────────────────────────────────────────────
+const handleStripeWebhook = async (
+  rawBody: Buffer,
+  signature: string,
+) => {
+  let event: Stripe.Event;
+
+  try {
+    event = stripe.webhooks.constructEvent(
+      rawBody,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET as string,
+    );
+  } catch {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid webhook signature');
+  }
+
+  // ── checkout.session.completed ──
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const { userId, planId, promoCodeId, trialDays } = session.metadata!;
+    const isTrial = Number(trialDays) > 0;
+
+    const stripeSubscription = await stripe.subscriptions.retrieve(
+      session.subscription as string,
+    );
+
+    const startsAt = new Date(stripeSubscription.start_date * 1000);
+    const expiresAt = new Date(
+      (stripeSubscription as any).current_period_end * 1000,
+    );
+    const trialEndsAt = stripeSubscription.trial_end
+      ? new Date(stripeSubscription.trial_end * 1000)
+      : null;
+
+    await PaymentHistory.findOneAndUpdate(
+      { stripeSessionId: session.id },
+      {
+        status: 'succeeded',
+        stripeSubscriptionId: session.subscription as string,
+        paidAt: new Date(),
+        amount: session.amount_total ?? 0,
+      },
+    );
+
+    if (promoCodeId) {
+      await PromoCode.findOneAndUpdate(
+        {
+          _id: new Types.ObjectId(promoCodeId),
+          isUsed: false,
+        },
+        {
+          isUsed: true,
+          usedBy: new Types.ObjectId(userId),
+        },
+      );
+    }
+
     await User.findByIdAndUpdate(userId, {
-      'subscription.stripeCustomerId': customer.id,
+      subscription: {
+        plan: new Types.ObjectId(planId),
+        stripeCustomerId: session.customer as string,
+        stripeSubscriptionId: session.subscription as string,
+        startsAt,
+        expiresAt,
+        trialEndsAt: trialEndsAt ?? undefined,
+        promoCodeUsed: promoCodeId ? new Types.ObjectId(promoCodeId) : undefined,
+        status: isTrial ? 'trialing' : 'active',
+      },
     });
   }
 
-  // ─── Billing cycle অনুযায়ী সঠিক price নাও ───────────────────────
-  const baseAmount = plan.price[billingCycle];
-  if (!baseAmount) {
-    throw new AppError(httpStatus.BAD_REQUEST, `Invalid billing cycle: ${billingCycle}`);
-  }
+  // ── customer.subscription.updated ──
+  if (event.type === 'customer.subscription.updated') {
+    const subscription = event.data.object as Stripe.Subscription;
 
-  // ─── Promo Code Discount Apply ────────────────────────────────────
-  const discounts: { coupon: string }[] = [];
-  let discountAmount = 0;
+    if (subscription.status === 'active') {
+      await User.findOneAndUpdate(
+        { 'subscription.stripeSubscriptionId': subscription.id },
+        {
+          'subscription.status': 'active',
+          'subscription.expiresAt': new Date(
+            (subscription as any).current_period_end * 1000,
+          ),
+          'subscription.trialEndsAt': undefined,
+        },
+      );
 
-  if (promoCodeId) {
-    const promo = await PromoCode.findById(promoCodeId);
-    if (promo) {
-      if (promo.discountType === 'free_trial') {
-        throw new AppError(
-          httpStatus.BAD_REQUEST,
-          'Free trial promo should use /activate-trial API',
-        );
-      }
+      await PaymentHistory.findOneAndUpdate(
+        { stripeSubscriptionId: subscription.id },
+        {
+          status: 'succeeded',
+          paidAt: new Date(),
+        },
+      );
+    }
 
-      let stripeCoupon;
-      if (promo.discountType === 'percentage') {
-        discountAmount = (baseAmount * promo.discountValue) / 100;
-        stripeCoupon = await stripe.coupons.create({
-          percent_off: promo.discountValue,
-          duration: 'once',
-        });
-      } else if (promo.discountType === 'fixed') {
-        discountAmount = Math.min(promo.discountValue, baseAmount);
-        stripeCoupon = await stripe.coupons.create({
-          amount_off: promo.discountValue * 100,
-          currency:  (plan as any).currency || 'usd',
-          duration: 'once',
-        });
-      }
-
-      if (stripeCoupon) discounts.push({ coupon: stripeCoupon.id });
+    if (subscription.status === 'canceled') {
+      await User.findOneAndUpdate(
+        { 'subscription.stripeSubscriptionId': subscription.id },
+        { 'subscription.status': 'cancelled' },
+      );
     }
   }
 
-  // ─── Stripe Price তৈরি করো (one-time, billingCycle অনুযায়ী) ─────
-  // তোমার plan model এ stripePriceId নেই
-  // তাই প্রতিবার dynamic price তৈরি করো
-  const stripePrice = await stripe.prices.create({
-    currency:(plan as any).currency || 'usd',
-    unit_amount: Math.round(baseAmount * 100),
-    product_data: {
-      name: `${plan.name} — ${billingCycle}`,
-    },
-  });
+  // ── invoice.payment_failed ──
+  if (event.type === 'invoice.payment_failed') {
+    const invoice = event.data.object as Stripe.Invoice;
 
-  // ─── Checkout Session তৈরি ────────────────────────────────────────
-  const session = await stripe.checkout.sessions.create({
-    customer: stripeCustomerId,
-    payment_method_types: ['card'],
-    line_items: [{ price: stripePrice.id, quantity: 1 }],
-    mode: 'payment',                                 // one-time payment
-    discounts: discounts.length > 0 ? discounts : undefined,
-    metadata: {
-      userId: userId.toString(),
-      planId: planId.toString(),
-      planName: plan.name,                           // ← metadata তে save
-      billingCycle,
-      promoCodeId: promoCodeId ?? '',
-      discountAmount: discountAmount.toString(),
-    },
-    success_url: `${config.backend_url}/api/v1/payment/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${config.backend_url}/api/v1/payment/cancel`,
-  });
+    await User.findOneAndUpdate(
+      { 'subscription.stripeSubscriptionId': (invoice as any).subscription },
+      { 'subscription.status': 'expired' },
+    );
 
-  return {
-    checkoutUrl: session.url,
-    sessionId: session.id,
-    planName: plan.name,                             // ← response এ plan name
-    billingCycle,
-    amount: baseAmount,
-    discountAmount,
-    finalAmount: baseAmount - discountAmount,
-    currency:  (plan as any).currency || 'usd',
-    hasDiscount: discounts.length > 0,
-  };
-};
-
-// ─── 3. Payment Success Handler (Stripe redirect) ────────────────────────────
-const handlePaymentSuccess = async (sessionId: string) => {
-  if (!sessionId) throw new AppError(httpStatus.BAD_REQUEST, 'Session ID not found');
-
-  const session = await stripe.checkout.sessions.retrieve(sessionId);
-  if (session.payment_status !== 'paid')
-    throw new AppError(httpStatus.BAD_REQUEST, 'Payment not completed');
-
-  const { userId, planId, planName, billingCycle, promoCodeId, discountAmount } =
-    session.metadata as {
-      userId: string;
-      planId: string;
-      planName: 'Starter' | 'Pro';
-      billingCycle: TBillingCycle;
-      promoCodeId: string;
-      discountAmount: string;
-    };
-
-  const plan = await SubscriptionPlan.findById(planId);
-  if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
-
-  const now = new Date();
-  const expiresAt = calcExpiresAt(now, billingCycle);
-  const baseAmount = plan.price[billingCycle];
-  const discount = parseFloat(discountAmount) || 0;
-
-  // ─── User subscription update ─────────────────────────────────────
-  await User.findByIdAndUpdate(userId, {
-    $set: {
-      'subscription.plan': planId,
-      'subscription.planName': planName,             // ← plan name save
-      'subscription.billingCycle': billingCycle,
-      'subscription.stripePaymentIntentId': session.payment_intent as string,
-      'subscription.stripeCustomerId': session.customer as string,
-      'subscription.status': 'active',
-      'subscription.startsAt': now,
-      'subscription.expiresAt': expiresAt,
-      ...(promoCodeId && { 'subscription.promoCodeUsed': promoCodeId }),
-      isVerified: true,
-    },
-  });
-
-  // ─── Payment record save ──────────────────────────────────────────
-  await Payment.create({
-    user: userId,
-    plan: planId,
-    planName,                                        // ← plan name save
-    billingCycle,
-    amount: baseAmount - discount,
-    currency: session.currency || 'usd',
-    status: 'succeeded',
-    paymentMethod: 'stripe',
-    stripePaymentIntentId: session.payment_intent as string,
-    promoCode: promoCodeId || null,
-    discountAmount: discount,
-    isTrial: false,
-    periodStart: now,
-    periodEnd: expiresAt,
-  });
-
-  // ─── Promo use count বাড়াও ───────────────────────────────────────
-  if (promoCodeId) {
-    await PromoCode.findByIdAndUpdate(promoCodeId, { $inc: { usedCount: 1 } });
+    await PaymentHistory.findOneAndUpdate(
+      { stripeSubscriptionId: (invoice as any).subscription },
+      { status: 'failed' },
+    );
   }
 
-  return {
-    success: true,
-    message: 'Subscription activated successfully',
-    planName,
-    billingCycle,
-    expiresAt,
-  };
+  return { received: true };
 };
 
-// ─── 4. Confirm Checkout Session (manual confirm) ────────────────────────────
-const confirmCheckoutSession = async (userId: string, sessionId: string) => {
-  const session = await stripe.checkout.sessions.retrieve(sessionId);
-  if (session.payment_status !== 'paid')
-    throw new AppError(httpStatus.BAD_REQUEST, 'Payment not completed');
+// ─── Get My Payment History ───────────────────────────────────────────────────
+const getMyPaymentHistory = async (userId: string) => {
+  const result = await PaymentHistory.find({ user: new Types.ObjectId(userId) })
+    .populate('plan', 'name price interval currency')
+    .populate('promoCode', 'code trialDays')
+    .sort({ createdAt: -1 });
+  return result;
+};
 
-  const { planId, planName, billingCycle, promoCodeId, discountAmount } =
-    session.metadata as {
-      planId: string;
-      planName: 'Starter' | 'Pro';
-      billingCycle: TBillingCycle;
-      promoCodeId: string;
-      discountAmount: string;
-    };
+// ─── Admin: Get All Payment History ──────────────────────────────────────────
+const getAllPaymentHistory = async () => {
+  const result = await PaymentHistory.find()
+    .populate('user', 'fullName email')
+    .populate('plan', 'name price interval currency')
+    .populate('promoCode', 'code trialDays')
+    .sort({ createdAt: -1 });
+  return result;
+};
 
-  const plan = await SubscriptionPlan.findById(planId);
-  if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
+// ─── Cancel Subscription ──────────────────────────────────────────────────────
+const cancelSubscription = async (userId: string) => {
+  const user = await User.findById(userId);
 
-  const now = new Date();
-  const expiresAt = calcExpiresAt(now, billingCycle);
-  const baseAmount = plan.price[billingCycle];
-  const discount = parseFloat(discountAmount) || 0;
-
-  await User.findByIdAndUpdate(userId, {
-    $set: {
-      'subscription.plan': planId,
-      'subscription.planName': planName,
-      'subscription.billingCycle': billingCycle,
-      'subscription.stripePaymentIntentId': session.payment_intent as string,
-      'subscription.stripeCustomerId': session.customer as string,
-      'subscription.status': 'active',
-      'subscription.startsAt': now,
-      'subscription.expiresAt': expiresAt,
-      ...(promoCodeId && { 'subscription.promoCodeUsed': promoCodeId }),
-      isVerified: true,
-    },
-  });
-
-  await Payment.create({
-    user: userId,
-    plan: planId,
-    planName,
-    billingCycle,
-    amount: baseAmount - discount,
-    currency: session.currency || 'usd',
-    status: 'succeeded',
-    paymentMethod: 'stripe',
-    stripePaymentIntentId: session.payment_intent as string,
-    promoCode: promoCodeId || null,
-    discountAmount: discount,
-    isTrial: false,
-    periodStart: now,
-    periodEnd: expiresAt,
-  });
-
-  if (promoCodeId) {
-    await PromoCode.findByIdAndUpdate(promoCodeId, { $inc: { usedCount: 1 } });
+  if (!user || !user.subscription?.stripeSubscriptionId) {
+    throw new AppError(httpStatus.NOT_FOUND, 'No active subscription found');
   }
 
-  return {
-    success: true,
-    message: 'Subscription activated successfully',
-    planName,
-    billingCycle,
-    expiresAt,
-  };
+  if (user.subscription.status === 'cancelled') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Subscription already cancelled');
+  }
+
+  await stripe.subscriptions.cancel(user.subscription.stripeSubscriptionId);
+
+  await User.findByIdAndUpdate(userId, {
+    'subscription.status': 'cancelled',
+  });
+
+  return { message: 'Subscription cancelled successfully' };
 };
 
+// ─── Export ───────────────────────────────────────────────────────────────────
 export const PaymentService = {
-  activateFreeTrial,
   createCheckoutSession,
-  handlePaymentSuccess,
-  confirmCheckoutSession,
+  handleStripeWebhook,
+  getMyPaymentHistory,
+  getAllPaymentHistory,
+  cancelSubscription,
 };
+
+
+
+
+
+
+

@@ -1,50 +1,19 @@
+import { Router } from 'express';
 
-import express from 'express';
-import auth from '../../middleware/auth.middleware';
 import { UserRole } from '../user/user.interface';
+import auth from '../../middleware/auth.middleware';
 import { SubscriptionPlanController } from './subplan.controller';
+
  
-const router = express.Router();
+const router = Router();
  
-// ─── Public Route (no auth) ──────────────────────────────────────────────────
-// User register/login ছাড়াই plan দেখতে পারবে
-router.get('/active', SubscriptionPlanController.getActivePlans);
+// ─── Public ───────────────────────────────────────────────────────────────────
+router.get('/', SubscriptionPlanController.getAllPlans);
+router.get('/:id', SubscriptionPlanController.getPlanById);
  
-// ─── Admin Routes ────────────────────────────────────────────────────────────
-router.post(
-  '/',
-  auth(UserRole.admin),
-  SubscriptionPlanController.createPlan,
-);
- 
-router.get(
-  '/',
-  auth(UserRole.admin),
-  SubscriptionPlanController.getAllPlans,
-);
- 
-router.get(
-  '/:id',
-  auth(UserRole.admin),
-  SubscriptionPlanController.getSinglePlan,
-);
- 
-router.patch(
-  '/:id',
-  auth(UserRole.admin),
-  SubscriptionPlanController.updatePlan,
-);
- 
-router.patch(
-  '/:id/toggle',
-  auth(UserRole.admin),
-  SubscriptionPlanController.togglePlan,
-);
- 
-router.delete(
-  '/:id',
-  auth(UserRole.admin),
-  SubscriptionPlanController.deletePlan,
-);
+// ─── Admin Only ───────────────────────────────────────────────────────────────
+router.post('/create-subplan', auth(UserRole.USER), SubscriptionPlanController.createPlan);
+router.patch('/:id', auth(UserRole.admin), SubscriptionPlanController.updatePlan);
+router.delete('/:id', auth(UserRole.admin), SubscriptionPlanController.deletePlan);
  
 export const PlanRoutes = router;

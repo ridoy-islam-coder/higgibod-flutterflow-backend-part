@@ -1,22 +1,40 @@
-import { Types } from 'mongoose';
+import { Types ,Model} from 'mongoose';
 
-export type TBillingCycle = 'monthly' | 'threeMonth' | 'sixMonth' | 'yearly';
-export type TPaymentStatus = 'pending' | 'succeeded' | 'failed' | 'refunded';
-export type TPaymentMethod = 'stripe' | 'paypal' | 'manual';
 
-export interface IPayment {
+
+
+// ─── Checkout Session Payload ─────────────────────────────────────────────────
+export type TCreateCheckoutPayload = {
+  planId: string;
+  promoCode?: string;
+  successUrl?: string;
+  cancelUrl?: string;
+};
+ 
+// ─── Subscription Status ──────────────────────────────────────────────────────
+export type TSubscriptionStatus = 'active' | 'trialing' | 'expired' | 'cancelled' | 'none';
+ 
+ 
+// ─── Payment Status ───────────────────────────────────────────────────────────
+export type TPaymentStatus = 'succeeded' | 'failed' | 'pending' | 'refunded';
+ 
+// ─── Payment History Type ─────────────────────────────────────────────────────
+export type TPaymentHistory = {
+  _id?: Types.ObjectId;
   user: Types.ObjectId;
   plan: Types.ObjectId;
-  planName: 'Starter' | 'Pro';          // ← plan name directly save
-  billingCycle: TBillingCycle;           // ← কোন cycle এ কিনেছে
-  amount: number;
+  promoCode?: Types.ObjectId | null;
+  stripeSessionId: string;
+  stripeSubscriptionId?: string;
+  stripeInvoiceId?: string;
+  amount: number;       // cents e.g. 2999 = $29.99
   currency: string;
   status: TPaymentStatus;
-  paymentMethod: TPaymentMethod;
-  stripePaymentIntentId?: string;
-  promoCode?: string;
-  discountAmount?: number;
-  isTrial?: boolean;
-  periodStart: Date;
-  periodEnd: Date;
-}
+  isTrial: boolean;
+  trialDays?: number;
+  paidAt?: Date;
+};
+ 
+// ─── Model Type ───────────────────────────────────────────────────────────────
+export type PaymentHistoryModel = Model<TPaymentHistory>;
+ 
