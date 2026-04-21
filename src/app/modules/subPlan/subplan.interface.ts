@@ -1,14 +1,20 @@
-// src/modules/subscription/subscription.interface.ts
-import { Types } from 'mongoose';
 
-export type TSubscriptionPlan = {
-  _id?: Types.ObjectId;
-  name: string;               // Basic, Pro, Enterprise
-  price: number;              // USD
-  currency: string;
-  interval: 'monthly' | 'yearly';
-  trialDays: number;          // default free trial days
+import { Document } from 'mongoose';
+ 
+export interface IPlan extends Document {
+  name: 'Starter' | 'Pro';
+  description: string;
+  price: {
+    monthly: number;
+    threeMonth: number;
+    sixMonth: number;
+    yearly: number;
+  };
   features: string[];
-  stripePriceId: string;      // Stripe এ create করা Price ID
   isActive: boolean;
-};
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+ 
+export type TBillingInterval = 'monthly' | 'threeMonth' | 'sixMonth' | 'yearly';
+ 

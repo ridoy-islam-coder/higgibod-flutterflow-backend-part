@@ -1,15 +1,12 @@
-// src/modules/subscription/subscriptionPlan.controller.ts
 import { Request, Response } from 'express';
+import httpStatus from 'http-status';
 import catchAsync from '../../utils/catchAsync';
 import sendResponse from '../../utils/sendResponse';
-import httpStatus from 'http-status';
 import { SubscriptionPlanService } from './subplan.service';
-
 
 // ─── Admin: Create Plan ──────────────────────────────────────────────────────
 const createPlan = catchAsync(async (req: Request, res: Response) => {
   const result = await SubscriptionPlanService.createPlan(req.body);
-
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
@@ -19,9 +16,8 @@ const createPlan = catchAsync(async (req: Request, res: Response) => {
 });
 
 // ─── Admin: Get All Plans ────────────────────────────────────────────────────
-const getAllPlans = catchAsync(async (req: Request, res: Response) => {
+const getAllPlans = catchAsync(async (_req: Request, res: Response) => {
   const result = await SubscriptionPlanService.getAllPlans();
-
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -30,10 +26,9 @@ const getAllPlans = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// ─── User + Admin: Get Active Plans ─────────────────────────────────────────
-const getActivePlans = catchAsync(async (req: Request, res: Response) => {
+// ─── Public / User: Get Active Plans ─────────────────────────────────────────
+const getActivePlans = catchAsync(async (_req: Request, res: Response) => {
   const result = await SubscriptionPlanService.getActivePlans();
-
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -44,9 +39,7 @@ const getActivePlans = catchAsync(async (req: Request, res: Response) => {
 
 // ─── Admin: Get Single Plan ──────────────────────────────────────────────────
 const getSinglePlan = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await SubscriptionPlanService.getSinglePlan(id as any);
-
+  const result = await SubscriptionPlanService.getSinglePlan(req.params.id as any);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -57,9 +50,7 @@ const getSinglePlan = catchAsync(async (req: Request, res: Response) => {
 
 // ─── Admin: Update Plan ──────────────────────────────────────────────────────
 const updatePlan = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await SubscriptionPlanService.updatePlan(id as any, req.body);
-
+  const result = await SubscriptionPlanService.updatePlan(req.params.id as any, req.body);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -68,11 +59,9 @@ const updatePlan = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// ─── Admin: Toggle Active/Inactive ──────────────────────────────────────────
+// ─── Admin: Toggle Active / Inactive ─────────────────────────────────────────
 const togglePlan = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await SubscriptionPlanService.togglePlan(id as any);
-
+  const result = await SubscriptionPlanService.togglePlan(req.params.id as any);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -83,9 +72,7 @@ const togglePlan = catchAsync(async (req: Request, res: Response) => {
 
 // ─── Admin: Delete Plan ──────────────────────────────────────────────────────
 const deletePlan = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
-  const result = await SubscriptionPlanService.deletePlan(id as any);
-
+  const result = await SubscriptionPlanService.deletePlan(req.params.id as any);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

@@ -1,119 +1,81 @@
-// src/modules/subscription/subscriptionPlan.service.ts
+
 import httpStatus from 'http-status';
-
-import Stripe from 'stripe';
-import config from '../../config';
-import { TSubscriptionPlan } from './subplan.interface';
-import SubscriptionPlan from './subplan.model';
 import AppError from '../../error/AppError';
-
-const stripe = new Stripe(config.stripe.stripe_secret_key as string);
-
+import { IPlan } from './subplan.interface';
+import SubscriptionPlan from './subplan.model';
+ 
 // ─── Admin: Create Plan ──────────────────────────────────────────────────────
-const createPlan = async (payload: TSubscriptionPlan) => {
-  // Stripe এ Product তৈরি করো
-  const stripeProduct = await stripe.products.create({
-    name: payload.name,
-  });
-
-  // Stripe এ Price তৈরি করো
-  const stripePrice = await stripe.prices.create({
-    product: stripeProduct.id,
-    unit_amount: Math.round(payload.price * 100), // cents এ
-    currency: payload.currency || 'usd',
-    recurring: {
-      interval: payload.interval === 'monthly' ? 'month' : 'year',
-    },
-  });
-
-  // DB তে save করো
-  const plan = await SubscriptionPlan.create({
-    ...payload,
-    stripePriceId: stripePrice.id,
-  });
-
+const createPlan = async (payload: Partial<IPlan>) => {
+  // Same name already exists check
+  const exists = await SubscriptionPlan.findOne({ name: payload.name });
+  if (exists) {
+    throw new AppError(httpStatus.CONFLICT, `"${payload.name}" plan already exists`);
+  }
+ 
+  const plan = await SubscriptionPlan.create(payload);
   return plan;
 };
-
-// ─── Admin: Get All Plans ────────────────────────────────────────────────────
+ 
+// ─── Admin: Get All Plans (active + inactive) ────────────────────────────────
 const getAllPlans = async () => {
-  return SubscriptionPlan.find();
+  return SubscriptionPlan.find().sort({ createdAt: 1 });
 };
-
-// ─── User + Admin: Get Active Plans ─────────────────────────────────────────
+ 
+// ─── Public / User: Get Active Plans only ───────────────────────────────────
 const getActivePlans = async () => {
-  return SubscriptionPlan.find({ isActive: true });
+  return SubscriptionPlan.find({ isActive: true }).sort({ createdAt: 1 });
 };
-
-// ─── Admin: Get Single Plan ──────────────────────────────────────────────────
+ 
+// ─── Admin: Get Single Plan by ID ────────────────────────────────────────────
 const getSinglePlan = async (id: string) => {
   const plan = await SubscriptionPlan.findById(id);
   if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
   return plan;
 };
-
+ 
 // ─── Admin: Update Plan ──────────────────────────────────────────────────────
-const updatePlan = async (id: string, payload: Partial<TSubscriptionPlan>) => {
+const updatePlan = async (id: string, payload: Partial<IPlan>) => {
   const plan = await SubscriptionPlan.findById(id);
   if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
-
-  // Price বা interval change হলে Stripe এ নতুন Price তৈরি করো
-  if (payload.price || payload.interval || payload.currency) {
-    const stripePrice = await stripe.prices.create({
-      product: (
-        await stripe.prices.retrieve(plan.stripePriceId)
-      ).product as string,
-      unit_amount: Math.round((payload.price || plan.price) * 100),
-      currency: payload.currency || plan.currency,
-      recurring: {
-        interval:
-          (payload.interval || plan.interval) === 'monthly' ? 'month' : 'year',
-      },
-    });
-
-    // পুরানো Stripe price archive করো
-    await stripe.prices.update(plan.stripePriceId, { active: false });
-
-    payload.stripePriceId = stripePrice.id;
+ 
+  // price object partially update করার জন্য merge করো
+  if (payload.price) {
+    payload.price = {
+      monthly: payload.price.monthly ?? plan.price.monthly,
+      threeMonth: payload.price.threeMonth ?? plan.price.threeMonth,
+      sixMonth: payload.price.sixMonth ?? plan.price.sixMonth,
+      yearly: payload.price.yearly ?? plan.price.yearly,
+    };
   }
-
-  // Plan name change হলে Stripe product ও update করো
-  if (payload.name) {
-    const oldPrice = await stripe.prices.retrieve(plan.stripePriceId);
-    await stripe.products.update(oldPrice.product as string, {
-      name: payload.name,
-    });
-  }
-
-  const updated = await SubscriptionPlan.findByIdAndUpdate(id, payload, {
-    new: true,
-  });
-
+ 
+  const updated = await SubscriptionPlan.findByIdAndUpdate(
+    id,
+    { $set: payload },
+    { new: true, runValidators: true },
+  );
+ 
   return updated;
 };
-
-// ─── Admin: Toggle Active/Inactive ──────────────────────────────────────────
+ 
+// ─── Admin: Toggle Plan active/inactive ──────────────────────────────────────
 const togglePlan = async (id: string) => {
   const plan = await SubscriptionPlan.findById(id);
   if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
-
+ 
   plan.isActive = !plan.isActive;
   await plan.save();
   return plan;
 };
-
+ 
 // ─── Admin: Delete Plan ──────────────────────────────────────────────────────
 const deletePlan = async (id: string) => {
   const plan = await SubscriptionPlan.findById(id);
   if (!plan) throw new AppError(httpStatus.NOT_FOUND, 'Plan not found');
-
-  // Stripe এ price archive করো
-  await stripe.prices.update(plan.stripePriceId, { active: false });
-
+ 
   await SubscriptionPlan.findByIdAndDelete(id);
   return { deleted: true };
 };
-
+ 
 export const SubscriptionPlanService = {
   createPlan,
   getAllPlans,
