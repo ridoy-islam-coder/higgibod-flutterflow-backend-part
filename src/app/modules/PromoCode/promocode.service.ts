@@ -123,25 +123,8 @@ const generatePromoCode = async (
 };
 
 // ─── Validate PromoCode ───────────────────────────────────────────────────────
-const validatePromoCode = async (code: string, planId: string) => {
-  const promo = await PromoCode.findOne({ code: code.toUpperCase() });
 
-  if (!promo || !promo.isActive) {
-    throw new AppError(httpStatus.NOT_FOUND, 'Invalid promo code');
-  }
-  if (promo.isUsed) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Promo code already used');
-  }
-  if (promo.expiresAt && promo.expiresAt < new Date()) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Promo code has expired');
-  }
-  if (promo.plan.toString() !== planId) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Promo code is not valid for this plan');
-  }
 
-  const result = await promo.populate('plan', 'name price trialDays interval currency');
-  return result;
-};
 
 // ─── Mark PromoCode As Used (payment complete হলে call করবে) ─────────────────
 const markPromoCodeAsUsed = async (promoCodeId: string, userId: string) => {
@@ -162,6 +145,47 @@ const markPromoCodeAsUsed = async (promoCodeId: string, userId: string) => {
   // promo null মানে already used বা exist করে না — silent fail করবো
   return promo;
 };
+
+const validatePromoCode = async (code: string, planId: string, userId: string) => {
+  const promo = await PromoCode.findOne({ code: code.toUpperCase() });
+
+  if (!promo || !promo.isActive) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Invalid promo code');
+  }
+  if (promo.isUsed) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Promo code already used');
+  }
+  if (promo.expiresAt && promo.expiresAt < new Date()) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Promo code has expired');
+  }
+  if (promo.plan.toString() !== planId) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Promo code is not valid for this plan');
+  }
+
+  // ✅ Atomic update — same time-এ দুজন use করতে পারবে না
+  const updated = await PromoCode.findOneAndUpdate(
+    { _id: promo._id, isUsed: false }, // condition
+    { isUsed: false, usedBy: new Types.ObjectId(userId) }, // update
+    { new: true }
+  ).populate('plan', 'name price trialDays interval currency');
+
+  if (!updated) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Promo code already used');
+  }
+
+  return updated;
+};
+
+
+
+
+
+
+
+
+
+
+
 
 // ─── Admin: Get All PromoCodes ────────────────────────────────────────────────
 const getAllPromoCodes = async () => {

@@ -20,10 +20,27 @@ const generatePromoCode = catchAsync(async (req: Request, res: Response) => {
 });
 
 // ─── User: Validate PromoCode ─────────────────────────────────────────────────
+// const validatePromoCode = catchAsync(async (req: Request, res: Response) => {
+//   const { code, planId } = req.body;
+
+//   const result = await PromoCodeService.validatePromoCode(code, planId);
+//   sendResponse(res, {
+//     statusCode: httpStatus.OK,
+//     success: true,
+//     message: 'Promo code is valid',
+//     data: result,
+//   });
+// });
+
+
+
+
 const validatePromoCode = catchAsync(async (req: Request, res: Response) => {
   const { code, planId } = req.body;
+  const userId = req.user._id; // ✅ userId নাও
 
-  const result = await PromoCodeService.validatePromoCode(code, planId);
+  const result = await PromoCodeService.validatePromoCode(code, planId, userId); // ✅ pass করো
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
