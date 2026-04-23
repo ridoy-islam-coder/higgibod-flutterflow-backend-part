@@ -16,7 +16,7 @@ export interface IReview {
 
 export interface IProduct extends Document {
   name: string;
-  category: string;
+  category: Types.ObjectId;
   description?: string;
   price: number;
   discount?: number;

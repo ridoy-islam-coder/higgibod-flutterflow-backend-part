@@ -25,7 +25,7 @@ export interface ILocation {
 export interface IEvent {
   _id?: Types.ObjectId;
   title: string;
-  category?: string;
+  category?: Types.ObjectId;
   date: Date;
   time?: string;
   location?: ILocation;

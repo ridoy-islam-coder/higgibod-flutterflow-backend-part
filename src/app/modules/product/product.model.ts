@@ -15,7 +15,11 @@ const reviewSchema = new Schema<IReview>(
 const productSchema = new Schema<IProduct>(
   {
     name: { type: String, required: true },
-    category: { type: String, required: true },
+    category: {
+      type: Schema.Types.ObjectId,
+      ref: "ProductCategory",
+      required: true,
+    },
     description: { type: String, default: "" },
     price: { type: Number, required: true },
     discount: { type: Number, default: 0 },

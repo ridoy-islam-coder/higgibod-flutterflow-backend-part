@@ -36,7 +36,11 @@ const reviewSchema = new Schema<IReview>(
 const eventSchema = new Schema<IEvent>(
   {
     title: { type: String, required: true },
-    // category: { type: String, default: "" },
+      category: {
+      type: Schema.Types.ObjectId,
+      ref: 'Category',
+      required: true,
+    },
     date: { type: Date, required: true },
     time: { type: String, default: "" },
     // location: { type: String, default: "" },

@@ -14,6 +14,8 @@ import { PlanRoutes } from '../modules/subPlan/subplan.routes';
 import { PaymentRoutes } from '../modules/subPayment/subpayment.routes';
 import { eventWishlistRoutes } from '../modules/Eventwishlist/wishlist.routes';
 import { PromoCodeRoutes } from '../modules/PromoCode/promocode.routes';
+import { catagoreeventRoutes } from '../modules/eventcatagore/eventcatagore.routes';
+import { ProductCategoryRoutes } from '../modules/ProductCategory/ProductCategory.routes';
 // import { PromoCodeRoutes } from '../modules/PromoCode/promocode.routes';
 
 
@@ -85,8 +87,14 @@ const moduleRoutes = [
     path: '/promocode',
     route: PromoCodeRoutes,
   },
-
-
+   {
+    path: '/catagore',
+    route: catagoreeventRoutes,
+  },
+ {
+    path: '/same',
+    route: ProductCategoryRoutes,
+  },
   
 
   

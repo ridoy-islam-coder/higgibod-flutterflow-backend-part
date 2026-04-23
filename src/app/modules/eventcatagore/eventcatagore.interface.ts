@@ -5,6 +5,7 @@ export interface ICategory extends Document {
   image: string;
   description?: string;
   isActive: boolean;
+  isPopular: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

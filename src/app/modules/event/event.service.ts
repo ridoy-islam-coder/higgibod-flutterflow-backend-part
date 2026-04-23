@@ -352,12 +352,12 @@ const getEventsByOrganizer = async (organizerId: string) => {
 
 
 
- export const getAllCategories = async () => {
-  const categories = await Event.distinct("category");
+//  export const getAllCategories = async () => {
+//   const categories = await Event.distinct("category");
 
-  // empty string remove (optional clean)
-  return categories.filter((cat) => cat && cat.trim() !== "");
-};
+//   // empty string remove (optional clean)
+//   return categories.filter((cat) => cat && cat.trim() !== "");
+// };
 
 
 
@@ -521,7 +521,7 @@ addReviewService,
   getFeaturedEvents,
   getNearbyEvents,
   getEventsByOrganizer,
-  getAllCategories,
+  // getAllCategories,
   getUpcomingEvents,
   getPreviousEvents,
   getmapSuggestions,

@@ -22,7 +22,10 @@ const categorySchema = new Schema<ICategory>(
       type: Boolean,
       default: true,
     },
+
+    isPopular: { type: Boolean, default: false }, 
   },
+  
   {
     timestamps: true,
     toJSON: { virtuals: true },
