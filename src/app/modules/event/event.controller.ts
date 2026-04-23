@@ -46,10 +46,16 @@ export const createEvent = catchAsync(async (req, res) => {
 });
 
 
-
 export const getAllEvents = catchAsync(async (req, res) => {
   const result = await eventServices.getAllEventsService();
-  sendResponse(res, { statusCode: 200, success: true, message: "Events fetched successfully", data: result });
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Events fetched successfully",
+    // meta: result.meta,
+    data: result.data,
+  });
 });
 
 export const getPastEvents = catchAsync(async (req, res) => {
@@ -158,16 +164,33 @@ const getEventsByOrganizer = catchAsync(async (req, res) => {
   });
 });
  
-const getAllCategories = catchAsync(async (req, res) => {
-  const result = await eventServices.getAllCategories();
+// export const getAllCategories = catchAsync(async (req, res) => {
+//   const result = await eventServices.getAllCategories();
+
+//   sendResponse(res, {
+//     statusCode: 200,
+//     success: true,
+//     message: "Categories fetched successfully",
+//     data: result,
+//   });
+// });
+
+
+
+export const getAllCategories = catchAsync(async (req, res) => {
+  const { category } = req.query;
+
+  const result = await Event.find({ category })
+    .populate("host", "fullName image")
+    .sort({ date: 1 });
+
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Categories fetched",
+    message: "Events fetched by category",
     data: result,
   });
 });
-
 
 // ─── GET /api/events?isPast=true|false ───────────────────────────────────────
 const getEvents = catchAsync(async (req, res) => {

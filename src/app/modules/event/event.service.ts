@@ -59,18 +59,37 @@ export const createEventService = async (
 };
 
 
-
-// event.getAllEvents
 export const getAllEventsService = async () => {
-  const events = await Event.find({
+  // const page = Number(query.page) || 1;
+  // const limit = Number(query.limit) || 10;
+  // const skip = (page - 1) * limit;
+
+  const filter = {
     isPast: false,
     date: { $gte: new Date() },
-  })
-    .populate("host", "fullName image")
-    .sort({ date: 1 });
-  return events;
-};
+  };
 
+  const events = await Event.find(filter)
+    .select("title  date time  location  attendees gallery gallery coverImage")
+    .populate("host", "fullName image")
+    .populate("attendees", "name email profileImage")
+    
+    // .sort({ date: 1 })
+    // .skip(skip)
+    // .limit(limit);
+
+  const total = await Event.countDocuments(filter);
+
+  return {
+    // meta: {
+    //   page,
+    //   limit,
+    //   total,
+    //   totalPage: Math.ceil(total / limit),
+    // },
+    data: events,
+  };
+};
 
 
 
@@ -79,7 +98,9 @@ export const getPastEventsService = async () => {
   const events = await Event.find({
     date: { $lt: new Date() },
   })
+    .select("title  date time  location  attendees gallery gallery coverImage")
     .populate("host", "fullName image")
+    .populate("attendees", "name email profileImage")
     .sort({ date: -1 });
   return events;
 };
@@ -275,7 +296,9 @@ const searchEvents = async (query: {
   const skip = (page - 1) * limit;
   const total = await Event.countDocuments(filter);
   const events = await Event.find(filter)
+    .select("title  date time  location  attendees gallery gallery coverImage")
     .populate("host", "name email profileImage")
+    .populate("attendees", "name email profileImage")
     .sort({ date: 1 })
     .skip(skip)
     .limit(limit);
@@ -324,13 +347,17 @@ const getEventsByOrganizer = async (organizerId: string) => {
     .sort({ createdAt: -1 });
 };
  
-const getAllCategories = async () => {
-  const categories = await Event.distinct("category", {
-    isDeleted: { $ne: true },
-  });
-  return categories.filter(Boolean);
+
+
+
+
+
+ export const getAllCategories = async () => {
+  const categories = await Event.distinct("category");
+
+  // empty string remove (optional clean)
+  return categories.filter((cat) => cat && cat.trim() !== "");
 };
- 
 
 
 
@@ -411,6 +438,35 @@ export const getmapSuggestions = async (address: string) => {
 
 
 
+// export const getsearchEvents = async (
+//   latitude: number,
+//   longitude: number,
+//   radiusInKm: number = 10
+// ) => {
+//   if (!latitude || !longitude) {
+//     throw new Error("Latitude and Longitude required");
+//   }
+
+//   const radiusInMeters = radiusInKm * 1000;
+
+//   const events = await Event.find({
+//     location: {
+//       $near: {
+//         $geometry: {
+//           type: "Point",
+//           coordinates: [longitude, latitude], // ⚠️ IMPORTANT: [lng, lat]
+//         },
+//         $maxDistance: radiusInMeters,
+//       },
+       
+//     },
+//   }) .limit(1); // 🔥 only 1 nearest event;
+
+
+//   return events;
+// };
+
+
 export const getsearchEvents = async (
   latitude: number,
   longitude: number,
@@ -422,25 +478,32 @@ export const getsearchEvents = async (
 
   const radiusInMeters = radiusInKm * 1000;
 
-  const events = await Event.find({
-    location: {
-      $near: {
-        $geometry: {
+  const events = await Event.aggregate([
+    {
+      $geoNear: {
+        near: {
           type: "Point",
-          coordinates: [longitude, latitude], // ⚠️ IMPORTANT: [lng, lat]
+          coordinates: [longitude, latitude],
         },
-        $maxDistance: radiusInMeters,
+        key: "location",
+        distanceField: "distance",
+        maxDistance: radiusInMeters,
+        spherical: true,
       },
-       
     },
-  }) .limit(1); // 🔥 only 1 nearest event;
-
+    {
+      $match: {
+        isDeleted: { $ne: true },
+        isPast: false,
+      },
+    },
+    {
+      $sort: { distance: 1 },
+    },
+  ]);
 
   return events;
 };
-
-
-
 
 
 
