@@ -26,6 +26,6 @@ router.get("/getAllCategories", auth(USER_ROLE.USER), categoryController.getAllC
 
 router.get("/details/:id",auth(USER_ROLE.USER), categoryController.getCategoryByIdnew);
 
-router.get("/events/:categoryId",auth(USER_ROLE.USER), categoryController.getEventsByCategoryId);
+router.get("/events",auth(USER_ROLE.USER), categoryController.getEventsByCategoryId);
  
 export const catagoreeventRoutes = router;

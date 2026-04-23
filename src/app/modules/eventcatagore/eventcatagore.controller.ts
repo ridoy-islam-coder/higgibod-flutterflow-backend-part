@@ -130,7 +130,7 @@ const getEventsByCategoryId = catchAsync(async (req: Request, res: Response) => 
     req.params.categoryId as string,
     req.query
   );
-
+console.log("query.categories:",  req.query);
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

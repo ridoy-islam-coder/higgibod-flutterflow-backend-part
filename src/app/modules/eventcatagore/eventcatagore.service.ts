@@ -225,22 +225,23 @@ const getAllCategories = async (filters: ICategoryFilter, query: any) => {
 //   };
 // };
 
+import mongoose from "mongoose";
 
 const getEventsByCategoryId = async (categoryId: string, query: any) => {
   const { page, limit, skip } = getPaginationOptions(query);
 
-  // ✅ Multiple categoryId support
-  // ?categories=id1,id2,id3 অথবা single id
+  // ✅ String ID গুলো ObjectId তে convert করো
   const categoryIds = query.categories
-    ? query.categories.split(",")
-    : [categoryId];
+    ? query.categories
+        .split(",")
+        .map((id: string) => new mongoose.Types.ObjectId(id.trim()))
+    : [new mongoose.Types.ObjectId(categoryId)];
 
-  // ✅ সব category exist করে কিনা চেক করো
   const categories = await Category.find({ _id: { $in: categoryIds } });
   if (!categories.length) throw new Error("Category not found");
 
   const filter: any = {
-    category: { $in: categoryIds }, // ✅ multiple id filter
+    category: { $in: categoryIds },
     isDeleted: false,
   };
 
@@ -258,9 +259,9 @@ const getEventsByCategoryId = async (categoryId: string, query: any) => {
       .sort({ createdAt: -1 }),
     Event.countDocuments(filter),
   ]);
+console.log("categoryId:", categoryId);
 
   return {
-    // ✅ selected categories info
     categories: categories.map((cat) => ({
       _id: cat._id,
       name: cat.name,

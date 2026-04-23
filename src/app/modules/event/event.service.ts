@@ -59,10 +59,14 @@ export const createEventService = async (
 };
 
 
-export const getAllEventsService = async () => {
-  // const page = Number(query.page) || 1;
-  // const limit = Number(query.limit) || 10;
-  // const skip = (page - 1) * limit;
+export const getAllEventsService = async (query: any) => {
+  const page = Number(query.page) || 1;
+  const limit = Number(query.limit) || 10;
+
+  // 🔥 security: max limit
+  const safeLimit = Math.min(limit, 50);
+
+  const skip = (page - 1) * safeLimit;
 
   const filter = {
     isPast: false,
@@ -70,27 +74,25 @@ export const getAllEventsService = async () => {
   };
 
   const events = await Event.find(filter)
-    .select("title  date time  location  attendees gallery gallery coverImage")
+    .select("title date time location attendees gallery coverImage")
     .populate("host", "fullName image")
     .populate("attendees", "name email profileImage")
-    
-    // .sort({ date: 1 })
-    // .skip(skip)
-    // .limit(limit);
+    .sort({ date: 1 }) // upcoming events first
+    .skip(skip)
+    .limit(safeLimit);
 
   const total = await Event.countDocuments(filter);
 
   return {
-    // meta: {
-    //   page,
-    //   limit,
-    //   total,
-    //   totalPage: Math.ceil(total / limit),
-    // },
+    meta: {
+      page,
+      limit: safeLimit,
+      total,
+      totalPage: Math.ceil(total / safeLimit),
+    },
     data: events,
   };
 };
-
 
 
 // event.getPastEvents

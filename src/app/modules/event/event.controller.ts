@@ -47,13 +47,13 @@ export const createEvent = catchAsync(async (req, res) => {
 
 
 export const getAllEvents = catchAsync(async (req, res) => {
-  const result = await eventServices.getAllEventsService();
+  const result = await eventServices.getAllEventsService(req.query);
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: "Events fetched successfully",
-    // meta: result.meta,
+    meta: result.meta, // 👈 add this
     data: result.data,
   });
 });
