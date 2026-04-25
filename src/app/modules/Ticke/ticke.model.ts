@@ -71,13 +71,28 @@ const ticketSchema = new Schema<ITicket>(
   { timestamps: true, versionKey: false }
 );
  
+// ticketSchema.pre("find", function (next) {
+//   this.find({ isDeleted: { $ne: true } });
+//   next();
+// });
+ 
+// ticketSchema.pre("findOne", function (next) {
+//   this.find({ isDeleted: { $ne: true } });
+//   next();
+// });
+
 ticketSchema.pre("find", function (next) {
-  this.find({ isDeleted: { $ne: true } });
+  // শুধু Ticket collection এর query তে filter করো
+  if (this.model.modelName === "Ticket") {
+    this.find({ isDeleted: { $ne: true } });
+  }
   next();
 });
- 
+
 ticketSchema.pre("findOne", function (next) {
-  this.find({ isDeleted: { $ne: true } });
+  if (this.model.modelName === "Ticket") {
+    this.find({ isDeleted: { $ne: true } });
+  }
   next();
 });
  

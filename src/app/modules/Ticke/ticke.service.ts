@@ -7,6 +7,13 @@ import User from "../user/user.model";
 import { Ticket } from "./ticke.model";
 import config from "../../config";
 import mongoose from "mongoose";
+import catchAsync from "../../utils/catchAsync";
+
+import { Request, Response } from "express";
+import AppError from "../../error/AppError";
+import puppeteer from "puppeteer";
+import httpStatus  from 'http-status';
+
 
 
 const stripe = new Stripe(config.stripe.stripe_secret_key as string)
@@ -142,6 +149,7 @@ const getMyTickets = async (userId: string, page = 1, limit = 10) => {
 
   const tickets = await Ticket.find({ user: userId, paymentStatus: "paid" })
     .populate("event", "title date time location coverImage category")
+    .populate("user", "fullName email image") 
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -162,7 +170,7 @@ const getTicketDetails = async (ticketId: string, userId: string) => {
   const ticket = await Ticket.findOne({
     _id: ticketId,
     user: userId,
-  }).populate("event", "title date time location coverImage description host");
+  }).populate("event", "title date time location coverImage description host").populate("user", "fullName email image") ;
 
   if (!ticket) throw new Error("Ticket not found");
   return ticket;
@@ -640,6 +648,175 @@ const getEarningByEvent = async (userId: string, eventId: string) => {
 };
 
 
+
+
+
+// ── External image → base64 (timeout fix) ────────────────────────────────────
+const imageUrlToBase64 = async (url: string): Promise<string> => {
+  try {
+    const response = await fetch(url);
+    const buffer = await response.arrayBuffer();
+    const base64 = Buffer.from(buffer).toString("base64");
+    const mimeType = response.headers.get("content-type") || "image/jpeg";
+    return `data:${mimeType};base64,${base64}`;
+  } catch {
+    return "";
+  }
+};
+ 
+// ── Download Ticket as PNG Image ──────────────────────────────────────────────
+export const downloadTicketImage = async (
+  ticketId: string,
+  userId: string
+): Promise<Buffer> => {
+  const ticket = await Ticket.findOne({ _id: ticketId, user: userId })
+    .populate("event", "title date time location coverImage")
+    .populate("user", "name email");
+ 
+  if (!ticket) throw new AppError(httpStatus.NOT_FOUND, "Ticket not found");
+ 
+  const event = (ticket as any).event;
+  const user = (ticket as any).user;
+ 
+  // QR Code generate
+  const qrDataURL = await QRCode.toDataURL(ticket.ticketNumber, {
+    width: 180,
+    margin: 1,
+    color: { dark: "#000000", light: "#ffffff" },
+  });
+ 
+  const eventDate = new Date(event.date).toLocaleDateString("en-US", {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
+ 
+  const place =
+    event.location?.coordinates?.length === 2
+      ? `${event.location.coordinates[1]}, ${event.location.coordinates[0]}`
+      : "TBA";
+ 
+  const avatarLetter = (user?.name || ticket.attendeeName || "G")
+    .charAt(0)
+    .toUpperCase();
+ 
+  // S3 image → base64 (network timeout এড়াতে)
+  const coverBase64 = event.coverImage?.url
+    ? await imageUrlToBase64(event.coverImage.url)
+    : "";
+ 
+  const coverImg = coverBase64
+    ? `<img src="${coverBase64}" style="width:100%;height:150px;object-fit:cover;display:block;" />`
+    : `<div style="width:100%;height:150px;background:linear-gradient(135deg,#c0392b,#8e44ad);"></div>`;
+ 
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8"/>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:Arial,sans-serif;background:#12122a;padding:24px;width:400px;}
+  .banner{background:#0f2b0f;border:1px solid #1e5c1e;border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:14px;}
+  .check{width:34px;height:34px;background:#27ae60;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:bold;flex-shrink:0;}
+  .banner-title{color:#27ae60;font-size:14px;font-weight:700;}
+  .banner-sub{color:#777;font-size:11px;margin-top:2px;}
+  .holder{background:#1a1a3a;border-radius:12px;padding:14px 16px;margin-bottom:14px;}
+  .holder-label{color:#777;font-size:10px;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;}
+  .holder-row{display:flex;align-items:center;gap:12px;}
+  .avatar{width:42px;height:42px;border-radius:50%;background:#c0392b;color:#fff;font-size:18px;font-weight:bold;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .holder-name{color:#fff;font-size:14px;font-weight:600;}
+  .holder-email{color:#888;font-size:11px;margin-top:2px;}
+  .meta{display:flex;gap:28px;margin-top:12px;}
+  .meta-label{color:#777;font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+  .meta-val{color:#fff;font-size:13px;font-weight:600;}
+  .card{border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+  .card-body{background:#fff;padding:20px;position:relative;}
+  .notch-l,.notch-r{position:absolute;top:-14px;width:28px;height:28px;background:#12122a;border-radius:50%;}
+  .notch-l{left:-14px;}
+  .notch-r{right:-14px;}
+  .event-title{font-size:19px;font-weight:700;color:#12122a;text-align:center;line-height:1.3;margin-bottom:16px;}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;}
+  .g-label{font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;}
+  .g-val{font-size:13px;color:#12122a;font-weight:700;}
+  .dashed{border:none;border-top:1.5px dashed #ddd;margin:14px 0;}
+  .qr-wrap{text-align:center;padding:4px 0 8px;}
+  .qr-wrap img{width:160px;height:160px;}
+  .ticket-num{font-size:10px;color:#aaa;letter-spacing:2px;margin-top:6px;}
+</style>
+</head>
+<body>
+  <div class="banner">
+    <div class="check">✓</div>
+    <div>
+      <div class="banner-title">Ticket Confirmed</div>
+      <div class="banner-sub">Ready to scan at entrance</div>
+    </div>
+  </div>
+  <div class="holder">
+    <div class="holder-label">Ticket Holder</div>
+    <div class="holder-row">
+      <div class="avatar">${avatarLetter}</div>
+      <div>
+        <div class="holder-name">${user?.name || ticket.attendeeName || "Guest"}</div>
+        <div class="holder-email">${user?.email || ticket.attendeeEmail}</div>
+      </div>
+    </div>
+    <div class="meta">
+      <div>
+        <div class="meta-label">Ticket Type</div>
+        <div class="meta-val">${ticket.ticketType} Access</div>
+      </div>
+      <div>
+        <div class="meta-label">Attendees</div>
+        <div class="meta-val">${ticket.quantity} Person${ticket.quantity > 1 ? "s" : ""}</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    ${coverImg}
+    <div class="card-body">
+      <div class="notch-l"></div>
+      <div class="notch-r"></div>
+      <div class="event-title">${event.title}</div>
+      <div class="grid">
+        <div><div class="g-label">Date</div><div class="g-val">${eventDate}</div></div>
+        <div><div class="g-label">Time</div><div class="g-val">${event.time || "TBA"}</div></div>
+        <div><div class="g-label">Place</div><div class="g-val">${place}</div></div>
+        <div><div class="g-label">Quantity</div><div class="g-val">${String(ticket.quantity).padStart(2, "0")}</div></div>
+      </div>
+      <hr class="dashed" />
+      <div class="qr-wrap">
+        <img src="${qrDataURL}" alt="QR" />
+        <div class="ticket-num">${ticket.ticketNumber}</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+ 
+  const browser = await puppeteer.launch({
+    headless: true,
+    args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
+  });
+ 
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 448, height: 900, deviceScaleFactor: 2 });
+    // ✅ domcontentloaded — network wait করবে না, timeout হবে না
+    await page.setContent(html, { waitUntil: "domcontentloaded" });
+    const bodyHeight = await page.evaluate(() => document.body.scrollHeight);
+    await page.setViewport({ width: 448, height: bodyHeight, deviceScaleFactor: 2 });
+    const buffer = await page.screenshot({ type: "png", fullPage: true });
+    return buffer as Buffer;
+  } finally {
+    await browser.close();
+  }
+};
+ 
+
+
+
+
 export const ticketService = {
   buyTicket,
 //   handleTicketWebhook,
@@ -652,4 +829,5 @@ export const ticketService = {
   getEarningOverview,
   getMyEventsList,
   getEarningByEvent,
+  downloadTicketImage,
 };

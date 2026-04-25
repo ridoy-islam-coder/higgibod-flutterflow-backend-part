@@ -2,8 +2,10 @@
 import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
-import { ticketService } from "./ticke.service";
+import { downloadTicketImage, ticketService } from "./ticke.service";
 import httpStatus  from 'http-status';
+import { Ticket } from "./ticke.model";
+import AppError from "../../error/AppError";
 
 
 
@@ -154,6 +156,20 @@ const getEarningByEvent = catchAsync(async (req: Request, res: Response) => {
 
 
 
+// GET /api/v1/tickets/:id/download/image
+const downloadImage = catchAsync(async (req: Request, res: Response) => {
+  const buffer = await ticketService.downloadTicketImage(req.params.id as string, req.user._id);
+ 
+  res.set({
+    "Content-Type": "image/png",
+    "Content-Disposition": `attachment; filename="ticket-${req.params.id}.png"`,
+    "Content-Length": buffer.length,
+  });
+ 
+  res.send(buffer);
+});
+
+
 
 
 
@@ -168,4 +184,5 @@ export const ticketController = {
   getEarningOverview,
   getMyEventsList,
   getEarningByEvent,
+  downloadImage,
 };

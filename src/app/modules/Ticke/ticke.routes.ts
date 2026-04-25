@@ -87,7 +87,11 @@ router.get(
 
 
 
-
+router.get(
+  "/download/:id",
+  auth(USER_ROLE.USER),
+  ticketController.downloadImage
+);
 
 
 
