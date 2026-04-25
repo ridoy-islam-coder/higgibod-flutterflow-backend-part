@@ -6,6 +6,7 @@ import { Event } from "../event/event.model";
 import User from "../user/user.model";
 import { Ticket } from "./ticke.model";
 import config from "../../config";
+import mongoose from "mongoose";
 
 
 const stripe = new Stripe(config.stripe.stripe_secret_key as string)
@@ -236,6 +237,7 @@ const scanTicket = async (ticketNumber: string) => {
 
 
 // ─── Unique ticket number generate ────────────────────────────────────────
+
 // const generateTicketNumber = (): string => {
 //   const timestamp = Date.now().toString(36).toUpperCase();
 //   const random = Math.random().toString(36).substring(2, 6).toUpperCase();
@@ -245,26 +247,127 @@ const scanTicket = async (ticketNumber: string) => {
 // ─── 1. Buy Ticket — Stripe Checkout Session create ───────────────────────
 
 
+// const buyTicket = async (
+//   userId: string,
+//   eventId: string,
+//   quantity: number = 1,
+//   ticketType: string = 'General',
+// ) => {
+//   // User info
+//   const user = await User.findById(userId);
+//   if (!user) throw new Error('User not found');
+
+//   // Event info
+//   const event = await Event.findById(eventId);
+//   if (!event) throw new Error('Event not found');
+
+//   if (event.isPast) throw new Error('This event has already passed');
+
+//   const pricePerTicket = event.price || 0;
+//   const totalAmount = pricePerTicket * quantity;
+
+//   // Ticket DB te save koro — pending status (tomar logic same)
+//   const ticket = await Ticket.create({
+//     user: userId,
+//     event: eventId,
+//     ticketNumber: generateTicketNumber(),
+//     attendeeName: user.name,
+//     attendeeEmail: user.email,
+//     ticketType,
+//     quantity,
+//     price: pricePerTicket,
+//     totalAmount,
+//     paymentStatus: 'paid',
+//   });
+
+//   // Stripe Checkout Session create
+//   const session = await stripe.checkout.sessions.create({
+//     payment_method_types: ['card'],
+//     mode: 'payment',
+//     customer_email: user.email, // checkout e email prefill hobe
+
+//     line_items: [
+//       {
+//         quantity,
+//         price_data: {
+//           currency: 'usd',
+//           unit_amount: Math.round(pricePerTicket * 100), // cents
+//           product_data: {
+//             name: event.title,
+//             description: `Ticket Type: ${ticketType} | Date: ${new Date(event.date).toDateString()}`,
+//           },
+//         },
+//       },
+//     ],
+
+//     metadata: {
+//       ticketId: ticket._id.toString(), // webhook e use korbo
+//       userId: userId.toString(),
+//       eventId: eventId.toString(),
+//       quantity: quantity.toString(),
+//     },
+
+//     // Payment success/cancel hole kothay pathabo
+//     success_url: `${config.backend_url}/payment/success?ticketId=${ticket._id}`,
+//     cancel_url: `${config.backend_url}/payment/cancel?ticketId=${ticket._id}`,
+//   });
+
+//   // Session id ticket e save koro
+//   await Ticket.findByIdAndUpdate(ticket._id, {
+//     stripeSessionId: session.id,
+//   });
+
+//   return {
+//     ticketId: ticket._id,
+//     ticketNumber: ticket.ticketNumber,
+//     checkoutUrl: session.url, // ← frontend e redirect korbe ei url e
+//     totalAmount,
+//     event: {
+//       title: event.title,
+//       date: event.date,
+//       time: event.time,
+//       location: event.location,
+//     },
+//   };
+// };
+
+
+
+
+
+
+
+
+
+
+
+
+// ── 1. Buy Ticket — quantity support সহ ──────────────────────────────────────
 const buyTicket = async (
   userId: string,
   eventId: string,
   quantity: number = 1,
-  ticketType: string = 'General',
+  ticketType: string = "General"
 ) => {
+  // ── Validation ──────────────────────────────────────────────
+  if (quantity < 1 || quantity > 10) {
+    throw new Error("Quantity must be between 1 and 10");
+  }
+ 
   // User info
   const user = await User.findById(userId);
-  if (!user) throw new Error('User not found');
-
+  if (!user) throw new Error("User not found");
+ 
   // Event info
   const event = await Event.findById(eventId);
-  if (!event) throw new Error('Event not found');
-
-  if (event.isPast) throw new Error('This event has already passed');
-
+  if (!event) throw new Error("Event not found");
+  if (event.isPast) throw new Error("This event has already passed");
+ 
   const pricePerTicket = event.price || 0;
-  const totalAmount = pricePerTicket * quantity;
-
-  // Ticket DB te save koro — pending status (tomar logic same)
+  const totalAmount = pricePerTicket * quantity; // quantity দিয়ে total
+ 
+  // ── Ticket DB তে save (pending) ─────────────────────────────
+  // quantity যতই হোক — একটাই ticket record, quantity field এ number থাকবে
   const ticket = await Ticket.create({
     user: userId,
     event: eventId,
@@ -272,54 +375,53 @@ const buyTicket = async (
     attendeeName: user.name,
     attendeeEmail: user.email,
     ticketType,
-    quantity,
+    quantity,          // ← 1, 2, 3... যা দিবে
     price: pricePerTicket,
-    totalAmount,
-    paymentStatus: 'paid',
+    totalAmount,       // ← price × quantity
+    paymentStatus: "pending",
   });
-
-  // Stripe Checkout Session create
+ 
+  // ── Stripe Checkout Session ──────────────────────────────────
   const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    mode: 'payment',
-    customer_email: user.email, // checkout e email prefill hobe
-
+    payment_method_types: ["card"],
+    mode: "payment",
+    customer_email: user.email,
     line_items: [
       {
-        quantity,
+        quantity,        // ← Stripe এও quantity যাচ্ছে
         price_data: {
-          currency: 'usd',
-          unit_amount: Math.round(pricePerTicket * 100), // cents
+          currency: "usd",
+          unit_amount: Math.round(pricePerTicket * 100), // cents (per ticket)
           product_data: {
-            name: event.title,
-            description: `Ticket Type: ${ticketType} | Date: ${new Date(event.date).toDateString()}`,
+            name: `${event.title} — ${ticketType} Ticket`,
+            description: `Quantity: ${quantity} | Date: ${new Date(event.date).toDateString()}`,
           },
         },
       },
     ],
-
     metadata: {
-      ticketId: ticket._id.toString(), // webhook e use korbo
+      ticketId: ticket._id.toString(),
       userId: userId.toString(),
       eventId: eventId.toString(),
       quantity: quantity.toString(),
     },
-
-    // Payment success/cancel hole kothay pathabo
     success_url: `${config.backend_url}/payment/success?ticketId=${ticket._id}`,
     cancel_url: `${config.backend_url}/payment/cancel?ticketId=${ticket._id}`,
   });
-
-  // Session id ticket e save koro
+ 
+  // ── Session ID ticket এ save ─────────────────────────────────
+  // model এ stripePaymentIntentId আছে — ওটাতেই session id রাখো
   await Ticket.findByIdAndUpdate(ticket._id, {
-    stripeSessionId: session.id,
+    stripePaymentIntentId: session.id, // ← session id এখানে save
   });
-
+ 
   return {
     ticketId: ticket._id,
     ticketNumber: ticket.ticketNumber,
-    checkoutUrl: session.url, // ← frontend e redirect korbe ei url e
+    quantity,
+    pricePerTicket,
     totalAmount,
+    checkoutUrl: session.url, // ← frontend এই URL এ redirect করবে
     event: {
       title: event.title,
       date: event.date,
@@ -328,6 +430,10 @@ const buyTicket = async (
     },
   };
 };
+
+
+
+
 
 // ─── 2. Stripe Webhook — payment success hole ticket confirm koro ──────────
 
@@ -383,6 +489,155 @@ const buyTicket = async (
 
 
 
+//new api routes
+
+
+
+// ── 1. Earning Overview ───────────────────────────────────────────────────────
+// Total Earning, Tickets Sold, Monthly Earning, Recent Payments
+const getEarningOverview = async (userId: string, year?: number) => {
+  const targetYear = year || new Date().getFullYear();
+ 
+  // Organizer এর সব event IDs
+  const myEvents = await Event.find(
+    { host: userId, isDeleted: false },
+    { _id: 1 }
+  );
+  const eventIds = myEvents.map((e) => e._id);
+ 
+  // ── Total Earning & Tickets Sold ──────────────────────────────
+  const totals = await Ticket.aggregate([
+    {
+      $match: {
+        event: { $in: eventIds },
+        paymentStatus: "paid",
+        isDeleted: false,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalEarning: { $sum: "$totalAmount" },
+        ticketsSold: { $sum: "$quantity" },
+      },
+    },
+  ]);
+ 
+  const totalEarning = totals[0]?.totalEarning || 0;
+  const ticketsSold = totals[0]?.ticketsSold || 0;
+ 
+  // ── Monthly Earning (selected year) ──────────────────────────
+  const monthlyEarning = await Ticket.aggregate([
+    {
+      $match: {
+        event: { $in: eventIds },
+        paymentStatus: "paid",
+        isDeleted: false,
+        createdAt: {
+          $gte: new Date(`${targetYear}-01-01`),
+          $lte: new Date(`${targetYear}-12-31`),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: { $month: "$createdAt" },
+        earning: { $sum: "$totalAmount" },
+      },
+    },
+    { $sort: { _id: 1 } },
+  ]);
+ 
+  // সব 12 মাস fill করো (0 হলেও দেখাবে)
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const found = monthlyEarning.find((m) => m._id === i + 1);
+    return {
+      month: i + 1,
+      monthName: new Date(targetYear, i, 1).toLocaleString("en", { month: "short" }),
+      earning: found?.earning || 0,
+    };
+  });
+ 
+  // ── Recent Payments (latest 4) ────────────────────────────────
+  const recentPayments = await Ticket.find({
+    event: { $in: eventIds },
+    paymentStatus: "paid",
+    isDeleted: false,
+  })
+    .populate("event", "title")
+    .populate("user", "name profileImage")
+    .sort({ createdAt: -1 })
+    .limit(4)
+    .select("totalAmount quantity ticketType createdAt event user");
+ 
+  return {
+    totalEarning,
+    ticketsSold,
+    year: targetYear,
+    monthlyEarning: months,
+    recentPayments,
+  };
+};
+ 
+// ── 2. Earning Analytics — event dropdown filter ──────────────────────────────
+// Organizer এর সব events list (dropdown এর জন্য)
+const getMyEventsList = async (userId: string) => {
+  const events = await Event.find(
+    { host: userId, isDeleted: false },
+    { title: 1, date: 1 }
+  ).sort({ date: -1 });
+ 
+  return events;
+};
+ 
+// নির্দিষ্ট event এর সব payments
+const getEarningByEvent = async (userId: string, eventId: string) => {
+  // Verify this event belongs to this organizer
+  const event = await Event.findOne({
+    _id: eventId,
+    host: userId,
+    isDeleted: false,
+  });
+  if (!event) throw new Error("Event not found");
+ 
+  const payments = await Ticket.find({
+    event: eventId,
+    paymentStatus: "paid",
+    isDeleted: false,
+  })
+    .populate("user", "name profileImage")
+    .sort({ createdAt: -1 })
+    .select("totalAmount quantity ticketType createdAt user attendeeName attendeeEmail");
+ 
+  // Event summary
+  const summary = await Ticket.aggregate([
+    {
+      $match: {
+        event: new mongoose.Types.ObjectId(eventId),
+        paymentStatus: "paid",
+        isDeleted: false,
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalEarning: { $sum: "$totalAmount" },
+        ticketsSold: { $sum: "$quantity" },
+      },
+    },
+  ]);
+ 
+  return {
+    event: {
+      _id: event._id,
+      title: event.title,
+      date: event.date,
+    },
+    totalEarning: summary[0]?.totalEarning || 0,
+    ticketsSold: summary[0]?.ticketsSold || 0,
+    payments,
+  };
+};
 
 
 export const ticketService = {
@@ -392,4 +647,9 @@ export const ticketService = {
   getTicketDetails,
   getTicketQRCode,
   scanTicket,
+
+  // New APIs
+  getEarningOverview,
+  getMyEventsList,
+  getEarningByEvent,
 };

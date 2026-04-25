@@ -120,9 +120,41 @@ const updateProfileWithPersonalization = async (
 };
 
 
+
+
+//new api 
+
+
+// ── Upsert (create if not exists, update if exists) ───────────────────────────
+// ── Upsert (create if not exists, update if exists) ───────────────────────────
+const upsertPersonalization = async (
+  userId: string,
+  payload: any
+) => {
+  const result = await Personalization.findOneAndUpdate(
+    { user: userId },          // filter — find by logged-in user
+    { $set: payload },          // only update provided fields
+    {
+      new: true,                // return the updated document
+      upsert: true,             // create if not found
+      runValidators: true,      // run mongoose schema validators on update
+      setDefaultsOnInsert: true,// apply schema defaults on first create
+    }
+  );
+ 
+  return result;
+};
+ 
+
+
+
+
+
+
 export const personalizationService = {
   savePersonalization,
  getPersonalizationByUser,
   updatePersonalizationkk,
   updateProfileWithPersonalization,
+  upsertPersonalization,
 };

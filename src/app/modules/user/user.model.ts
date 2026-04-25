@@ -30,8 +30,10 @@ const imageSchema = new Schema({
   },
   url: {
     type: String,
+    default: "",
     required: true,
   },
+
 });
 // Define the schema for the User model
 const UserSchema = new Schema<TUser, UserModel>(

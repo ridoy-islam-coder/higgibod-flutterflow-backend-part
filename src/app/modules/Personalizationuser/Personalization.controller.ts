@@ -5,7 +5,7 @@ import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { personalizationService } from "./Personalization.service";
 import { uploadToS3 } from "../../utils/fileHelper";
-
+import httpStatus  from 'http-status';
 
 
  
@@ -106,6 +106,46 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+
+
+
+
+
+
+
+
+
+//new update api 
+
+// Token দিয়ে call করবে — create না থাকলে create, থাকলে update (upsert)
+
+// ── POST/PATCH  /api/v1/personalization  ─────────────────────────────────────
+const upsertPersonalization = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+ 
+  const result = await personalizationService.upsertPersonalization(
+    userId,
+    req.body
+  );
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Personalization saved successfully",
+    data: result,
+  });
+});
+
+
+
+
+
+
+
+
+
+
 
 
 export const personalizationController = {

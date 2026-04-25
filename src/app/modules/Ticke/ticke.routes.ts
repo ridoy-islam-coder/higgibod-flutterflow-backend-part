@@ -38,5 +38,28 @@ router.get("/ticket-qr/:id", auth(USER_ROLE.USER), ticketController.getTicketQRC
 // POST  /tickets/scan             — entry scanner (organizer use korbe)
 // body: { ticketNumber: "TKT-xxx-xxx" }
 router.post("/scan", auth(USER_ROLE.USER), ticketController.scanTicket);
+
+
+
+
+
+
+
+// New APIs for Organizer Dashboard
+router.get("/earnings-overview", auth(USER_ROLE.USER), ticketController.getEarningOverview);
+router.get("/my-events", auth(USER_ROLE.USER), ticketController.getMyEventsList);
+router.get("/earnings-by-event/:eventId", auth(USER_ROLE.USER), ticketController.getEarningByEvent);
+
+
+
+
+
+
+
+
+
+
+
+
  
 export const ticketRoutes = router;

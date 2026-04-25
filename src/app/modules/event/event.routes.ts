@@ -75,4 +75,26 @@ router.get("/map-suggestions", auth(USER_ROLE.USER), eventcontroller.getAutoSugg
 router.get("/nearby-events", auth(USER_ROLE.USER), eventcontroller.getNearbyEventsController);
 
 
+
+
+
+
+
+// ── Dashboard (organizer only) ────────────────────────────────────────────────
+router.get("/dashboard",auth(USER_ROLE.ORGANIZER),eventcontroller.getDashboardStats);
+
+
+// ── All Events (upcoming / past / search) — Figma "All Events" screen ─────────
+// GET /api/v1/events/all?type=upcoming
+// GET /api/v1/events/all?type=past
+// GET /api/v1/events/all?search=sunset
+// GET /api/v1/events/all?type=upcoming&search=sunset
+router.get("/all", auth(USER_ROLE.ORGANIZER), eventcontroller.getAllMyEvents);
+
+// ── Recent Payments ───────────────────────────────────────────────────────────
+router.get("/recent-payments", auth(USER_ROLE.ORGANIZER), eventcontroller.getRecentPayments);
+ 
+
+
+
 export const eventRoutes = router;

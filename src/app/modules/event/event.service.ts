@@ -101,8 +101,8 @@ export const getPastEventsService = async () => {
     date: { $lt: new Date() },
   })
     .select("title  date time  location  attendees gallery gallery coverImage")
-    .populate("host", "fullName image")
-    .populate("attendees", "name email profileImage")
+    .populate("host", "fullName image email")
+    .populate("attendees", "fullName image email")
     .sort({ date: -1 });
   return events;
 };
@@ -111,8 +111,8 @@ export const getPastEventsService = async () => {
 // event.getEventDetails
 export const getEventDetailsService = async (id: string) => {
   const event = await Event.findById(id)
-    .populate("host", "fullName image")
-    .populate("attendees", "fullName image")
+    .populate("host", "fullName image email")
+    .populate("attendees", "fullName image email")
     .populate("reviews.user", "fullName image");
   if (!event) throw new AppError(404, "Event not found");
   return event;
@@ -221,12 +221,6 @@ export const addReviewService = async (req: any) => {
 
   return updatedEvent;
 };
-
-
-
-
-
-
 
 
 
@@ -509,6 +503,150 @@ export const getsearchEvents = async (
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+//new api  
+
+// ── 3. Dashboard Stats ────────────────────────────────────────────────────────
+// Total events, total attendees, monthly earning
+const getDashboardStats = async (userId: string) => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+ 
+  // Total events
+  const totalEvent = await Event.countDocuments({
+    host: userId,
+    isDeleted: false,
+  });
+ 
+  // Total attendees (sum of all attendees arrays)
+  const attendeesResult = await Event.aggregate([
+    { $match: { host: userId, isDeleted: { $ne: true } } },
+    {
+      $group: {
+        _id: null,
+        totalAttendees: { $sum: { $size: "$attendees" } },
+      },
+    },
+  ]);
+  const totalAttendees = attendeesResult[0]?.totalAttendees || 0;
+ 
+  // Monthly earning (current year) — price × attendees count per month
+  const monthlyEarning = await Event.aggregate([
+    {
+      $match: {
+        host: userId,
+        isDeleted: { $ne: true },
+        date: {
+          $gte: new Date(`${currentYear}-01-01`),
+          $lte: new Date(`${currentYear}-12-31`),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: { $month: "$date" },
+        earning: {
+          $sum: { $multiply: ["$price", { $size: "$attendees" }] },
+        },
+      },
+    },
+    { $sort: { _id: 1 } },
+    {
+      $project: {
+        _id: 0,
+        month: "$_id",
+        earning: 1,
+      },
+    },
+  ]);
+ 
+  // Fill all 12 months (0 earning months also show)
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const found = monthlyEarning.find((m) => m.month === i + 1);
+    return { month: i + 1, earning: found?.earning || 0 };
+  });
+ 
+  return {
+    totalEvent,
+    totalAttendees,
+    monthlyEarning: months,
+  };
+};
+
+
+
+
+// ── All Events (upcoming / past / search) ─────────────────────────────────────
+const getAllMyEvents = async (userId: string, query: any) => {
+  const { type, search } = query;
+  const now = new Date();
+ 
+  const filter: any = {
+    host: userId,
+    isDeleted: false,
+  };
+ 
+  // upcoming or past filter
+  if (type === "upcoming") {
+    filter.date = { $gte: now };
+    filter.isPast = false;
+  } else if (type === "past") {
+    filter.date = { $lt: now };
+    // filter.isPast = true;
+  }
+ 
+  // search by title (case-insensitive)
+  if (search && search.trim() !== "") {
+    filter.title = { $regex: search.trim(), $options: "i" };
+  }
+ 
+  const events = await Event.find(filter)
+    .populate("category", "name")
+    .sort({ date: type === "past" ? -1 : 1 }) // past: newest first, upcoming: soonest first
+    .select("title date time location coverImage price attendees category");
+ 
+  return events;
+};
+
+
+
+// ── 5. Recent Payments ────────────────────────────────────────────────────────
+// Events with attendees = ticket sold = payment received
+const getRecentPayments = async (userId: string) => {
+  const events = await Event.find({
+    host: userId,
+    isDeleted: false,
+    "attendees.0": { $exists: true }, // has at least 1 attendee
+  })
+    .populate("attendees", "name email profileImage")
+    .sort({ updatedAt: -1 })
+    .limit(10)
+    .select("title price attendees updatedAt");
+ 
+  // Flatten into payment list format
+  const payments = events.flatMap((event) =>
+    (event.attendees as any[]).map((attendee) => ({
+      eventTitle: event.title,
+      amount: event.price,
+      user: attendee,
+      paidAt: event.updatedAt,
+    }))
+  );
+ 
+  return payments;
+};
+
 export const eventServices = {
 createEventService,
 getAllEventsService,
@@ -528,5 +666,8 @@ addReviewService,
   getPreviousEvents,
   getmapSuggestions,
   getsearchEvents,
+  getDashboardStats,
+  getAllMyEvents,
+  getRecentPayments,
 
 };

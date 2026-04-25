@@ -344,6 +344,72 @@ export const getNearbyEventsController = catchAsync(
 
 
 
+
+
+
+
+// ── 3. Dashboard Stats ────────────────────────────────────────────────────────
+const getDashboardStats = catchAsync(async (req, res) => {
+  const userId = req.user?._id;
+  const result = await eventServices.getDashboardStats(userId);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Dashboard stats fetched successfully",
+    data: result,
+  });
+});
+
+
+
+
+
+
+
+
+// GET /api/v1/events/all?type=upcoming&search=sunset
+// GET /api/v1/events/all?type=past
+// GET /api/v1/events/all?search=skate
+const getAllMyEvents = catchAsync(async (req, res) => {
+  const userId = req.user?._id;
+  const query = req.query; // { type, search }
+ 
+  const result = await eventServices.getAllMyEvents(userId, query);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Events fetched successfully",
+    data: result,
+  });
+});
+
+
+
+
+
+
+
+
+// ── 5. Recent Payments ────────────────────────────────────────────────────────
+const getRecentPayments = catchAsync(async (req, res) => {
+  const userId = req.user?._id;
+  const result = await eventServices.getRecentPayments(userId);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Recent payments fetched successfully",
+    data: result,
+  });
+});
+
+
+
+
+
+
 export const eventcontroller = {
 createEvent,
 getAllEvents,
@@ -363,5 +429,7 @@ addReview,
   addReviewadd,
   getAutoSuggestions,
   getNearbyEventsController,
-
+  getDashboardStats,
+  getAllMyEvents,
+  getRecentPayments,
 };
