@@ -46,10 +46,40 @@ router.post("/scan", auth(USER_ROLE.USER), ticketController.scanTicket);
 
 
 // New APIs for Organizer Dashboard
-router.get("/earnings-overview", auth(USER_ROLE.USER), ticketController.getEarningOverview);
-router.get("/my-events", auth(USER_ROLE.USER), ticketController.getMyEventsList);
-router.get("/earnings-by-event/:eventId", auth(USER_ROLE.USER), ticketController.getEarningByEvent);
 
+
+/**
+ * GET /api/v1/earnings/overview
+ * GET /api/v1/earnings/overview?year=2025
+ * ─ Screen 1: Earning Overview
+ * ─ Total Earning, Tickets Sold, Monthly Chart, Recent Payments
+ */
+router.get(
+  "/overview",
+  auth(USER_ROLE.ORGANIZER),
+  ticketController.getEarningOverview
+);
+ 
+/**
+ * GET /api/v1/earnings/events
+ * ─ Screen 2: Event dropdown list
+ */
+router.get(
+  "/events",
+  auth(USER_ROLE.ORGANIZER),
+  ticketController.getMyEventsList
+);
+ 
+/**
+ * GET /api/v1/earnings/by-event/:eventId
+ * ─ Screen 2: Earning Analytics — নির্দিষ্ট event এর সব payments
+ */
+router.get(
+  "/by-event/:eventId",
+  auth(USER_ROLE.ORGANIZER),
+  ticketController.getEarningByEvent
+);
+ 
 
 
 
