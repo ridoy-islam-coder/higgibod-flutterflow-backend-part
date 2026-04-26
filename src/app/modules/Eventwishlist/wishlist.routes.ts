@@ -14,6 +14,6 @@ router.get("/event-wishlist", auth(USER_ROLE.USER), eventWishlistController.getE
 router.post("/event-wishlist/:eventId",auth(USER_ROLE.USER),eventWishlistController.toggleEventWishlist);
  
 // DELETE /event-wishlist/:eventId    — specific event remove
-router.delete("/event-event/:eventId", auth(USER_ROLE.USER),eventWishlistController.removeEventFromWishlist);
+router.delete("/event-wishlist/:eventId", auth(USER_ROLE.USER),eventWishlistController.removeEventFromWishlist);
  
 export const eventWishlistRoutes = router;

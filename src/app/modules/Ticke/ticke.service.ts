@@ -596,27 +596,28 @@ const buyTicket = async (
 
 
 
-
-const getEarningOverview = async (userId: string, year?: number) => {
+const getEarningOverview = async (
+  userId: string,
+  year?: number,
+  page = 1,       // ← add
+  limit = 10,     // ← add
+) => {
   const targetYear = year || new Date().getFullYear();
+  const skip = (page - 1) * limit;
 
-  // Organizer er sob event
   const myEvents = await Event.find(
     { host: userId, isDeleted: { $ne: true } },
     { _id: 1, attendees: 1 },
   );
   const eventIds = myEvents.map((e) => e._id);
 
-  // ── Total Event Count ──────────────────────────────────────────
   const totalEvents = myEvents.length;
 
-  // ── Total Attendees ────────────────────────────────────────────
   const totalAttendees = myEvents.reduce(
     (sum, event: any) => sum + (event.attendees?.length || 0),
     0,
   );
 
-  // ── Total Earning & Tickets Sold ───────────────────────────────
   const totals = await Ticket.aggregate([
     {
       $match: {
@@ -634,7 +635,6 @@ const getEarningOverview = async (userId: string, year?: number) => {
     },
   ]);
 
-  // ── Monthly Earning ────────────────────────────────────────────
   const monthlyRaw = await Ticket.aggregate([
     {
       $match: {
@@ -656,7 +656,6 @@ const getEarningOverview = async (userId: string, year?: number) => {
     { $sort: { _id: 1 } },
   ]);
 
-  // sob 12 mas fill koro — 0 hole o dekhabe
   const monthlyEarning = Array.from({ length: 12 }, (_, i) => {
     const found = monthlyRaw.find((m: any) => m._id === i + 1);
     return {
@@ -668,7 +667,13 @@ const getEarningOverview = async (userId: string, year?: number) => {
     };
   });
 
-   // ── Recent Payments ────────────────────────────────────────────
+  // ── Recent Payments with pagination ───────────────────────────
+  const totalPayments = await Ticket.countDocuments({
+    event: { $in: eventIds },
+    paymentStatus: 'paid',
+    isDeleted: false,
+  });
+
   const recentPayments = await Ticket.find({
     event: { $in: eventIds },
     paymentStatus: 'paid',
@@ -677,15 +682,24 @@ const getEarningOverview = async (userId: string, year?: number) => {
     .populate('user', 'fullName image email')
     .populate('event', 'title coverImage date')
     .sort({ createdAt: -1 })
-    .limit(10);
+    .skip(skip)
+    .limit(limit);
 
   return {
     totalEarning: totals[0]?.totalEarning || 0,
     ticketsSold: totals[0]?.ticketsSold || 0,
     totalEvents,
     totalAttendees,
-    monthlyEarning, // ← 12 mas always asbe
-    recentPayments,
+    monthlyEarning,
+    recentPayments: {
+      data: recentPayments,
+      pagination: {
+        total: totalPayments,
+        page,
+        limit,
+        totalPages: Math.ceil(totalPayments / limit),
+      },
+    },
   };
 };
 

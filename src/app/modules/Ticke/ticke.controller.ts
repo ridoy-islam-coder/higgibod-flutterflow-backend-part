@@ -126,6 +126,8 @@ const getEarningOverview = catchAsync(async (req: Request, res: Response) => {
   const result = await ticketService.getEarningOverview(
     req.user?._id,
     req.query.year ? parseInt(req.query.year as string) : undefined,
+    req.query.page ? Number(req.query.page) : 1,
+    req.query.limit ? Number(req.query.limit) : 10,
   );
 
   sendResponse(res, {
@@ -135,7 +137,6 @@ const getEarningOverview = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-
 
 
 // ── 2. My Events List (dropdown) ──────────────────────────────────────────────

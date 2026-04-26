@@ -435,6 +435,49 @@ const getRecentPayments = catchAsync(async (req, res) => {
 
 
 
+// GET /api/v1/events/:id/attendees?page=1&limit=10
+const getEventAttendees = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : 10;
+  const skip = (page - 1) * limit;
+ 
+  const event = await Event.findById(id)
+    .populate({
+      path: "attendees",
+      select: "name email profileImage",
+      options: {
+        skip,
+        limit,
+      },
+    })
+    .select("attendees title");
+ 
+  if (!event) throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+ 
+  // total attendees count (pagination এর জন্য)
+  const eventForCount = await Event.findById(id).select("attendees");
+  const totalAttendees = (eventForCount?.attendees || []).length;
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Attendees fetched successfully",
+    data: {
+      eventTitle: event.title,
+      attendees: event.attendees || [],
+      pagination: {
+        total: totalAttendees,
+        page,
+        limit,
+        totalPages: Math.ceil(totalAttendees / limit),
+      },
+    },
+  });
+});
+
+
+
 
 
 
@@ -463,4 +506,5 @@ addReview,
   getAllMyEvents,
   getRecentPayments,
   getMyTicketsnewfilter,
+  getEventAttendees,
 };

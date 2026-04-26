@@ -97,4 +97,10 @@ router.get("/recent-payments", auth(USER_ROLE.ORGANIZER), eventcontroller.getRec
 
 router.get('/myall-tickets', auth(USER_ROLE.USER,USER_ROLE.ORGANIZER), eventcontroller.getMyTicketsnewfilter);
 
+
+
+
+// ── Event Attendees List ──────────────────────────────────────────────────────
+router.get("/attendees/:id", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcontroller.getEventAttendees);
+
 export const eventRoutes = router;
