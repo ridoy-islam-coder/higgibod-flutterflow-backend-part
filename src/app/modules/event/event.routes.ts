@@ -4,7 +4,7 @@ import { USER_ROLE } from "../user/user.constant";
 import upload from "../../middleware/fileUpload";
 import auth from "../../middleware/auth.middleware";
 import { eventcontroller } from "./event.controller";
-import { map } from "zod";
+
 
 
 const router = Router();

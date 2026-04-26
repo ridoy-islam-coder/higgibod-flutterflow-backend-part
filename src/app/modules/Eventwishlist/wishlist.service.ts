@@ -3,13 +3,32 @@
 import { EventWishlist } from "./wishlist.model";
 
 
-
-const getEventWishlist = async (userId: string) => {
-  const wishlist = await EventWishlist.findOne({ user: userId }).populate(
-    "events",
-    "title date time location coverImage category price isPast"
-  );
-  return wishlist || { user: userId, events: [] };
+export const getEventWishlist = async (
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const skip = (page - 1) * limit;
+ 
+  const wishlist = await EventWishlist.findOne({ user: userId });
+  const totalEvents = wishlist?.events?.length || 0;
+ 
+  const paginatedWishlist = await EventWishlist.findOne({ user: userId })
+    .populate({
+      path: "events",
+      select: "title date time location coverImage category price isPast",
+      options: { skip, limit },
+    });
+ 
+  return {
+    events: paginatedWishlist?.events || [],
+    pagination: {
+      total: totalEvents,
+      page,
+      limit,
+      totalPages: Math.ceil(totalEvents / limit),
+    },
+  };
 };
 
 

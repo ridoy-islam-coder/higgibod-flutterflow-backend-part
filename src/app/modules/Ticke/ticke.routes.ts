@@ -65,7 +65,7 @@ router.get(
  * ─ Screen 2: Event dropdown list
  */
 router.get(
-  "/events",
+  "/getMyEventsList",
   auth(USER_ROLE.ORGANIZER),
   ticketController.getMyEventsList
 );
