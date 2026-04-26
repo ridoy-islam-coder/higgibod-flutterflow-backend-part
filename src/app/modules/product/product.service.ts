@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import AppError from "../../error/AppError";
 import { Order } from "../userOrder/userOrder.model";
 import { Product } from "./product.model";
@@ -151,32 +151,82 @@ export const addProductReviewService = async (req: any) => {
 
 
 
-const getTrendingProducts = async (limit = 8) => {
-  const products = await Product.aggregate([
-    { $match: { isDeleted: { $ne: true } } },
-    {
-      $addFields: {
-        reviewCount: { $size: "$reviews" },
-        avgRating: { $avg: "$reviews.rating" },
-      },
-    },
-    { $sort: { reviewCount: -1, avgRating: -1 } },
-    { $limit: limit },
-    {
-      $lookup: {
-        from: "users",
-        localField: "host",
-        foreignField: "_id",
-        as: "host",
-        pipeline: [{ $project: { name: 1, profileImage: 1 } }],
-      },
-    },
-    { $unwind: { path: "$host", preserveNullAndEmptyArrays: true } },
-  ]);
+// const getTrendingProducts = async (limit = 8) => {
+//   const products = await Product.aggregate([
+//     { $match: { isDeleted: { $ne: true } } },
+//     {
+//       $addFields: {
+//         reviewCount: { $size: "$reviews" },
+//         avgRating: { $avg: "$reviews.rating" },
+//       },
+//     },
+//     { $sort: { reviewCount: -1, avgRating: -1 } },
+//     { $limit: limit },
+//     {
+//       $lookup: {
+//         from: "users",
+//         localField: "host",
+//         foreignField: "_id",
+//         as: "host",
+//         pipeline: [{ $project: { name: 1, profileImage: 1 } }],
+//       },
+//     },
+//     { $unwind: { path: "$host", preserveNullAndEmptyArrays: true } },
+//   ]);
  
-  return products;
+//   return products;
+// };
+ 
+
+
+
+
+const getTrendingProducts = async (
+  productId: string | undefined,
+  categoryIds: string[],
+  page = 1,
+  limit = 10,
+) => {
+  const skip = (page - 1) * limit;
+
+  const query: Record<string, unknown> = {
+    isDeleted: { $ne: true },
+  };
+
+  // productId dile current product ta bade debo
+  if (productId) {
+    query._id = { $ne: new Types.ObjectId(productId) };
+  }
+
+  // categoryIds dile filter korbo — na dile all products asbe
+  if (categoryIds.length > 0) {
+    query.category = {
+      $in: categoryIds.map((id) => new Types.ObjectId(id)),
+    };
+  }
+
+  const total = await Product.countDocuments(query);
+
+  const products = await Product.find(query)
+    .populate('category', 'name')
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
+
+  return {
+    products,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
- 
+
+
+
+
  
 const getFeaturedProducts = async (limit = 5) => {
   const products = await Product.aggregate([

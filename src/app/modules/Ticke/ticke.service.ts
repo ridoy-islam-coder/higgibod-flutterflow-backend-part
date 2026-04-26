@@ -386,7 +386,7 @@ const buyTicket = async (
     quantity,          // ← 1, 2, 3... যা দিবে
     price: pricePerTicket,
     totalAmount,       // ← price × quantity
-    paymentStatus: "pending",
+    paymentStatus: "paid",
   });
  
   // ── Stripe Checkout Session ──────────────────────────────────
@@ -501,92 +501,198 @@ const buyTicket = async (
 
 
 
-// ── 1. Earning Overview ───────────────────────────────────────────────────────
-// Total Earning, Tickets Sold, Monthly Earning, Recent Payments
+// // ── 1. Earning Overview ───────────────────────────────────────────────────────
+// // Total Earning, Tickets Sold, Monthly Earning, Recent Payments
+// const getEarningOverview = async (userId: string, year?: number) => {
+//   const targetYear = year || new Date().getFullYear();
+ 
+//   // Organizer এর সব event IDs
+//   const myEvents = await Event.find(
+//     { host: userId, isDeleted: false },
+//     { _id: 1 }
+//   );
+//   const eventIds = myEvents.map((e) => e._id);
+ 
+//   // ── Total Earning & Tickets Sold ──────────────────────────────
+//   const totals = await Ticket.aggregate([
+//     {
+//       $match: {
+//         event: { $in: eventIds },
+//         paymentStatus: "paid",
+//         isDeleted: false,
+//       },
+//     },
+//     {
+//       $group: {
+//         _id: null,
+//         totalEarning: { $sum: "$totalAmount" },
+//         ticketsSold: { $sum: "$quantity" },
+//       },
+//     },
+//   ]);
+ 
+//   const totalEarning = totals[0]?.totalEarning || 0;
+//   const ticketsSold = totals[0]?.ticketsSold || 0;
+ 
+//   // ── Monthly Earning (selected year) ──────────────────────────
+//   const monthlyEarning = await Ticket.aggregate([
+//     {
+//       $match: {
+//         event: { $in: eventIds },
+//         paymentStatus: "paid",
+//         isDeleted: false,
+//         createdAt: {
+//           $gte: new Date(`${targetYear}-01-01`),
+//           $lte: new Date(`${targetYear}-12-31`),
+//         },
+//       },
+//     },
+//     {
+//       $group: {
+//         _id: { $month: "$createdAt" },
+//         earning: { $sum: "$totalAmount" },
+//       },
+//     },
+//     { $sort: { _id: 1 } },
+//   ]);
+ 
+//   // সব 12 মাস fill করো (0 হলেও দেখাবে)
+//   const months = Array.from({ length: 12 }, (_, i) => {
+//     const found = monthlyEarning.find((m) => m._id === i + 1);
+//     return {
+//       month: i + 1,
+//       monthName: new Date(targetYear, i, 1).toLocaleString("en", { month: "short" }),
+//       earning: found?.earning || 0,
+//     };
+//   });
+
+
+ 
+//   // ── Recent Payments (latest 4) ────────────────────────────────
+//   const recentPayments = await Ticket.find({
+//     event: { $in: eventIds },
+//     paymentStatus: "paid",
+//     isDeleted: false,
+//   })
+//     .populate("event", "title")
+//     .populate("user", "name profileImage")
+//     .sort({ createdAt: -1 })
+//     .limit(4)
+//     .select("totalAmount quantity ticketType createdAt event user");
+ 
+//   return {
+//     totalEarning,
+//     ticketsSold,
+//     year: targetYear,
+//     monthlyEarning: months,
+//     recentPayments,
+//   };
+// };
+ 
+
+
+
+
+
+
+
+
 const getEarningOverview = async (userId: string, year?: number) => {
   const targetYear = year || new Date().getFullYear();
- 
-  // Organizer এর সব event IDs
+
+  // Organizer er sob event
   const myEvents = await Event.find(
-    { host: userId, isDeleted: false },
-    { _id: 1 }
+    { host: userId, isDeleted: { $ne: true } },
+    { _id: 1, attendees: 1 },
   );
   const eventIds = myEvents.map((e) => e._id);
- 
-  // ── Total Earning & Tickets Sold ──────────────────────────────
+
+  // ── Total Event Count ──────────────────────────────────────────
+  const totalEvents = myEvents.length;
+
+  // ── Total Attendees ────────────────────────────────────────────
+  const totalAttendees = myEvents.reduce(
+    (sum, event: any) => sum + (event.attendees?.length || 0),
+    0,
+  );
+
+  // ── Total Earning & Tickets Sold ───────────────────────────────
   const totals = await Ticket.aggregate([
     {
       $match: {
         event: { $in: eventIds },
-        paymentStatus: "paid",
+        paymentStatus: 'paid',
         isDeleted: false,
       },
     },
     {
       $group: {
         _id: null,
-        totalEarning: { $sum: "$totalAmount" },
-        ticketsSold: { $sum: "$quantity" },
+        totalEarning: { $sum: '$totalAmount' },
+        ticketsSold: { $sum: '$quantity' },
       },
     },
   ]);
- 
-  const totalEarning = totals[0]?.totalEarning || 0;
-  const ticketsSold = totals[0]?.ticketsSold || 0;
- 
-  // ── Monthly Earning (selected year) ──────────────────────────
-  const monthlyEarning = await Ticket.aggregate([
+
+  // ── Monthly Earning ────────────────────────────────────────────
+  const monthlyRaw = await Ticket.aggregate([
     {
       $match: {
         event: { $in: eventIds },
-        paymentStatus: "paid",
+        paymentStatus: 'paid',
         isDeleted: false,
         createdAt: {
-          $gte: new Date(`${targetYear}-01-01`),
-          $lte: new Date(`${targetYear}-12-31`),
+          $gte: new Date(`${targetYear}-01-01T00:00:00.000Z`),
+          $lte: new Date(`${targetYear}-12-31T23:59:59.999Z`),
         },
       },
     },
     {
       $group: {
-        _id: { $month: "$createdAt" },
-        earning: { $sum: "$totalAmount" },
+        _id: { $month: '$createdAt' },
+        earning: { $sum: '$totalAmount' },
       },
     },
     { $sort: { _id: 1 } },
   ]);
- 
-  // সব 12 মাস fill করো (0 হলেও দেখাবে)
-  const months = Array.from({ length: 12 }, (_, i) => {
-    const found = monthlyEarning.find((m) => m._id === i + 1);
+
+  // sob 12 mas fill koro — 0 hole o dekhabe
+  const monthlyEarning = Array.from({ length: 12 }, (_, i) => {
+    const found = monthlyRaw.find((m: any) => m._id === i + 1);
     return {
       month: i + 1,
-      monthName: new Date(targetYear, i, 1).toLocaleString("en", { month: "short" }),
+      monthName: new Date(targetYear, i, 1).toLocaleString('en', {
+        month: 'short',
+      }),
       earning: found?.earning || 0,
     };
   });
- 
-  // ── Recent Payments (latest 4) ────────────────────────────────
+
+   // ── Recent Payments ────────────────────────────────────────────
   const recentPayments = await Ticket.find({
     event: { $in: eventIds },
-    paymentStatus: "paid",
+    paymentStatus: 'paid',
     isDeleted: false,
   })
-    .populate("event", "title")
-    .populate("user", "name profileImage")
+    .populate('user', 'fullName image email')
+    .populate('event', 'title coverImage date')
     .sort({ createdAt: -1 })
-    .limit(4)
-    .select("totalAmount quantity ticketType createdAt event user");
- 
+    .limit(10);
+
   return {
-    totalEarning,
-    ticketsSold,
-    year: targetYear,
-    monthlyEarning: months,
+    totalEarning: totals[0]?.totalEarning || 0,
+    ticketsSold: totals[0]?.ticketsSold || 0,
+    totalEvents,
+    totalAttendees,
+    monthlyEarning, // ← 12 mas always asbe
     recentPayments,
   };
 };
- 
+
+
+
+
+
 // ── 2. Earning Analytics — event dropdown filter ──────────────────────────────
 // Organizer এর সব events list (dropdown এর জন্য)
 const getMyEventsList = async (userId: string) => {

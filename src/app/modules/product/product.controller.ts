@@ -2,6 +2,7 @@ import catchAsync from "../../utils/catchAsync";
 import { uploadManyToS3 } from "../../utils/fileHelper";
 import sendResponse from "../../utils/sendResponse";
 import { productServices } from "./product.service";
+import httpStatus  from 'http-status';
 
 
 
@@ -73,18 +74,42 @@ export const addProductReview = catchAsync(async (req, res) => {
 // ✅ Exporting all controller functions as an object
 
 
+// const getTrending = catchAsync(async (req, res) => {
+//   const result = await productServices.getTrendingProducts(
+//     req.query.limit ? Number(req.query.limit) : 8
+//   );
+//   sendResponse(res, {
+//     statusCode: 200,
+//     success: true,
+//     message: "Trending products fetched",
+//     data: result,
+//   });
+// });
+ // নতুন — 4টা parameter
+
+
 const getTrending = catchAsync(async (req, res) => {
+  const categoryIds = (req.query.categoryIds as string)?.split(',').filter(Boolean) || [];
+
+  // productId optional — na dile undefined pathabo
+  const productId = req.params.productId || undefined;
+
   const result = await productServices.getTrendingProducts(
-    req.query.limit ? Number(req.query.limit) : 8
+    productId as string | undefined,
+    categoryIds,
+    req.query.page ? Number(req.query.page) : 1,
+    req.query.limit ? Number(req.query.limit) : 10,
   );
+
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: httpStatus.OK,
     success: true,
-    message: "Trending products fetched",
+    message: 'Products fetched successfully',
     data: result,
   });
 });
- 
+
+
  
 const getFeatured = catchAsync(async (req, res) => {
   const result = await productServices.getFeaturedProducts(

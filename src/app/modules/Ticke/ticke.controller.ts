@@ -106,20 +106,38 @@ const scanTicket = catchAsync(async (req: Request, res: Response) => {
 
 // ── 1. Earning Overview ───────────────────────────────────────────────────────
 // GET /api/v1/earnings/overview?year=2025
+// const getEarningOverview = catchAsync(async (req: Request, res: Response) => {
+//   const userId = req.user?._id;
+//   const year = req.query.year ? parseInt(req.query.year as string) : undefined;
+ 
+//   const result = await ticketService.getEarningOverview(userId, year);
+ 
+//   sendResponse(res, {
+//     statusCode: httpStatus.OK,
+//     success: true,
+//     message: "Earning overview fetched successfully",
+//     data: result,
+//   });
+// });
+ 
+
+// ── Controller ─────────────────────────────────────────────────────────────────
 const getEarningOverview = catchAsync(async (req: Request, res: Response) => {
-  const userId = req.user?._id;
-  const year = req.query.year ? parseInt(req.query.year as string) : undefined;
- 
-  const result = await ticketService.getEarningOverview(userId, year);
- 
+  const result = await ticketService.getEarningOverview(
+    req.user?._id,
+    req.query.year ? parseInt(req.query.year as string) : undefined,
+  );
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Earning overview fetched successfully",
+    message: 'Earning overview fetched successfully',
     data: result,
   });
 });
- 
+
+
+
 // ── 2. My Events List (dropdown) ──────────────────────────────────────────────
 // GET /api/v1/earnings/events
 const getMyEventsList = catchAsync(async (req: Request, res: Response) => {

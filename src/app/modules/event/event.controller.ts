@@ -224,7 +224,24 @@ const getEvents = catchAsync(async (req, res) => {
 
 
 
+const getMyTicketsnewfilter = catchAsync(async (req, res) => {
+  // ?filter=upcoming or ?filter=previous
+  const filter = (req.query.filter as 'upcoming' | 'previous') || 'upcoming';
 
+  const result = await eventServices.getMyTicketnew(
+    req.user._id as string,
+    filter,
+    req.query.page ? Number(req.query.page) : 1,
+    req.query.limit ? Number(req.query.limit) : 10,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `${filter === 'upcoming' ? 'Upcoming' : 'Previous'} tickets fetched successfully`,
+    data: result,
+  });
+});
 
 
 
@@ -410,6 +427,19 @@ const getRecentPayments = catchAsync(async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 export const eventcontroller = {
 createEvent,
 getAllEvents,
@@ -432,4 +462,5 @@ addReview,
   getDashboardStats,
   getAllMyEvents,
   getRecentPayments,
+  getMyTicketsnewfilter,
 };

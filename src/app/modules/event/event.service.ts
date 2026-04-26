@@ -3,6 +3,7 @@ import AppError from "../../error/AppError";
 import { deleteManyFromS3, uploadToS3 } from "../../utils/fileHelper";
 import { Event } from "./event.model";
 import config from "../../config";
+import { Ticket } from "../Ticke/ticke.model";
 
 
 
@@ -503,9 +504,51 @@ export const getsearchEvents = async (
 
 
 
+//user using by fillter api 
+const getMyTicketnew = async (
+  userId: string,
+  filter: 'upcoming' | 'previous',
+  page = 1,
+  limit = 10,
+) => {
+  const skip = (page - 1) * limit;
 
+  const allTickets = await Ticket.find({
+    user: userId,
+    paymentStatus: 'paid',
+    isDeleted: { $ne: true },
+  })
+    .populate({
+      path: 'event',
+      select: 'title date time location coverImage category price host isPast',
+      populate: { path: 'category', select: 'name image' },
+    })
+    .sort({ createdAt: -1 });
 
+  const filtered = allTickets.filter((ticket: any) => {
+    const event = ticket.event;
+    if (!event) return false;
 
+    if (filter === 'upcoming') {
+      return event.isPast === false;  // ← isPast false = upcoming
+    } else {
+      return event.isPast === true;   // ← isPast true = previous
+    }
+  });
+
+  const total = filtered.length;
+  const paginated = filtered.slice(skip, skip + limit);
+
+  return {
+    tickets: paginated,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
 
 
 
@@ -669,5 +712,6 @@ addReviewService,
   getDashboardStats,
   getAllMyEvents,
   getRecentPayments,
+  getMyTicketnew,
 
 };

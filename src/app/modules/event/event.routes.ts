@@ -78,7 +78,7 @@ router.get("/nearby-events", auth(USER_ROLE.USER), eventcontroller.getNearbyEven
 
 
 
-
+//done
 
 // ── Dashboard (organizer only) ────────────────────────────────────────────────
 router.get("/dashboard",auth(USER_ROLE.ORGANIZER),eventcontroller.getDashboardStats);
@@ -95,6 +95,6 @@ router.get("/all", auth(USER_ROLE.ORGANIZER), eventcontroller.getAllMyEvents);
 router.get("/recent-payments", auth(USER_ROLE.ORGANIZER), eventcontroller.getRecentPayments);
  
 
-
+router.get('/myall-tickets', auth(USER_ROLE.USER,USER_ROLE.ORGANIZER), eventcontroller.getMyTicketsnewfilter);
 
 export const eventRoutes = router;
