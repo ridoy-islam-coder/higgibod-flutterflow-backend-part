@@ -16,6 +16,7 @@ import { eventWishlistRoutes } from '../modules/Eventwishlist/wishlist.routes';
 import { PromoCodeRoutes } from '../modules/PromoCode/promocode.routes';
 import { catagoreeventRoutes } from '../modules/eventcatagore/eventcatagore.routes';
 import { ProductCategoryRoutes } from '../modules/ProductCategory/ProductCategory.routes';
+import { reviewRoutes } from '../modules/profilereview/profilereview.routes';
 // import { PromoCodeRoutes } from '../modules/PromoCode/promocode.routes';
 
 
@@ -94,6 +95,10 @@ const moduleRoutes = [
  {
     path: '/same',
     route: ProductCategoryRoutes,
+  },
+   {
+    path: '/review',
+    route: reviewRoutes,
   },
   
 

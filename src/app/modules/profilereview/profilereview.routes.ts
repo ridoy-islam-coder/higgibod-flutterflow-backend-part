@@ -44,7 +44,7 @@ const router = Router();
 router.get('/organizer/:organizerId', reviewController.getOrganizerReviews);
  
 router.post(
-  '/organizer/:organizerId',
+  '/create/:organizerId',
   auth(USER_ROLE.USER),
   upload.single('image'),
   reviewController.createReview,
@@ -60,8 +60,8 @@ router.post(
  // ── Organizer Reply ───────────────────────────────────────────────────────────
 // PATCH  /:reviewId/reply  — reply update করো
 router.patch(
-  '/:reviewId/reply',
-  auth(USER_ROLE.ORGANIZER),
+  '/reply/:reviewId',
+  auth(USER_ROLE.ORGANIZER,USER_ROLE.USER),
   reviewController.updateReply,
 );
  // ── Organizer Reply ───────────────────────────────────────────────────────────

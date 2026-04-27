@@ -1,13 +1,10 @@
-import { model, Schema} from 'mongoose';
+import { model, Schema } from 'mongoose';
 import { IReport, IReview } from './profilereview.interface';
-
-
 
 const imageSchema = new Schema({
   id: { type: String, required: true },
   url: { type: String, required: true },
 });
-
 
 // ── Reply Schema ──────────────────────────────────────────────────────────────
 const replySchema = new Schema(
@@ -27,20 +24,21 @@ const ReviewSchema = new Schema<IReview>(
     image: { type: imageSchema, required: false },
     isAnonymous: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
-    
+
     // ── Organizer Reply ───────────────────────────────────────
     reply: { type: replySchema, default: null },
-
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
+// ✅ this.find() → this.where() — findById কে block করবে না
 ReviewSchema.pre('find', function (next) {
-  this.find({ isDeleted: { $ne: true } });
+  this.where({ isDeleted: { $ne: true } });
   next();
 });
+
 ReviewSchema.pre('findOne', function (next) {
-  this.find({ isDeleted: { $ne: true } });
+  this.where({ isDeleted: { $ne: true } });
   next();
 });
 
@@ -59,7 +57,7 @@ const ReportSchema = new Schema<IReport>(
     },
     status: { type: String, enum: ['pending', 'resolved'], default: 'pending' },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 export const Review = model<IReview>('Review', ReviewSchema);

@@ -7,7 +7,15 @@ import { reviewServices } from './profilereview.service';
 
 const createReview = catchAsync(async (req: Request, res: Response) => {
   const file = req.file as Express.Multer.File | undefined;
-  const result = await reviewServices.createReview(req.user._id, req.body, file);
+
+  // ← organizerId params থেকে নাও, body তে নেই
+  const payload = {
+    ...req.body,
+    organizer: req.params.organizerId,
+  };
+
+  const result = await reviewServices.createReview(req.user._id, payload, file);
+
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
@@ -104,13 +112,14 @@ const updateReply = catchAsync(async (req: Request, res: Response) => {
   const organizerId = req.user._id;
   const { reviewId } = req.params;
   const { comment } = req.body;
+   console.log("reviewId →", reviewId); // ← add করো
  
   const result = await reviewServices.updateReply(
     organizerId,
     reviewId as string,
     comment
   );
- 
+ console.log('Reply updated:', result); // Debug log
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

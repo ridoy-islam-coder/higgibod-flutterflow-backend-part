@@ -214,7 +214,7 @@ const updateReply = async (
   comment: string
 ) => {
   const review = await Review.findById(reviewId);
- 
+    console.log('Review found for update:', review); // Debug log
   if (!review) throw new AppError(httpStatus.NOT_FOUND, 'Review not found');
  
   if (review.organizer.toString() !== organizerId.toString()) {
