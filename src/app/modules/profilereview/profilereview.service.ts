@@ -3,6 +3,7 @@ import AppError from '../../error/AppError';
 import { Report, Review } from './profilereview.model';
 import { deleteFromS3, uploadToS3 } from '../../utils/fileHelper';
 import { TReportReason } from './profilereview.interface';
+import mongoose from 'mongoose';
 
 
 // ─── 1. Write Review ───────────────────────────────────────────────────────────
@@ -161,6 +162,99 @@ const dismissReport = async (reportId: string) => {
   return { message: 'Report dismissed successfully' };
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ── Reply to review ───────────────────────────────────────────────────────────
+const replyToReview = async (
+  organizerId: string,
+  reviewId: string,
+  comment: string
+) => {
+  const review = await Review.findById(reviewId);
+ 
+  if (!review) throw new AppError(httpStatus.NOT_FOUND, 'Review not found');
+ 
+  // শুধু ওই organizer reply দিতে পারবে যার review এটা
+  if (review.organizer.toString() !== organizerId.toString()) {
+    throw new AppError(httpStatus.FORBIDDEN, 'You can only reply to your own reviews');
+  }
+ 
+  // already reply আছে কিনা check
+  if (review.reply) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'You have already replied to this review');
+  }
+ 
+
+review.reply = {
+  organizer: new mongoose.Types.ObjectId(organizerId), // ← string → ObjectId
+  comment,
+};
+ 
+  await review.save();
+  return review;
+};
+ 
+// ── Update reply ──────────────────────────────────────────────────────────────
+const updateReply = async (
+  organizerId: string,
+  reviewId: string,
+  comment: string
+) => {
+  const review = await Review.findById(reviewId);
+ 
+  if (!review) throw new AppError(httpStatus.NOT_FOUND, 'Review not found');
+ 
+  if (review.organizer.toString() !== organizerId.toString()) {
+    throw new AppError(httpStatus.FORBIDDEN, 'You can only update your own reply');
+  }
+ 
+  if (!review.reply) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'No reply found to update');
+  }
+ 
+  review.reply.comment = comment;
+  await review.save();
+  return review;
+};
+ 
+// ── Delete reply ──────────────────────────────────────────────────────────────
+const deleteReply = async (organizerId: string, reviewId: string) => {
+  const review = await Review.findById(reviewId);
+ 
+  if (!review) throw new AppError(httpStatus.NOT_FOUND, 'Review not found');
+ 
+  if (review.organizer.toString() !== organizerId.toString()) {
+    throw new AppError(httpStatus.FORBIDDEN, 'You can only delete your own reply');
+  }
+ 
+  review.reply = null;
+  await review.save();
+  return review;
+};
+
+
+
+
+
+
+
+
+
+
+
 export const reviewServices = {
   createReview,
   getOrganizerReviews,
@@ -168,4 +262,7 @@ export const reviewServices = {
   getAllReports,
   removeReview,
   dismissReport,
+  replyToReview,
+  updateReply,
+  deleteReply,
 };

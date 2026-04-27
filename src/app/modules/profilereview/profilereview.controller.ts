@@ -77,6 +77,64 @@ const dismissReport = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+
+// ── POST /:reviewId/reply — reply দাও ────────────────────────────────────────
+const replyToReview = catchAsync(async (req: Request, res: Response) => {
+  const organizerId = req.user._id;
+  const { reviewId } = req.params;
+  const { comment } = req.body;
+ 
+  const result = await reviewServices.replyToReview(
+    organizerId,
+    reviewId as string,
+    comment
+  );
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: 'Reply added successfully',
+    data: result,
+  });
+});
+ 
+// ── PATCH /:reviewId/reply — reply update করো ────────────────────────────────
+const updateReply = catchAsync(async (req: Request, res: Response) => {
+  const organizerId = req.user._id;
+  const { reviewId } = req.params;
+  const { comment } = req.body;
+ 
+  const result = await reviewServices.updateReply(
+    organizerId,
+    reviewId as string,
+    comment
+  );
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Reply updated successfully',
+    data: result,
+  });
+});
+ 
+// ── DELETE /:reviewId/reply — reply মুছো ─────────────────────────────────────
+const deleteReply = catchAsync(async (req: Request, res: Response) => {
+  const organizerId = req.user._id;
+  const { reviewId } = req.params;
+ 
+  const result = await reviewServices.deleteReply(organizerId, reviewId as string);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Reply deleted successfully',
+    data: result,
+  });
+});
+
+
 export const reviewController = {
   createReview,
   getOrganizerReviews,
@@ -84,4 +142,7 @@ export const reviewController = {
   getAllReports,
   removeReview,
   dismissReport,
+  replyToReview,
+  updateReply,
+  deleteReply,
 };

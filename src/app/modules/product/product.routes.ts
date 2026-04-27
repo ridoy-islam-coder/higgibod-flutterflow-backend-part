@@ -9,7 +9,7 @@ import {  productController } from "./product.controller";
 const router = Router();
 
 
-router.get("/all", auth(USER_ROLE.USER,),productController.getAllProducts);           // Manage Products list
+// router.get("/all", auth(USER_ROLE.USER,),productController.getAllProducts);           // Manage Products list
 router.get("/product-details/:id", auth(USER_ROLE.USER,), productController.getProductDetails);   // Product Details
 router.post("/create-products", auth(USER_ROLE.USER,), upload.array("images", 10), productController.createProduct);  // Add Product
 router.put("/products/:id", auth(USER_ROLE.USER,), upload.array("images", 10), productController.updateProduct); // Edit Product
@@ -24,7 +24,7 @@ router.post("/review/:id", auth(USER_ROLE.USER,), productController.addProductRe
 // PRODUCT ROUTES (add to existing product router)
 // ─────────────────────────────────────────────────────────────
 // GET /products/trending
-router.get("/trending", auth(USER_ROLE.USER), productController.getTrending);
+router.get("/all", auth(USER_ROLE.USER), productController.getTrending);
  
 // GET /products/featured
 router.get("/products/featured", auth(USER_ROLE.USER), productController.getFeatured);

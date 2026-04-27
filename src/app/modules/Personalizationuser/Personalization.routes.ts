@@ -6,6 +6,7 @@ import { personalizationController } from "./Personalization.controller";
 import upload from "../../middleware/fileUpload";
 
 
+
 const router = Router();
 
 
@@ -20,11 +21,35 @@ router.post(
 
 router.put("/update",auth(USER_ROLE.USER),personalizationController.updatePersonalization);
 
-router.get("/get", auth(USER_ROLE.USER), personalizationController.getPersonalization);
+router.get("/get", auth(USER_ROLE.USER,USER_ROLE.ORGANIZER), personalizationController.getPersonalization);
 
 
 
 router.put( "/update-userprofile",auth(USER_ROLE.USER),upload.single("file"),personalizationController.updateProfile);
+
+
+
+
+
+
+// ── Upsert API (create or update) ───────────────────────────────────────────────
+
+// POST — create or update (upsert) + optional file upload
+router.post(
+  "/data",
+  auth(USER_ROLE.ORGANIZER),
+  upload.single("codeOfConductFile"), // ← multer middleware, field name "codeOfConductFile"
+  personalizationController.upsertPersonalizationoriginal
+);
+ 
+// PATCH — partial update + optional file upload
+router.patch(
+  "/data",
+  auth(USER_ROLE.ORGANIZER),
+  upload.single("codeOfConductFile"),
+  personalizationController.upsertPersonalizationoriginal
+);
+
 
 export const personalizationRoutes = router;
 

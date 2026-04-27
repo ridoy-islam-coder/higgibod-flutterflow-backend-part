@@ -148,6 +148,20 @@ const upsertPersonalization = async (
 
 
 
+//original update api
+const upsertPersonalizationoriginal = async (userId: string, payload: any) => {
+  const result = await Personalization.findOneAndUpdate(
+    { user: userId },
+    { $set: payload },
+    {
+      new: true,
+      upsert: true,
+      runValidators: true,
+      setDefaultsOnInsert: true,
+    }
+  );
+  return result;
+};
 
 
 
@@ -157,4 +171,5 @@ export const personalizationService = {
   updatePersonalizationkk,
   updateProfileWithPersonalization,
   upsertPersonalization,
+  upsertPersonalizationoriginal,
 };

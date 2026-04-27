@@ -8,6 +8,16 @@ const imageSchema = new Schema({
   url: { type: String, required: true },
 });
 
+
+// ── Reply Schema ──────────────────────────────────────────────────────────────
+const replySchema = new Schema(
+  {
+    organizer: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    comment: { type: String, required: true, trim: true },
+  },
+  { timestamps: true }
+);
+
 const ReviewSchema = new Schema<IReview>(
   {
     organizer: { type: Schema.Types.ObjectId, ref: 'User', required: true },
@@ -17,6 +27,10 @@ const ReviewSchema = new Schema<IReview>(
     image: { type: imageSchema, required: false },
     isAnonymous: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
+    
+    // ── Organizer Reply ───────────────────────────────────────
+    reply: { type: replySchema, default: null },
+
   },
   { timestamps: true },
 );

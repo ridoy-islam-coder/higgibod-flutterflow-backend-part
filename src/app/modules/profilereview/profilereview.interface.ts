@@ -12,6 +12,14 @@ export interface IReview extends Document {
   updatedAt: Date;
 }
 
+export interface IReview {
+
+  reply?: {
+    organizer: Types.ObjectId;
+    comment: string;
+  } | null;
+}
+
 export type TReportReason =
   | 'Just to let you know this might be a problem'
   | 'Disrespectful and harmful behavior'

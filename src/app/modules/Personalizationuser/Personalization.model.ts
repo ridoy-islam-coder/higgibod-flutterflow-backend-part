@@ -113,7 +113,7 @@ const personalizationSchema = new Schema<IPersonalization>(
     skillLevel: {
       type: String,
       enum: ["Beginner", "Intermediate", "Advanced", ""],
-      default: "",
+      // default: "",
     },
 
     // Personalization 5 — Years Skating
@@ -127,18 +127,14 @@ const personalizationSchema = new Schema<IPersonalization>(
         "20+ years",
         "",
       ],
-      default: "",
+      // default: "",
     },
-
-    // ─────────────────────────────────────────────────────────────
-    // Screen 1 — Experience & Event Information (Figma)
-    // ─────────────────────────────────────────────────────────────
 
     // "Have you organized skating events before?"
     hasOrganizedEvents: {
       type: String,
       enum: ["Yes", "No", ""],
-      default: "",
+      // default: "",
     },
 
     // "What types of events are you planning to list?"
@@ -172,7 +168,7 @@ const personalizationSchema = new Schema<IPersonalization>(
         "500+",
         "",
       ],
-      default: "",
+      // default: "",
     },
 
     // "Links to previous events or social media"
@@ -199,7 +195,7 @@ const personalizationSchema = new Schema<IPersonalization>(
     hasPublicLiabilityInsurance: {
       type: String,
       enum: ["Yes", "No", ""],
-      default: "",
+      // default: "",
     },
 
     // "I will be personally responsible for maintaining safety"
@@ -212,20 +208,20 @@ const personalizationSchema = new Schema<IPersonalization>(
     hasCodeOfConduct: {
       type: String,
       enum: ["Yes", "No", ""],
-      default: "",
+      // default: "",
     },
 
     // "Upload Code of conduct and/or Safety Policy" — file URL (optional)
     codeOfConductFileUrl: {
       type: String,
-      default: "",
+      // default: "",
       trim: true,
     },
 
     // "Code of conduct / review Safety Policy link" — external link (optional)
     codeOfConductLink: {
       type: String,
-      default: "",
+      // default: "",
       trim: true,
     },
 

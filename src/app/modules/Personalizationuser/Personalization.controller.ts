@@ -144,8 +144,69 @@ const upsertPersonalization = catchAsync(async (req: Request, res: Response) => 
 
 
 
+//original update api
 
 
+const upsertPersonalizationoriginal = catchAsync(async (req: Request, res: Response) => {
+  const userId = req.user?._id;
+ 
+  // ── Text data (body থেকে) ─────────────────────────────────────
+  const payload: any = {};
+ 
+  // Boolean fields — multipart/form-data তে string হিসেবে আসে, convert করতে হবে
+  const booleanFields = [
+    "personallyResponsibleForSafety",
+    "subscribedToEmails",
+    "agreedToOrganizerTerms",
+  ];
+ 
+  // Array fields
+  const arrayFields = [
+    "interests",
+    "planningEventTypes",
+    "previousEventLinks",
+    "socialMediaLinks",
+  ];
+ 
+  // সব body fields payload এ add করো
+  Object.keys(req.body).forEach((key) => {
+    if (booleanFields.includes(key)) {
+      // "true" string → true boolean
+      payload[key] = req.body[key] === "true" || req.body[key] === true;
+    } else if (arrayFields.includes(key)) {
+      // array হিসেবে parse করো
+      payload[key] = Array.isArray(req.body[key])
+        ? req.body[key]
+        : [req.body[key]];
+    } else {
+      payload[key] = req.body[key];
+    }
+  });
+  console.log("req.file →", req.file);
+console.log("req.body →", req.body);
+ 
+  // ── File upload (S3) ──────────────────────────────────────────
+  if (req.file) {
+    const uploaded = await uploadToS3(
+      req.file,
+      "personalization/code-of-conduct"
+    );
+    payload.codeOfConductFileUrl = uploaded.url;
+  }
+ 
+  // ── Upsert ────────────────────────────────────────────────────
+  const result = await personalizationService.upsertPersonalization(
+    userId,
+    payload
+  );
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Personalization saved successfully",
+    data: result,
+  });
+});
 
 
 export const personalizationController = {
@@ -153,5 +214,6 @@ export const personalizationController = {
   getPersonalization,
   updatePersonalization,
   updateProfile,
+  upsertPersonalizationoriginal,
 
 };
