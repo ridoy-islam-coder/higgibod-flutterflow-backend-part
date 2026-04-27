@@ -217,9 +217,9 @@ const updateReply = async (
     console.log('Review found for update:', review); // Debug log
   if (!review) throw new AppError(httpStatus.NOT_FOUND, 'Review not found');
  
-  if (review.organizer.toString() !== organizerId.toString()) {
-    throw new AppError(httpStatus.FORBIDDEN, 'You can only update your own reply');
-  }
+  // if (review.organizer.toString() !== organizerId.toString()) {
+  //   throw new AppError(httpStatus.FORBIDDEN, 'You can only update your own reply');
+  // }
  
   if (!review.reply) {
     throw new AppError(httpStatus.BAD_REQUEST, 'No reply found to update');
@@ -251,6 +251,15 @@ const deleteReply = async (organizerId: string, reviewId: string) => {
 
 
 
+// ── Service ───────────────────────────────────────────────────────────────────
+const getMyReviews = async (organizerId: string) => {
+  const reviews = await Review.find({ organizer: organizerId })
+    .populate('reviewer', 'name email profileImage')
+    .populate('reply.organizer', 'name email profileImage')
+    .sort({ createdAt: -1 });
+  return reviews;
+};
+ 
 
 
 
@@ -262,6 +271,7 @@ export const reviewServices = {
   getAllReports,
   removeReview,
   dismissReport,
+  getMyReviews,
   replyToReview,
   updateReply,
   deleteReply,

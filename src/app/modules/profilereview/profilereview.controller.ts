@@ -144,6 +144,30 @@ const deleteReply = catchAsync(async (req: Request, res: Response) => {
 });
 
 
+
+
+
+
+
+
+
+
+
+
+// GET /api/v1/reviews/my-reviews
+const getMyReviews = catchAsync(async (req: Request, res: Response) => {
+  const organizerId = req.user._id;
+  const result = await reviewServices.getMyReviews(organizerId);
+ 
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'My reviews fetched successfully',
+    data: result,
+  });
+});
+
+
 export const reviewController = {
   createReview,
   getOrganizerReviews,
@@ -154,4 +178,5 @@ export const reviewController = {
   replyToReview,
   updateReply,
   deleteReply,
+  getMyReviews,
 };

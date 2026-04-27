@@ -53,7 +53,7 @@ router.post(
 // ── Organizer Reply ───────────────────────────────────────────────────────────
 // POST   /:reviewId/reply  — reply দাও
 router.post(
-  '/:reviewId/reply',
+  '/reply/:reviewId',
   auth(USER_ROLE.ORGANIZER),
   reviewController.replyToReview,
 );
@@ -64,6 +64,13 @@ router.patch(
   auth(USER_ROLE.ORGANIZER,USER_ROLE.USER),
   reviewController.updateReply,
 );
+
+router.get(
+  '/my-reviews',
+  auth(USER_ROLE.ORGANIZER),
+  reviewController.getMyReviews,
+);
+
  // ── Organizer Reply ───────────────────────────────────────────────────────────
 // DELETE /:reviewId/reply  — reply মুছো
 router.delete(
@@ -74,7 +81,7 @@ router.delete(
  
 // ── Report ────────────────────────────────────────────────────────────────────
 router.post(
-  '/:reviewId/report',
+  '/report/:reviewId',
   auth(USER_ROLE.ORGANIZER),
   reviewController.reportReview,
 );
