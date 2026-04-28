@@ -21,7 +21,10 @@ export const createEventService = async (
     time,
     description,
     price,
-
+   isFeatured,
+    isPinned,
+    isHighlighted,
+    isTopEvent,
     longitude,
     latitude,
   } = body;
@@ -54,6 +57,10 @@ export const createEventService = async (
     coverImage: coverImage || { id: "", url: "" },
     gallery: gallery || [],
     host: user?.id,
+    isFeatured: isFeatured || false,
+    isPinned: isPinned || false,
+    isHighlighted: isHighlighted || false,
+    isTopEvent: isTopEvent || false,
   });
 
   return event;
@@ -270,7 +277,8 @@ const searchEvents = async (query: {
     ];
   }
  
-  if (category) filter.category = { $regex: category, $options: "i" };
+   // ✅ এখন — category id সরাসরি দাও
+if (category) filter.category = category;
   if (country) filter.location = { $regex: country, $options: "i" };
   if (eventType) filter.category = eventType; // map eventType to category
   if (organizer) filter.host = organizer;
@@ -709,9 +717,16 @@ const getRecentPayments = async (userId: string) => {
 
 //new api 
 
+// ── Service ───────────────────────────────────────────────────────────────────
+const getFeaturedEvents = async (page: number = 1, limit: number = 10) => {
+  const skip = (page - 1) * limit;
 
-// ── Featured Events (Figma "Featured Events" section) ─────────────────────────
-const getFeaturedEvents = async () => {
+  const total = await Event.countDocuments({
+    isFeatured: true,
+    isPast: false,
+    isDeleted: false,
+  });
+
   const events = await Event.find({
     isFeatured: true,
     isPast: false,
@@ -721,55 +736,173 @@ const getFeaturedEvents = async () => {
     .populate("host", "name profileImage")
     .populate("attendees", "profileImage")
     .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
     .select("title date time location coverImage price isFeatured isPinned isHighlighted isTopEvent attendees category host");
- 
-  return events;
+
+  return {
+    events,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
+ // ── Top Events ────────────────────────────────────────────────────────────────
+const getTopEvents = async (page: number = 1, limit: number = 10) => {
+  const skip = (page - 1) * limit;
+  const total = await Event.countDocuments({ isTopEvent: true, isPast: false, isDeleted: false });
  
-// ── Top Events ────────────────────────────────────────────────────────────────
-const getTopEvents = async () => {
-  const events = await Event.find({
-    isTopEvent: true,
-    isPast: false,
-    isDeleted: false,
-  })
+  const events = await Event.find({ isTopEvent: true, isPast: false, isDeleted: false })
     .populate("category", "name")
     .populate("host", "name profileImage")
     .populate("attendees", "profileImage")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
  
-  return events;
+  return { events, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } };
 };
  
 // ── Highlighted Events ────────────────────────────────────────────────────────
-const getHighlightedEvents = async () => {
-  const events = await Event.find({
-    isHighlighted: true,
-    isPast: false,
-    isDeleted: false,
-  })
+const getHighlightedEvents = async (page: number = 1, limit: number = 10) => {
+  const skip = (page - 1) * limit;
+  const total = await Event.countDocuments({ isHighlighted: true, isPast: false, isDeleted: false });
+ 
+  const events = await Event.find({ isHighlighted: true, isPast: false, isDeleted: false })
     .populate("category", "name")
     .populate("host", "name profileImage")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
  
-  return events;
+  return { events, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } };
 };
  
 // ── Pinned Events ─────────────────────────────────────────────────────────────
-const getPinnedEvents = async () => {
+const getPinnedEvents = async (page: number = 1, limit: number = 10) => {
+  const skip = (page - 1) * limit;
+  const total = await Event.countDocuments({ isPinned: true, isPast: false, isDeleted: false });
+ 
+  const events = await Event.find({ isPinned: true, isPast: false, isDeleted: false })
+    .populate("category", "name")
+    .populate("host", "name profileImage")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+ 
+  return { events, pagination: { total, page, limit, totalPages: Math.ceil(total / limit) } };
+};
+ 
+
+
+
+
+
+
+
+
+// ── Home Page Events — কাছের events আগে, বাকিগুলো পরে ────────────────────────
+// GET /api/v1/events/home?lng=90.4125&lat=23.8103&page=1&limit=10
+const getHomeEvents = async (
+  lng?: number,
+  lat?: number,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const skip = (page - 1) * limit;
+ 
+  // location দিলে — কাছের events আগে
+  if (lng && lat) {
+    const events = await Event.find({
+      isPast: false,
+      isDeleted: false,
+      "location.coordinates": { $exists: true, $ne: [] },
+      location: {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [lng, lat],
+          },
+        },
+      },
+    })
+      .populate("category", "name")
+      .populate("host", "fullName image")
+      .populate("attendees", "image")
+      .skip(skip)
+      .limit(limit)
+      .select(
+        "title date time location coverImage price isFeatured isPinned isHighlighted isTopEvent eventType attendees category host"
+      );
+ 
+    // location ছাড়া events (string location যেমন "Dhaka")
+    const eventsWithoutLocation = await Event.find({
+      isPast: false,
+      isDeleted: false,
+      $or: [
+        { "location.coordinates": { $exists: false } },
+        { "location.coordinates": { $size: 0 } },
+        { location: { $exists: false } },
+      ],
+    })
+      .populate("category", "name")
+      .populate("host", "fullName image")
+      .populate("attendees", "image")
+      .sort({ createdAt: -1 })
+      .select(
+        "title date time location coverImage price isFeatured isPinned isHighlighted isTopEvent eventType attendees category host"
+      );
+ 
+    // কাছের events আগে + বাকিগুলো পরে
+    const allEvents = [...events, ...eventsWithoutLocation];
+    const total = allEvents.length;
+    const paginated = allEvents.slice(skip, skip + limit);
+ 
+    return {
+      events: paginated,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+ 
+  // location না দিলে — সব events newest first
+  const total = await Event.countDocuments({
+    isPast: false,
+    isDeleted: false,
+  });
+ 
   const events = await Event.find({
-    isPinned: true,
     isPast: false,
     isDeleted: false,
   })
     .populate("category", "name")
-    .populate("host", "name profileImage")
-    .sort({ createdAt: -1 });
+    .populate("host", "fullName image")
+    .populate("attendees", "image")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .select(
+      "title date time location coverImage price isFeatured isPinned isHighlighted isTopEvent eventType attendees category host"
+    );
  
-  return events;
+  return {
+    events,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
-
-
+  
 export const eventServices = {
 createEventService,
 getAllEventsService,
@@ -796,5 +929,5 @@ addReviewService,
   getTopEvents,
   getHighlightedEvents,
   getPinnedEvents,
-
+  getHomeEvents,
 };

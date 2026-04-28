@@ -480,9 +480,16 @@ const getEventAttendees = catchAsync(async (req, res) => {
 
 
 //new api 
+
+
 // GET /api/v1/events/featured
+// ── Controller ────────────────────────────────────────────────────────────────
 const getFeaturedEvents = catchAsync(async (req, res) => {
-  const result = await eventServices.getFeaturedEvents();
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : 10;
+
+  const result = await eventServices.getFeaturedEvents(page, limit);
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -491,38 +498,59 @@ const getFeaturedEvents = catchAsync(async (req, res) => {
   });
 });
  
-// GET /api/v1/events/top
+
+// GET /api/v1/events/top?page=1&limit=10
 const getTopEvents = catchAsync(async (req, res) => {
-  const result = await eventServices.getTopEvents();
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Top events fetched successfully",
-    data: result,
-  });
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : 10;
+  const result = await eventServices.getTopEvents(page, limit);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: "Top events fetched successfully", data: result });
 });
  
-// GET /api/v1/events/highlighted
+// GET /api/v1/events/highlighted?page=1&limit=10
 const getHighlightedEvents = catchAsync(async (req, res) => {
-  const result = await eventServices.getHighlightedEvents();
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Highlighted events fetched successfully",
-    data: result,
-  });
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : 10;
+  const result = await eventServices.getHighlightedEvents(page, limit);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: "Highlighted events fetched successfully", data: result });
 });
  
-// GET /api/v1/events/pinned
+// GET /api/v1/events/pinned?page=1&limit=10
 const getPinnedEvents = catchAsync(async (req, res) => {
-  const result = await eventServices.getPinnedEvents();
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : 10;
+  const result = await eventServices.getPinnedEvents(page, limit);
+  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: "Pinned events fetched successfully", data: result });
+});
+
+
+
+
+
+
+// GET /api/v1/events/home?lng=90.4125&lat=23.8103&page=1&limit=10
+// location optional — না দিলে newest first
+const getHomeEvents = catchAsync(async (req, res) => {
+  const { lng, lat, page, limit } = req.query;
+ 
+  const result = await eventServices.getHomeEvents(
+    lng ? Number(lng) : undefined,
+    lat ? Number(lat) : undefined,
+    page ? Number(page) : 1,
+    limit ? Number(limit) : 10
+  );
+ 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Pinned events fetched successfully",
+    message: "Events fetched successfully",
     data: result,
   });
 });
+
+
+
+
 
 
 
@@ -553,4 +581,7 @@ addReview,
   getTopEvents,
   getHighlightedEvents,
   getPinnedEvents,
+  getHomeEvents,
+
+
 };

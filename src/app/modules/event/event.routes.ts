@@ -41,7 +41,7 @@ router.get("/featured", auth(USER_ROLE.USER), eventcontroller.getFeaturedEvents)
  
 // GET /events/nearby?location=Dhaka
 
-router.get("/nearby", auth(USER_ROLE.USER), eventcontroller.getNearbyEvents);
+router.get("/nearby", auth(USER_ROLE.USER), eventcontroller.getHomeEvents);
  
 // GET /events/organizer/:id
 router.get("/organizer/:id", auth(USER_ROLE.USER), eventcontroller.getEventsByOrganizer);
