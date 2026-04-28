@@ -357,6 +357,326 @@ export const getMonthlyEarningsService = async (req: any) => {
 };
 
 
+
+
+
+
+//review product api 
+
+
+
+
+export const addproducetReviewService = async (req: any) => {
+  const userId = req.user?.id;
+  const { id } = req.params;
+  const { rating, comment } = req.body;
+
+  if (!rating || !comment)
+    throw new AppError(400, "Rating and comment are required");
+
+  const event = await Product.findById(id);
+  if (!event) throw new AppError(404, "Event not found");
+
+  const alreadyReviewed = event.reviews?.some(
+    (review: any) => review.user.toString() === userId
+  );
+  if (alreadyReviewed)
+    throw new AppError(400, "You have already reviewed this event");
+
+  const updatedEvent = await Product.findByIdAndUpdate(
+    id,
+    { $push: { reviews: { user: userId, rating: Number(rating), comment } } },
+    { new: true }
+  ).populate("reviews.user", "fullName image");
+
+  return updatedEvent;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ── Home Dashboard ─────────────────────────────────────────────────────────────
+
+
+
+
+// ── Home Dashboard ─────────────────────────────────────────────────────────────
+const getProductDashboard = async (
+  userId: string,
+  year?: number,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const targetYear = year || new Date().getFullYear();
+  const skip = (page - 1) * limit;
+ 
+  // আমার সব product IDs
+  const myProducts = await Product.find(
+    { host: userId, isDeleted: false },
+    { _id: 1 }
+  );
+  const productIds = myProducts.map((p) => p._id);
+ 
+  // ── Total Products Count ──────────────────────────────────
+  const totalProducts = productIds.length;
+ 
+  // ── Total Sales & Earning ─────────────────────────────────
+  const totalSalesResult = await Order.aggregate([
+    {
+      $match: {
+        "items.product": { $in: productIds },
+        paymentStatus: "paid",
+        isDeleted: false,
+      },
+    },
+    { $unwind: "$items" },
+    { $match: { "items.product": { $in: productIds } } },
+    {
+      $group: {
+        _id: null,
+        totalSales: { $sum: "$items.quantity" },
+        totalEarning: {
+          $sum: { $multiply: ["$items.price", "$items.quantity"] },
+        },
+      },
+    },
+  ]);
+ 
+  const totalSales = totalSalesResult[0]?.totalSales || 0;
+  const totalEarning = totalSalesResult[0]?.totalEarning || 0;
+ 
+
+
+
+  // ── Monthly Earning ───────────────────────────────────────
+  const monthlyEarningRaw = await Order.aggregate([
+    {
+      $match: {
+        "items.product": { $in: productIds },
+        paymentStatus: "paid",
+        isDeleted: false,
+        createdAt: {
+          $gte: new Date(`${targetYear}-01-01`),
+          $lte: new Date(`${targetYear}-12-31`),
+        },
+      },
+    },
+    { $unwind: "$items" },
+    { $match: { "items.product": { $in: productIds } } },
+    {
+      $group: {
+        _id: { $month: "$createdAt" },
+        earning: {
+          $sum: { $multiply: ["$items.price", "$items.quantity"] },
+        },
+      },
+    },
+    { $sort: { _id: 1 } },
+  ]);
+ 
+  const monthlyEarning = Array.from({ length: 12 }, (_, i) => {
+    const found = monthlyEarningRaw.find((m) => m._id === i + 1);
+    return {
+      month: i + 1,
+      monthName: new Date(targetYear, i, 1).toLocaleString("en", {
+        month: "short",
+      }),
+      earning: found?.earning || 0,
+    };
+  });
+ 
+  // ── Recent Orders with pagination ─────────────────────────
+  const totalOrders = await Order.countDocuments({
+    "items.product": { $in: productIds },
+    isDeleted: false,
+  });
+ 
+  const recentOrders = await Order.find({
+    "items.product": { $in: productIds },
+    isDeleted: false,
+  })
+    .populate({ path: "items.product", select: "name images price" })
+    .populate("user", "fullName image email")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .select("items subtotal total orderStatus paymentStatus createdAt");
+ 
+  return {
+    totalProducts,
+    totalSales,
+    totalEarning,
+    year: targetYear,
+    monthlyEarning,
+    recentOrders,
+    pagination: {
+      total: totalOrders,
+      page,
+      limit,
+      totalPages: Math.ceil(totalOrders / limit),
+    },
+  };
+};
+ 
+
+
+ 
+// ── Earning Overview with pagination ──────────────────────────────────────────
+const getEarningOverview = async (
+  userId: string,
+  year?: number,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const targetYear = year || new Date().getFullYear();
+  const skip = (page - 1) * limit;
+ 
+  const myProducts = await Product.find({ host: userId, isDeleted: false }, { _id: 1 });
+  const productIds = myProducts.map((p) => p._id);
+ 
+  const totalResult = await Order.aggregate([
+    { $match: { "items.product": { $in: productIds }, paymentStatus: "paid", isDeleted: false } },
+    { $unwind: "$items" },
+    { $match: { "items.product": { $in: productIds } } },
+    {
+      $group: {
+        _id: null,
+        totalEarning: { $sum: { $multiply: ["$items.price", "$items.quantity"] } },
+      },
+    },
+  ]);
+  const totalEarning = totalResult[0]?.totalEarning || 0;
+ 
+  const monthlyRaw = await Order.aggregate([
+    {
+      $match: {
+        "items.product": { $in: productIds },
+        paymentStatus: "paid",
+        isDeleted: false,
+        createdAt: {
+          $gte: new Date(`${targetYear}-01-01`),
+          $lte: new Date(`${targetYear}-12-31`),
+        },
+      },
+    },
+    { $unwind: "$items" },
+    { $match: { "items.product": { $in: productIds } } },
+    {
+      $group: {
+        _id: { $month: "$createdAt" },
+        earning: { $sum: { $multiply: ["$items.price", "$items.quantity"] } },
+      },
+    },
+    { $sort: { _id: 1 } },
+  ]);
+ 
+  const monthlyEarning = Array.from({ length: 12 }, (_, i) => {
+    const found = monthlyRaw.find((m) => m._id === i + 1);
+    return {
+      month: i + 1,
+      monthName: new Date(targetYear, i, 1).toLocaleString("en", { month: "short" }),
+      earning: found?.earning || 0,
+    };
+  });
+ 
+  const totalTransactions = await Order.countDocuments({
+    "items.product": { $in: productIds },
+    paymentStatus: "paid",
+    isDeleted: false,
+  });
+ 
+  const recentTransactions = await Order.find({
+    "items.product": { $in: productIds },
+    paymentStatus: "paid",
+    isDeleted: false,
+  })
+    .populate({ path: "items.product", select: "name images" })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .select("total createdAt orderStatus");
+ 
+  return {
+    totalEarning,
+    year: targetYear,
+    monthlyEarning,
+    recentTransactions,
+    pagination: {
+      total: totalTransactions,
+      page,
+      limit,
+      totalPages: Math.ceil(totalTransactions / limit),
+    },
+  };
+};
+ 
+// ── Order List with filter ────────────────────────────────────────────────────
+const getMyOrders = async (
+  userId: string,
+  status?: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const skip = (page - 1) * limit;
+ 
+  const myProducts = await Product.find({ host: userId, isDeleted: false }, { _id: 1 });
+  const productIds = myProducts.map((p) => p._id);
+ 
+  const filter: any = { "items.product": { $in: productIds }, isDeleted: false };
+  if (status) filter.orderStatus = status;
+ 
+  const total = await Order.countDocuments(filter);
+ 
+  const orders = await Order.find(filter)
+    .populate({ path: "items.product", select: "name images price" })
+    .populate("user", "fullName image email")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+ 
+  return {
+    orders,
+    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+  };
+};
+
+ 
+// ── Update Order Status ───────────────────────────────────────────────────────
+const updateOrderStatus = async (
+  userId: string,
+  orderId: string,
+  orderStatus: string
+) => {
+  const myProducts = await Product.find(
+    { host: userId, isDeleted: false },
+    { _id: 1 }
+  );
+  const productIds = myProducts.map((p) => p._id);
+ 
+  const order = await Order.findOneAndUpdate(
+    { _id: orderId, "items.product": { $in: productIds } },
+    { $set: { orderStatus } },
+    { new: true }
+  );
+ 
+  if (!order) throw new Error("Order not found");
+  return order;
+};
+
+
 export const productServices = {
     getAllProductsService,
     getProductDetailsService,
@@ -371,4 +691,9 @@ export const productServices = {
   getProductCategories,
   getDashboardSummaryService,
   getMonthlyEarningsService,
+  addproducetReviewService,
+  getProductDashboard,
+  getEarningOverview,
+  getMyOrders,
+  updateOrderStatus,
 };

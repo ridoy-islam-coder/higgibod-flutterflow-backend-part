@@ -191,6 +191,115 @@ export const getMonthlyEarnings = catchAsync(async (req, res) => {
 
 
 
+
+
+
+
+export const addproductReview = catchAsync(async (req, res) => {
+  const result = await productServices.addproducetReviewService(req);
+  sendResponse(res, { statusCode: 200, success: true, message: "Review added successfully", data: result });
+});
+
+
+
+
+
+//dashboard extra features end here
+
+
+
+// ── Home Dashboard ────────────────────────────────────────────────────────────
+
+// GET /api/v1/products/dashboard?year=2025&page=1&limit=10
+const getProductDashboard = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const year = req.query.year ? Number(req.query.year) : undefined;
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : 10;
+ 
+  const result = await productServices.getProductDashboard(
+    userId,
+    year,
+    page,
+    limit
+  );
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Dashboard fetched successfully",
+    data: result,
+  });
+});
+ 
+// GET /api/v1/products/earning?year=2025&page=1&limit=10
+const getEarningOverview = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const year = req.query.year ? Number(req.query.year) : undefined;
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : 10;
+ 
+  const result = await productServices.getEarningOverview(userId, year, page, limit);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Earning overview fetched successfully",
+    data: result,
+  });
+});
+ 
+// GET /api/v1/products/orders?status=processing&page=1&limit=10
+const getMyOrders = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const { status, page, limit } = req.query;
+ 
+  const result = await productServices.getMyOrders(
+    userId,
+    status as string,
+    page ? Number(page) : 1,
+    limit ? Number(limit) : 10
+  );
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Orders fetched successfully",
+    data: result,
+  });
+});
+
+ 
+
+
+
+
+
+
+// PATCH /api/v1/products/orders/:orderId/status
+const updateOrderStatus = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const { orderId } = req.params;
+  const { orderStatus } = req.body;
+ 
+  const result = await productServices.updateOrderStatus(
+    userId,
+    orderId as string,
+    orderStatus
+  );
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Order status updated successfully",
+    data: result,
+  });
+});
+
+
+
+
+
 export const productController = {
     getAllProducts,
     getProductDetails,
@@ -205,4 +314,9 @@ export const productController = {
    getCategories,
   getDashboardSummary,
   getMonthlyEarnings,
+  addproductReview,
+  getProductDashboard,
+  getEarningOverview,
+  getMyOrders,
+  updateOrderStatus,
 };

@@ -36,6 +36,8 @@ router.get("/products/categories", auth(USER_ROLE.USER), productController.getCa
 router.get("/products/:id/related", auth(USER_ROLE.USER), productController.getRelated);
 
 
+router.post("/product-review/:id", auth(USER_ROLE.USER,), productController.addproductReview);
+
 
 // 📊 SUMMARY API (totalOrders, totalProducts, totalSales)
 router.get("/summary",  auth(USER_ROLE.USER), productController.getDashboardSummary);
@@ -44,6 +46,41 @@ router.get("/summary",  auth(USER_ROLE.USER), productController.getDashboardSumm
 // 📈 MONTHLY EARNINGS API
 router.get("/monthly", auth(USER_ROLE.USER), productController.getMonthlyEarnings);
 
+//dasbord api 
+
+
+ 
+// GET /api/v1/products/dashboard?year=2025
+// Screen 1 — Home: Total Sales, Monthly Earning, Order List
+router.get(
+  "/dashboard",
+  auth(USER_ROLE.USER),
+  productController.getProductDashboard
+);
+ 
+// GET /api/v1/products/earning?year=2025
+// Screen 2 — Earning: Total Earning, Monthly Chart, Recent Transactions
+router.get(
+  "/earning",
+  auth(USER_ROLE.USER),
+  productController.getEarningOverview
+);
+ 
+// GET /api/v1/products/orders?status=processing&page=1&limit=10
+// Order list with filter
+router.get(
+  "/orders",
+  auth(USER_ROLE.MARCHANT),
+  productController.getMyOrders
+);
+ 
+// PATCH /api/v1/products/orders/:orderId/status
+// Update order status (Mark Ready / Ship Now)
+router.patch(
+  "/orders/:orderId/status",
+  auth(USER_ROLE.MARCHANT),
+  productController.updateOrderStatus
+);
 
 
 export const productsRoutes = router;
