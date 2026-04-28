@@ -9,7 +9,7 @@ const router = express.Router();
 // ── Organizer — report a review ───────────────────────────────────────────────
 // POST /api/v1/event-reviews/:eventId/:reviewId/report
 router.post(
-  "/:eventId/:reviewId/report",
+  "/report",
   auth(USER_ROLE.ORGANIZER),
   EventReviewReportController.reportEventReview
 );

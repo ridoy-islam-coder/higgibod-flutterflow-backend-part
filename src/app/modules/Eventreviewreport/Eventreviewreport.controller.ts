@@ -7,8 +7,8 @@ import { EventReviewReportService } from "./Eventreviewreport.service";
 // ── Organizer — Report a review ───────────────────────────────────────────────
 // POST /api/v1/event-reviews/:eventId/:reviewId/report
 const reportEventReview = catchAsync(async (req: Request, res: Response) => {
-  const { eventId, reviewId } = req.params;
-  const { reason } = req.body;
+//   const { ,  } = req.params;
+  const { reason,reviewId,eventId } = req.body;
 
   const result = await EventReviewReportService.reportEventReview(
     req.user._id,
