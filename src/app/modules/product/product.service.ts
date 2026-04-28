@@ -719,6 +719,120 @@ const getSingleProduct = async (userId: string, productId: string) => {
 };
 
 
+
+
+
+
+
+
+
+ 
+// ── 1. Get My Product Orders (Manage Order screen) ────────────────────────────
+// GET /api/v1/products/manage-orders?status=processing&page=1&limit=10
+const getManageOrders = async (
+  userId: string,
+  status?: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const skip = (page - 1) * limit;
+ 
+  // আমার সব product IDs
+  const myProducts = await Product.find(
+    { host: userId, isDeleted: false },
+    { _id: 1 }
+  );
+  const productIds = myProducts.map((p) => p._id);
+ 
+  const filter: any = {
+    "items.product": { $in: productIds },
+    isDeleted: false,
+  };
+ 
+  // status filter — All দিলে filter নেই
+  if (status && status !== "all") {
+    filter.orderStatus = status;
+  }
+ 
+  const total = await Order.countDocuments(filter);
+ 
+  const orders = await Order.find(filter)
+    .populate({
+      path: "items.product",
+      select: "name images price",
+    })
+    .populate("user", "fullName image phoneNumber")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .select(
+      "items shippingAddress subtotal shippingCost tax total orderStatus paymentStatus stripePaymentIntentId createdAt user"
+    );
+ 
+  return {
+    orders,
+    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+  };
+};
+ 
+// ── 2. Get Single Order Details ───────────────────────────────────────────────
+// GET /api/v1/products/manage-orders/:orderId
+const getOrderDetails = async (userId: string, orderId: string) => {
+  const myProducts = await Product.find(
+    { host: userId, isDeleted: false },
+    { _id: 1 }
+  );
+  const productIds = myProducts.map((p) => p._id);
+ 
+  const order = await Order.findOne({
+    _id: orderId,
+    "items.product": { $in: productIds },
+    isDeleted: false,
+  })
+    .populate({
+      path: "items.product",
+      select: "name images price",
+    })
+    .populate("user", "fullName image phoneNumber email");
+ 
+  if (!order) throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+ 
+  return order;
+};
+ 
+// ── 3. Update Order Status (Mark as Delivered) ────────────────────────────────
+// PATCH /api/v1/products/manage-orders/:orderId/status
+const updateManageOrderStatus = async (
+  userId: string,
+  orderId: string,
+  orderStatus: string
+) => {
+  const myProducts = await Product.find(
+    { host: userId, isDeleted: false },
+    { _id: 1 }
+  );
+  const productIds = myProducts.map((p) => p._id);
+ 
+  const order = await Order.findOneAndUpdate(
+    {
+      _id: orderId,
+      "items.product": { $in: productIds },
+      isDeleted: false,
+    },
+    { $set: { orderStatus } },
+    { new: true }
+  ).populate({ path: "items.product", select: "name images price" });
+ 
+  if (!order) throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+  return order;
+};
+
+
+
+
+
+
+
 export const productServices = {
     getAllProductsService,
     getProductDetailsService,
@@ -740,4 +854,8 @@ export const productServices = {
   updateOrderStatus,
   getMyProducts,
   getSingleProduct,
+  getManageOrders,
+  getOrderDetails,
+  updateManageOrderStatus,
+  
 };

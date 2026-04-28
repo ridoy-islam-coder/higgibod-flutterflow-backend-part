@@ -100,4 +100,30 @@ router.get(
 );
 
 
+
+
+// GET  /api/v1/products/manage-orders?status=all&page=1&limit=10
+// status: all | pending | processing | shipped | delivered | cancelled
+router.get(
+  "/manage-orders",
+  auth(USER_ROLE.MARCHANT),
+  productController.getManageOrders
+);
+ 
+// GET  /api/v1/products/manage-orders/:orderId
+router.get(
+  "/manage-orders/:orderId",
+  auth(USER_ROLE.MARCHANT),
+  productController.getOrderDetails
+);
+ 
+// PATCH /api/v1/products/manage-orders/:orderId/status
+// body: { "orderStatus": "delivered" }
+router.patch(
+  "/manage-orders/:orderId/status",
+  auth(USER_ROLE.MARCHANT),
+  productController.updateManageOrderStatus
+);
+
+
 export const productsRoutes = router;

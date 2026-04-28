@@ -328,7 +328,59 @@ const getSingleProduct = catchAsync(async (req, res) => {
  
 
  
+//oder management for marchant dashboard
 
+// GET /api/v1/products/manage-orders?status=all&page=1&limit=10
+const getManageOrders = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const { status, page, limit } = req.query;
+ 
+  const result = await productServices.getManageOrders(
+    userId,
+    status as string,
+    page ? Number(page) : 1,
+    limit ? Number(limit) : 10
+  );
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Orders fetched successfully",
+    data: result,
+  });
+});
+ 
+// GET /api/v1/products/manage-orders/:orderId
+const getOrderDetails = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const result = await productServices.getOrderDetails(userId, req.params.orderId as string);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Order details fetched successfully",
+    data: result,
+  });
+});
+ 
+// PATCH /api/v1/products/manage-orders/:orderId/status
+const updateManageOrderStatus = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const { orderStatus } = req.body;
+ 
+  const result = await productServices.updateManageOrderStatus(
+    userId,
+    req.params.orderId as string,
+    orderStatus
+  );
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Order status updated successfully",
+    data: result,
+  });
+});
 
 
 export const productController = {
@@ -352,4 +404,7 @@ export const productController = {
   updateOrderStatus,
   getMyProducts,
   getSingleProduct,
+  getManageOrders,
+  getOrderDetails,
+  updateManageOrderStatus,
 };
