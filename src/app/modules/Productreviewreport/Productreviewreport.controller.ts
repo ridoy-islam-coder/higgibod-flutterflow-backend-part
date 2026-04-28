@@ -7,8 +7,8 @@ import { ProductReviewReportService } from "./Productreviewreport.service";
 
 // POST /api/v1/product-reviews/:productId/:reviewId/report
 const reportProductReview = catchAsync(async (req: Request, res: Response) => {
-  const { productId, reviewId } = req.params;
-  const { reason } = req.body;
+//   const { productId, reviewId } = req.params;
+  const { reason ,productId, reviewId} = req.body;
 
   const result = await ProductReviewReportService.reportProductReview(
     req.user._id,

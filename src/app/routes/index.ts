@@ -18,6 +18,7 @@ import { catagoreeventRoutes } from '../modules/eventcatagore/eventcatagore.rout
 import { ProductCategoryRoutes } from '../modules/ProductCategory/ProductCategory.routes';
 import { reviewRoutes } from '../modules/profilereview/profilereview.routes';
 import { EventReviewReportRoutes } from '../modules/Eventreviewreport/Eventreviewreport.routes';
+import { ProductReviewReportRoutes } from '../modules/Productreviewreport/Productreviewreport.routes';
 // import { PromoCodeRoutes } from '../modules/PromoCode/promocode.routes';
 
 
@@ -105,6 +106,10 @@ const moduleRoutes = [
   {
    path: '/eventreport',
     route: EventReviewReportRoutes,
+  },
+  {
+   path: '/ProductReport',
+    route: ProductReviewReportRoutes,
   }
   
   
