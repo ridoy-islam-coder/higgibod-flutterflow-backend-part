@@ -311,17 +311,17 @@ const searchEvents = async (query: {
   };
 };
  
-const getFeaturedEvents = async () => {
-  // Featured = upcoming events with most attendees
-  return await Event.find({
-    isDeleted: { $ne: true },
-    isPast: false,
-    date: { $gte: new Date() },
-  })
-    .populate("host", "name profileImage")
-    .sort({ attendees: -1, date: 1 })
-    .limit(5);
-};
+// const getFeaturedEvents = async () => {
+//   // Featured = upcoming events with most attendees
+//   return await Event.find({
+//     isDeleted: { $ne: true },
+//     isPast: false,
+//     date: { $gte: new Date() },
+//   })
+//     .populate("host", "name profileImage")
+//     .sort({ attendees: -1, date: 1 })
+//     .limit(5);
+// };
  
 const getNearbyEvents = async (location: string) => {
   return await Event.find({
@@ -690,6 +690,86 @@ const getRecentPayments = async (userId: string) => {
   return payments;
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//new api 
+
+
+// ── Featured Events (Figma "Featured Events" section) ─────────────────────────
+const getFeaturedEvents = async () => {
+  const events = await Event.find({
+    isFeatured: true,
+    isPast: false,
+    isDeleted: false,
+  })
+    .populate("category", "name")
+    .populate("host", "name profileImage")
+    .populate("attendees", "profileImage")
+    .sort({ createdAt: -1 })
+    .select("title date time location coverImage price isFeatured isPinned isHighlighted isTopEvent attendees category host");
+ 
+  return events;
+};
+ 
+// ── Top Events ────────────────────────────────────────────────────────────────
+const getTopEvents = async () => {
+  const events = await Event.find({
+    isTopEvent: true,
+    isPast: false,
+    isDeleted: false,
+  })
+    .populate("category", "name")
+    .populate("host", "name profileImage")
+    .populate("attendees", "profileImage")
+    .sort({ createdAt: -1 });
+ 
+  return events;
+};
+ 
+// ── Highlighted Events ────────────────────────────────────────────────────────
+const getHighlightedEvents = async () => {
+  const events = await Event.find({
+    isHighlighted: true,
+    isPast: false,
+    isDeleted: false,
+  })
+    .populate("category", "name")
+    .populate("host", "name profileImage")
+    .sort({ createdAt: -1 });
+ 
+  return events;
+};
+ 
+// ── Pinned Events ─────────────────────────────────────────────────────────────
+const getPinnedEvents = async () => {
+  const events = await Event.find({
+    isPinned: true,
+    isPast: false,
+    isDeleted: false,
+  })
+    .populate("category", "name")
+    .populate("host", "name profileImage")
+    .sort({ createdAt: -1 });
+ 
+  return events;
+};
+
+
 export const eventServices = {
 createEventService,
 getAllEventsService,
@@ -713,5 +793,8 @@ addReviewService,
   getAllMyEvents,
   getRecentPayments,
   getMyTicketnew,
+  getTopEvents,
+  getHighlightedEvents,
+  getPinnedEvents,
 
 };

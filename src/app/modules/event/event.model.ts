@@ -78,6 +78,28 @@ const eventSchema = new Schema<IEvent>(
     reviews: [reviewSchema],
     isPast: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
+
+
+      // ── Visibility Options (Figma) ────────────────────────────
+    isHighlighted: { type: Boolean, default: false },  // Highlight Event
+    isPinned: { type: Boolean, default: false },        // Pin Event
+    isFeatured: { type: Boolean, default: false },      // Feature Placement
+    isTopEvent: { type: Boolean, default: false },      // Top Event
+ 
+    // Event type
+    eventType: {
+      type: String,
+      enum: ["Free Event", "Paid Event"],
+      default: "Free Event",
+    },
+
+
+
+
+
+
+
+
   },
   {
     timestamps: true,

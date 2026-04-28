@@ -22,6 +22,27 @@ export interface ILocation {
 }
 
 
+// export interface IEvent {
+//   _id?: Types.ObjectId;
+//   title: string;
+//   category?: Types.ObjectId;
+//   date: Date;
+//   time?: string;
+//   location?: ILocation;
+//   description?: string;
+//   price?: number;
+//   coverImage?: { id: string; url: string };
+//   gallery?: { id: string; url: string }[];
+//   host: Types.ObjectId;
+//   attendees?: Types.ObjectId[];
+//   reviews?: IReview[];
+//   isPast?: boolean;
+//   isDeleted?: boolean;
+//   createdAt?: Date;
+//   updatedAt?: Date;
+// }
+
+
 export interface IEvent {
   _id?: Types.ObjectId;
   title: string;
@@ -38,6 +59,16 @@ export interface IEvent {
   reviews?: IReview[];
   isPast?: boolean;
   isDeleted?: boolean;
+ 
+  // ── Visibility Options (Figma) ────────────────────────────
+  isFeatured?: boolean;     // Feature Placement
+  isPinned?: boolean;       // Pin Event
+  isHighlighted?: boolean;  // Highlight Event
+  isTopEvent?: boolean;     // Top Event
+ 
+  // ── Event Type ────────────────────────────────────────────
+  eventType?: "Free Event" | "Paid Event";
+ 
   createdAt?: Date;
   updatedAt?: Date;
 }

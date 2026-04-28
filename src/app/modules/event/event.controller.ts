@@ -125,15 +125,15 @@ const searchEvents = catchAsync(async (req, res) => {
   });
 });
  
-const getFeaturedEvents = catchAsync(async (req, res) => {
-  const result = await eventServices.getFeaturedEvents();
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: "Featured events fetched",
-    data: result,
-  });
-});
+// const getFeaturedEvents = catchAsync(async (req, res) => {
+//   const result = await eventServices.getFeaturedEvents();
+//   sendResponse(res, {
+//     statusCode: 200,
+//     success: true,
+//     message: "Featured events fetched",
+//     data: result,
+//   });
+// });
  
 const getNearbyEvents = catchAsync(async (req, res) => {
   const location = req.query.location as string;
@@ -479,7 +479,50 @@ const getEventAttendees = catchAsync(async (req, res) => {
 
 
 
-
+//new api 
+// GET /api/v1/events/featured
+const getFeaturedEvents = catchAsync(async (req, res) => {
+  const result = await eventServices.getFeaturedEvents();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Featured events fetched successfully",
+    data: result,
+  });
+});
+ 
+// GET /api/v1/events/top
+const getTopEvents = catchAsync(async (req, res) => {
+  const result = await eventServices.getTopEvents();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Top events fetched successfully",
+    data: result,
+  });
+});
+ 
+// GET /api/v1/events/highlighted
+const getHighlightedEvents = catchAsync(async (req, res) => {
+  const result = await eventServices.getHighlightedEvents();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Highlighted events fetched successfully",
+    data: result,
+  });
+});
+ 
+// GET /api/v1/events/pinned
+const getPinnedEvents = catchAsync(async (req, res) => {
+  const result = await eventServices.getPinnedEvents();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Pinned events fetched successfully",
+    data: result,
+  });
+});
 
 
 
@@ -507,4 +550,7 @@ addReview,
   getRecentPayments,
   getMyTicketsnewfilter,
   getEventAttendees,
+  getTopEvents,
+  getHighlightedEvents,
+  getPinnedEvents,
 };

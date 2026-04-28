@@ -103,4 +103,23 @@ router.get('/myall-tickets', auth(USER_ROLE.USER,USER_ROLE.ORGANIZER), eventcont
 // ── Event Attendees List ──────────────────────────────────────────────────────
 router.get("/attendees/:id", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcontroller.getEventAttendees);
 
+
+
+
+
+
+
+
+
+
+
+// ── Visibility / Featured (public — token লাগবে না) ──────────────────────────
+router.get("/featured", eventcontroller.getFeaturedEvents);
+router.get("/top", eventcontroller.getTopEvents);
+router.get("/highlighted", eventcontroller.getHighlightedEvents);
+router.get("/pinned", eventcontroller.getPinnedEvents);
+
+
+
+
 export const eventRoutes = router;
