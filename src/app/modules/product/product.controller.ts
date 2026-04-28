@@ -297,6 +297,37 @@ const updateOrderStatus = catchAsync(async (req, res) => {
 });
 
 
+// GET /api/v1/products/my-products?page=1&limit=10
+const getMyProducts = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : 10;
+ 
+  const result = await productServices.getMyProducts(userId, page, limit);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Products fetched successfully",
+    data: result,
+  });
+});
+ 
+// GET /api/v1/products/:productId
+const getSingleProduct = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const result = await productServices.getSingleProduct(userId, req.params.productId as string);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Product fetched successfully",
+    data: result,
+  });
+});
+ 
+
+ 
 
 
 
@@ -319,4 +350,6 @@ export const productController = {
   getEarningOverview,
   getMyOrders,
   updateOrderStatus,
+  getMyProducts,
+  getSingleProduct,
 };

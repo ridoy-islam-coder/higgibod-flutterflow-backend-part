@@ -28,6 +28,7 @@ export interface IProduct extends Document {
   host: Types.ObjectId;
   reviews?: IReview[];
   isDeleted?: boolean;
+  stock?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }

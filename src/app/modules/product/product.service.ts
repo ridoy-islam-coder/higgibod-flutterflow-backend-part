@@ -2,6 +2,7 @@ import mongoose, { Types } from "mongoose";
 import AppError from "../../error/AppError";
 import { Order } from "../userOrder/userOrder.model";
 import { Product } from "./product.model";
+import httpStatus  from 'http-status';
 
 
 // ✅ Get All Products
@@ -677,6 +678,47 @@ const updateOrderStatus = async (
 };
 
 
+
+ 
+// ── 1. Get My Products (Product List) ────────────────────────────────────────
+const getMyProducts = async (
+  userId: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const skip = (page - 1) * limit;
+ 
+  const total = await Product.countDocuments({ host: userId, isDeleted: false });
+ 
+  const products = await Product.find({ host: userId, isDeleted: false })
+    .populate("category", "name")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .select("name price images category colors sizes discount stock isDeleted createdAt");
+ 
+  return {
+    products,
+    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+  };
+};
+ 
+
+
+
+// ── 5. Get Single Product ─────────────────────────────────────────────────────
+const getSingleProduct = async (userId: string, productId: string) => {
+  const product = await Product.findOne({
+    _id: productId,
+    host: userId,
+    isDeleted: false,
+  }).populate("category", "name");
+ 
+  if (!product) throw new AppError(httpStatus.NOT_FOUND, "Product not found");
+  return product;
+};
+
+
 export const productServices = {
     getAllProductsService,
     getProductDetailsService,
@@ -696,4 +738,6 @@ export const productServices = {
   getEarningOverview,
   getMyOrders,
   updateOrderStatus,
+  getMyProducts,
+  getSingleProduct,
 };

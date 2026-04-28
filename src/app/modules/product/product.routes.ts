@@ -46,7 +46,9 @@ router.get("/summary",  auth(USER_ROLE.USER), productController.getDashboardSumm
 // 📈 MONTHLY EARNINGS API
 router.get("/monthly", auth(USER_ROLE.USER), productController.getMonthlyEarnings);
 
-//dasbord api 
+
+
+//dasbord api  MARCHANT all api 
 
 
  
@@ -80,6 +82,21 @@ router.patch(
   "/orders/:orderId/status",
   auth(USER_ROLE.MARCHANT),
   productController.updateOrderStatus
+);
+
+
+// GET  /api/v1/products/my-products — আমার সব products
+router.get(
+  "/my-products",
+  auth(USER_ROLE.MARCHANT),
+  productController.getMyProducts
+);
+
+// GET  /api/v1/products/:productId — single product
+router.get(
+  "/single-product/:productId",
+  auth(USER_ROLE.MARCHANT),
+  productController.getSingleProduct
 );
 
 
