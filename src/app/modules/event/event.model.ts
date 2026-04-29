@@ -122,7 +122,7 @@ eventSchema.pre("findOne", function (next) {
 export const Event = model<IEvent>("Event", eventSchema);
 
 
-// ← এখানে add করো, উপরে না
+// ── Auto isPast update ────────────────────────────────────────
 Event.schema.post("find", async function (docs: any[]) {
   const now = new Date();
   for (const doc of docs) {
@@ -136,6 +136,26 @@ Event.schema.post("find", async function (docs: any[]) {
         await Event.updateOne({ _id: doc._id }, { $set: { isPast: true } });
         doc.isPast = true;
       }
+    }
+  }
+});
+
+
+// ── Auto isPast update ────────────────────────────────────────
+
+
+Event.schema.post("findOne", async function (doc: any) {
+  if (!doc) return;
+  if (!doc.isPast) {
+    const now = new Date();
+    const eventDateTime = new Date(doc.date);
+    if (doc.time) {
+      const [hours, minutes] = doc.time.split(":").map(Number);
+      eventDateTime.setHours(hours, minutes, 0, 0);
+    }
+    if (eventDateTime < now) {
+      await Event.updateOne({ _id: doc._id }, { $set: { isPast: true } });
+      doc.isPast = true;
     }
   }
 });
