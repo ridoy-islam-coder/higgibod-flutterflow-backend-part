@@ -225,6 +225,42 @@ const getUsersByRole = catchAsync(async (req: Request, res: Response) => {
 
 
 
+// GET /api/v1/users/:userId/profile
+const getOrganizerProfile = catchAsync(async (req: Request, res: Response) => {
+  const organizerId = req.params.userId;
+  const currentUserId = req.user?._id;
+ 
+  const result = await userServices.getOrganizerProfile(
+    organizerId as string,
+    currentUserId
+  );
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Organizer profile fetched successfully",
+    data: result,
+  });
+});
+
+// GET /api/v1/users/:userId/marchant-profile
+const getMarchantProfile = catchAsync(async (req: Request, res: Response) => {
+  const marchantId = req.params.userId;
+  const currentUserId = req.user?._id;
+ 
+  const result = await userServices.getMarchantProfile(
+    marchantId as string,
+    currentUserId
+  );
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Marchant profile fetched successfully",
+    data: result,
+  });
+});
+
 
 
 export const userControllers = {
@@ -240,4 +276,6 @@ export const userControllers = {
   blockUser,
   unblockUser,
   getUsersByRole,
+  getOrganizerProfile,
+  getMarchantProfile,
 };

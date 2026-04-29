@@ -63,10 +63,47 @@ export const getPastEvents = catchAsync(async (req, res) => {
   sendResponse(res, { statusCode: 200, success: true, message: "Past events fetched successfully", data: result });
 });
 
-export const getEventDetails = catchAsync(async (req, res) => {
-  const result = await eventServices.getEventDetailsService(req.params.id as string);
-  sendResponse(res, { statusCode: 200, success: true, message: "Event details fetched successfully", data: result });
+// export const getEventDetails = catchAsync(async (req, res) => {
+//   const result = await eventServices.getEventDetailsService(req.params.id as string);
+//   sendResponse(res, { statusCode: 200, success: true, message: "Event details fetched successfully", data: result });
+// });
+
+
+
+
+
+
+
+// GET /api/v1/events/:id
+const getEventDetails = catchAsync(async (req, res) => {
+  const currentUserId = req.user?._id; // token optional — না থাকলেও চলবে
+ 
+  const result = await eventServices.getEventDetailsService(
+    req.params.id as string,
+    currentUserId 
+  );
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Event details fetched successfully",
+    data: result,
+  });
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 export const updateEvent = catchAsync(async (req, res) => {
   let coverImage;

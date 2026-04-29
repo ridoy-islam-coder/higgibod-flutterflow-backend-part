@@ -7,6 +7,9 @@ import QueryBuilder from "../../builder/QueryBuilder";
 import { subMonths, startOfMonth } from 'date-fns';
 import { Review } from "../profilereview/profilereview.model";
 import { Follow } from "../Follow/follow.model";
+import { Event } from "../event/event.model";
+import { Product } from "../product/product.model";
+import SocialLink from "../sociallink/soscial.model";
 
 
 
@@ -365,13 +368,199 @@ const getUsersByRole = async (
 
 
 
+ 
+const getOrganizerProfile = async (
+  organizerId: string,
+  currentUserId?: string
+) => {
+  // ── User data ─────────────────────────────────────────────
+  const user = await User.findById(organizerId).select(
+    "fullName email image coverImage country phoneNumber role bio socialLinks isVerified createdAt"
+  );
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found");
+ 
+  // ── Event count ───────────────────────────────────────────
+  const eventCount = await Event.countDocuments({
+    host: organizerId,
+    isDeleted: false,
+  });
+ 
+  // ── Following count (কতজনকে follow করে) ──────────────────
+  const followingCount = await Follow.countDocuments({
+    follower: organizerId,
+  });
+ 
+  // ── Followers count (কতজন follow করে) ────────────────────
+  const followersCount = await Follow.countDocuments({
+    following: organizerId,
+  });
+ 
+  // ── Review count & avg rating ─────────────────────────────
+  const ratingResult = await Review.aggregate([
+    {
+      $match: {
+        organizer: user._id,
+        isDeleted: { $ne: true },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        avgRating: { $avg: "$rating" },
+        totalReviews: { $sum: 1 },
+      },
+    },
+  ]);
+ 
+  const avgRating = ratingResult[0]?.avgRating
+    ? parseFloat(ratingResult[0].avgRating.toFixed(1))
+    : 0;
+  const totalReviews = ratingResult[0]?.totalReviews || 0;
+ 
+  // ── isFollowing (current user follow করেছে কিনা) ──────────
+  const isFollowing = currentUserId
+    ? !!(await Follow.findOne({
+        follower: currentUserId,
+        following: organizerId,
+      }))
+    : false;
+ 
+  // ── Upcoming Events (latest 5) ────────────────────────────
+  const upcomingEvents = await Event.find({
+    host: organizerId,
+    isPast: false,
+    isDeleted: false,
+    date: { $gte: new Date() },
+  })
+    .populate("category", "name")
+    .sort({ date: 1 })
+    .limit(5)
+    .select("title date time location coverImage price isFeatured eventType");
+ 
+  // ── Reviews (latest 3) ────────────────────────────────────
+  const reviews = await Review.find({
+    organizer: organizerId,
+    isDeleted: false,
+  })
+    .populate("reviewer", "fullName image isAnonymous")
+    .sort({ createdAt: -1 })
+    .limit(3)
+    .select("rating comment createdAt isAnonymous reply reviewer");
+ 
+  return {
+    user: {
+      ...user.toObject(),
+      eventCount,       // 14 Event
+      followingCount,   // 89 Following
+      followersCount,   // Followers
+      totalReviews,     // 123 Review
+      avgRating,        // ⭐ rating
+      isFollowing,      // Follow button
+    },
+    upcomingEvents,
+    reviews,
+  };
+};
+
+
+
+
+
+
+const getMarchantProfile = async (
+  marchantId: string,
+  currentUserId?: string
+) => {
+  const user = await User.findById(marchantId).select(
+    "fullName email image coverImage country phoneNumber role bio isVerified createdAt"
+  );
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found");
+ 
+  // ── Social Links ──────────────────────────────────────────
+  const socialLinks = await SocialLink.findOne({ user: marchantId }).select(
+    "shopName shopLink facebook instagram linkedin twitter youtube tiktok website"
+  );
+ 
+  // ── Product count ─────────────────────────────────────────
+  const productCount = await Product.countDocuments({
+    host: marchantId,
+    isDeleted: false,
+  });
+ 
+  // ── Following count ───────────────────────────────────────
+  const followingCount = await Follow.countDocuments({ follower: marchantId });
+ 
+  // ── Followers count ───────────────────────────────────────
+  const followersCount = await Follow.countDocuments({ following: marchantId });
+ 
+  // ── Review count & avg rating ─────────────────────────────
+  const ratingResult = await Review.aggregate([
+    { $match: { organizer: user._id, isDeleted: { $ne: true } } },
+    {
+      $group: {
+        _id: null,
+        avgRating: { $avg: "$rating" },
+        totalReviews: { $sum: 1 },
+      },
+    },
+  ]);
+ 
+  const avgRating = ratingResult[0]?.avgRating
+    ? parseFloat(ratingResult[0].avgRating.toFixed(1))
+    : 0;
+  const totalReviews = ratingResult[0]?.totalReviews || 0;
+ 
+  // ── isFollowing ───────────────────────────────────────────
+  const isFollowing = currentUserId
+    ? !!(await Follow.findOne({ follower: currentUserId, following: marchantId }))
+    : false;
+ 
+  // ── Products ──────────────────────────────────────────────
+  const products = await Product.find({
+    host: marchantId,
+    isDeleted: false,
+  })
+    .populate("category", "name")
+    .sort({ createdAt: -1 })
+    .limit(10)
+    .select("name price images category colors sizes discount stock");
+ 
+  // ── Reviews ───────────────────────────────────────────────
+  const reviews = await Review.find({
+    organizer: marchantId,
+    isDeleted: false,
+  })
+    .populate("reviewer", "fullName image")
+    .sort({ createdAt: -1 })
+    .limit(3)
+    .select("rating comment createdAt isAnonymous reply reviewer");
+ 
+  return {
+    user: {
+      ...user.toObject(),
+      productCount,
+      followingCount,
+      followersCount,
+      totalReviews,
+      avgRating,
+      isFollowing,
+      socialLinks: socialLinks || null,  // ← social links
+    },
+    products,
+    reviews,
+  };
+};
+
+
+
+
 export const userServices = {
   getme,
   updateProfile,
   getSingleUser,
   deleteAccount,
   getUsersByRole,
-
+  getOrganizerProfile,
   updatePhoneNumber,
   getAllUsers,
   getTotalUsersCount,
@@ -380,4 +569,5 @@ export const userServices = {
   getUserGrowthPercentage,
   blockUser,
   unblockUser,
+  getMarchantProfile,
 };

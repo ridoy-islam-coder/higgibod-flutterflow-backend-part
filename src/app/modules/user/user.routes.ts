@@ -17,8 +17,12 @@ const router = Router();
 router.get("/getby-roll", auth(UserRole.USER,UserRole.ORGANIZER, UserRole.MARCHANT, UserRole.KAATEDJ), userControllers.getUsersByRole);
 
 
+router.get("/organizer-profile/:userId",auth(UserRole.USER, UserRole.ORGANIZER, UserRole.MARCHANT, UserRole.KAATEDJ),userControllers.getOrganizerProfile);
 
 
+
+// GET /api/v1/users/:userId/marchant-profile
+router.get("/marchant-profile/:userId",auth(UserRole.USER, UserRole.ORGANIZER, UserRole.MARCHANT, UserRole.KAATEDJ),userControllers.getMarchantProfile);
 
 
 

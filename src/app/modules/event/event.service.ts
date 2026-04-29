@@ -4,6 +4,9 @@ import { deleteManyFromS3, uploadToS3 } from "../../utils/fileHelper";
 import { Event } from "./event.model";
 import config from "../../config";
 import { Ticket } from "../Ticke/ticke.model";
+import { Review } from "../profilereview/profilereview.model";
+import { Follow } from "../Follow/follow.model";
+import httpStatus  from 'http-status';
 
 
 
@@ -117,14 +120,95 @@ export const getPastEventsService = async () => {
 
 
 // event.getEventDetails
-export const getEventDetailsService = async (id: string) => {
+// export const getEventDetailsService = async (id: string) => {
+//   const event = await Event.findById(id)
+//     .populate("host", "fullName image email")
+//     .populate("attendees", "fullName image email")
+//     .populate("reviews.user", "fullName image");
+//   if (!event) throw new AppError(404, "Event not found");
+//   return event;
+// };
+
+
+
+
+
+
+export const getEventDetailsService = async (
+  id: string,
+  currentUserId?: string
+) => {
   const event = await Event.findById(id)
     .populate("host", "fullName image email")
     .populate("attendees", "fullName image email")
     .populate("reviews.user", "fullName image");
-  if (!event) throw new AppError(404, "Event not found");
-  return event;
+ 
+  if (!event) throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+ 
+  const host = event.host as any;
+ 
+  // ── Host: Followers count ─────────────────────────────────
+  const followersCount = await Follow.countDocuments({
+    following: host._id,
+  });
+ 
+  // ── Host: Average rating ──────────────────────────────────
+  const ratingResult = await Review.aggregate([
+    {
+      $match: {
+        organizer: host._id,
+        isDeleted: { $ne: true },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        avgRating: { $avg: "$rating" },
+        totalReviews: { $sum: 1 },
+      },
+    },
+  ]);
+ 
+  const avgRating = ratingResult[0]?.avgRating
+    ? parseFloat(ratingResult[0].avgRating.toFixed(1))
+    : 0;
+  const totalReviews = ratingResult[0]?.totalReviews || 0;
+ 
+  // ── Host: Current user follow করেছে কিনা ─────────────────
+  const isFollowing = currentUserId
+    ? !!(await Follow.findOne({
+        follower: currentUserId,
+        following: host._id,
+      }))
+    : false;
+ 
+  // ── Host: Current user review করেছে কিনা ─────────────────
+  const hasReviewed = currentUserId
+    ? !!(await Review.findOne({
+        organizer: host._id,
+        reviewer: currentUserId,
+        isDeleted: { $ne: true },
+      }))
+    : false;
+ 
+  return {
+    ...event.toObject(),
+    host: {
+      ...host.toObject(),
+      followersCount,
+      avgRating,
+      totalReviews,
+      isFollowing,
+      hasReviewed,
+    },
+  };
 };
+
+
+
+
+
+
 
 
 
