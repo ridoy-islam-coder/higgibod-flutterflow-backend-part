@@ -221,7 +221,7 @@ const blockUser = async (id: string) => {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-  if (user.role === 'admin' || user.role === 'USER' || user.role === 'influencer') {
+  if (user.role === 'admin' || user.role === 'USER' || user.role === 'ORGANIZER') {
     throw new AppError(httpStatus.BAD_REQUEST, 'You cannot block an admin');
   }
   if (!user.isActive) {
@@ -248,11 +248,68 @@ const unblockUser = async (id: string) => {
   return user;
 };
 
+
+
+
+
+
+
+
+
+
+
+// ── Get Users by Role ─────────────────────────────────────────────────────────
+// Default: সব ORGANIZER আসবে
+// ?role=MARCHANT → MARCHANT রা আসবে
+// ?role=KAATEDJ → KAATEDJ রা আসবে
+
+// ── Get Users by Role with Search ─────────────────────────────────────────────
+const getUsersByRole = async (
+  role: string = "ORGANIZER",
+  search?: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const skip = (page - 1) * limit;
+ 
+  const filter: any = {
+    role,
+    isDeleted: false,
+    isActive: true,
+  };
+ 
+  // Search by name or email
+  if (search && search.trim() !== "") {
+    filter.$or = [
+      { fullName: { $regex: search.trim(), $options: "i" } },
+      { email: { $regex: search.trim(), $options: "i" } },
+    ];
+  }
+ 
+  const total = await User.countDocuments(filter);
+ 
+  const users = await User.find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .select(
+      "fullName email image coverImage country phoneNumber role accountType isVerified createdAt"
+    );
+ 
+  return {
+    users,
+    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+  };
+};
+
+
 export const userServices = {
   getme,
   updateProfile,
   getSingleUser,
   deleteAccount,
+  getUsersByRole,
+
   updatePhoneNumber,
   getAllUsers,
   getTotalUsersCount,

@@ -5,13 +5,30 @@ import { userControllers } from "./user.controller";
 import validateRequest from "../../middleware/validateRequest";
 import { authValidation } from "../auth/auth.validation";
 import upload from "../../middleware/fileUpload";
+import { UserRole } from "./user.interface";
 
 const router = Router();
 
 
+
+
+
+
+router.get("/getby-roll", auth(UserRole.USER, UserRole.MARCHANT, UserRole.KAATEDJ), userControllers.getUsersByRole);
+
+
+
+
+
+
+
+
+
+
+
 router.get(
   '/me',
-  auth(USER_ROLE.USER, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.USER),
   userControllers.getme,
 );
 
@@ -20,14 +37,14 @@ router.get(
 // For login user (user & admin both)
 router.patch(
   '/update-profile',
-  auth(USER_ROLE.USER, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.USER),
   upload.single('image'),
   userControllers.updateProfile,
 );
 // //toatal user count
 router.get(
   '/total-count',
-  auth(USER_ROLE.USER, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.USER),
   userControllers.getTotalUsersCount,
 );
 router.get(
@@ -51,7 +68,7 @@ router.get(
 
 router.patch(
   '/phone/update',
-  auth(USER_ROLE.USER, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.USER),
   userControllers.updatePhoneNumber,
 );
 // router.get(
@@ -62,25 +79,25 @@ router.patch(
 // Block user
 router.patch(
   '/block/:id',
-  auth(USER_ROLE.USER, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.USER),
   userControllers.blockUser,
 );
 
 // Unblock user
 router.patch(
   '/unblock/:id',
-  auth(USER_ROLE.USER, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.USER),
   userControllers.unblockUser,
 );
 
 router.get(
   '/:id',
-  auth(USER_ROLE.USER, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.USER),
   userControllers.getsingleUser,
 );
 router.get(
   '/',
-  auth(USER_ROLE.USER, USER_ROLE.influencer),
+  auth(USER_ROLE.USER, USER_ROLE.USER),
   userControllers.getAllUsers,
 );
 

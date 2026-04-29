@@ -191,6 +191,40 @@ const unblockUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+
+
+// GET /api/v1/users?role=ORGANIZER&search=john&page=1&limit=10
+const getUsersByRole = catchAsync(async (req: Request, res: Response) => {
+  const role = (req.query.role as string) || "ORGANIZER";
+  const search = req.query.search as string;
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : 10;
+ 
+  const validRoles = ["ORGANIZER", "MARCHANT", "KAATEDJ"];
+  if (!validRoles.includes(role)) {
+    return res.status(httpStatus.BAD_REQUEST).json({
+      success: false,
+      message: `Invalid role. Valid roles: ${validRoles.join(", ")}`,
+    });
+  }
+ 
+  const result = await userServices.getUsersByRole(role, search, page, limit);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: `${role} profiles fetched successfully`,
+    data: result,
+  });
+});
+
+
+
+
+
+
+
 export const userControllers = {
   getme,
   updateProfile,
@@ -203,4 +237,5 @@ export const userControllers = {
   getUserGrowthOverview,
   blockUser,
   unblockUser,
+  getUsersByRole,
 };
