@@ -14,7 +14,7 @@ const router = Router();
 
 
 
-router.get("/getby-roll", auth(UserRole.USER, UserRole.MARCHANT, UserRole.KAATEDJ), userControllers.getUsersByRole);
+router.get("/getby-roll", auth(UserRole.USER,UserRole.ORGANIZER, UserRole.MARCHANT, UserRole.KAATEDJ), userControllers.getUsersByRole);
 
 
 

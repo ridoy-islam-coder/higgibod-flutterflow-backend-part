@@ -19,6 +19,7 @@ import { ProductCategoryRoutes } from '../modules/ProductCategory/ProductCategor
 import { reviewRoutes } from '../modules/profilereview/profilereview.routes';
 import { EventReviewReportRoutes } from '../modules/Eventreviewreport/Eventreviewreport.routes';
 import { ProductReviewReportRoutes } from '../modules/Productreviewreport/Productreviewreport.routes';
+import { FollowRoutes } from '../modules/Follow/follow.routes';
 // import { PromoCodeRoutes } from '../modules/PromoCode/promocode.routes';
 
 
@@ -110,8 +111,15 @@ const moduleRoutes = [
   {
    path: '/ProductReport',
     route: ProductReviewReportRoutes,
+  }, 
+  {
+   path: '/follow',
+    route: FollowRoutes,
   }
   
+  
+  
+
   
 
 //   {

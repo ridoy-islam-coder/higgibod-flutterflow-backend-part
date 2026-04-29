@@ -5,6 +5,8 @@ import { TUser } from "./user.interface";
 import bcrypt from "bcrypt";
 import QueryBuilder from "../../builder/QueryBuilder";
 import { subMonths, startOfMonth } from 'date-fns';
+import { Review } from "../profilereview/profilereview.model";
+import { Follow } from "../Follow/follow.model";
 
 
 
@@ -263,12 +265,13 @@ const unblockUser = async (id: string) => {
 // ?role=MARCHANT → MARCHANT রা আসবে
 // ?role=KAATEDJ → KAATEDJ রা আসবে
 
-// ── Get Users by Role with Search ─────────────────────────────────────────────
+// ── Get Users by Role with Search + Followers + Rating ────────────────────────
 const getUsersByRole = async (
   role: string = "ORGANIZER",
   search?: string,
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
+  currentUserId?: string
 ) => {
   const skip = (page - 1) * limit;
  
@@ -278,7 +281,6 @@ const getUsersByRole = async (
     isActive: true,
   };
  
-  // Search by name or email
   if (search && search.trim() !== "") {
     filter.$or = [
       { fullName: { $regex: search.trim(), $options: "i" } },
@@ -287,7 +289,7 @@ const getUsersByRole = async (
   }
  
   const total = await User.countDocuments(filter);
- 
+
   const users = await User.find(filter)
     .sort({ createdAt: -1 })
     .skip(skip)
@@ -296,11 +298,71 @@ const getUsersByRole = async (
       "fullName email image coverImage country phoneNumber role accountType isVerified createdAt"
     );
  
+  const usersWithStats = await Promise.all(
+    users.map(async (user: any) => {
+      // ── Followers count ───────────────────────────────────
+      const followersCount = await Follow.countDocuments({
+        following: user._id,
+      });
+ 
+      // ── Average rating ────────────────────────────────────
+      const ratingResult = await Review.aggregate([
+        {
+          $match: {
+            organizer: user._id,
+            isDeleted: { $ne: true },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            avgRating: { $avg: "$rating" },
+            totalReviews: { $sum: 1 },
+          },
+        },
+      ]);
+
+      const avgRating = ratingResult[0]?.avgRating
+        ? parseFloat(ratingResult[0].avgRating.toFixed(1))
+        : 0;
+      const totalReviews = ratingResult[0]?.totalReviews || 0;
+ 
+      // ── Current user এই profile follow করেছে কিনা ─────────
+      const isFollowing = currentUserId
+        ? !!(await Follow.findOne({
+            follower: currentUserId,
+            following: user._id,
+          }))
+        : false;
+ 
+      // ── Current user এই profile review করেছে কিনা ─────────
+      const hasReviewed = currentUserId
+        ? !!(await Review.findOne({
+            organizer: user._id,
+            reviewer: currentUserId,
+            isDeleted: { $ne: true },
+          }))
+        : false;
+ 
+      return {
+        ...user.toObject(),
+        followersCount,
+        avgRating,
+        totalReviews,
+        isFollowing,  // ← follow করেছে কিনা
+        hasReviewed,  // ← review করেছে কিনা
+      };
+    })
+  );
+
+
   return {
-    users,
+    users: usersWithStats,
     pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 };
+
+
 
 
 export const userServices = {
