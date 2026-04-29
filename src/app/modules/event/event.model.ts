@@ -120,3 +120,22 @@ eventSchema.pre("findOne", function (next) {
 });
 
 export const Event = model<IEvent>("Event", eventSchema);
+
+
+// ← এখানে add করো, উপরে না
+Event.schema.post("find", async function (docs: any[]) {
+  const now = new Date();
+  for (const doc of docs) {
+    if (!doc.isPast) {
+      const eventDateTime = new Date(doc.date);
+      if (doc.time) {
+        const [hours, minutes] = doc.time.split(":").map(Number);
+        eventDateTime.setHours(hours, minutes, 0, 0);
+      }
+      if (eventDateTime < now) {
+        await Event.updateOne({ _id: doc._id }, { $set: { isPast: true } });
+        doc.isPast = true;
+      }
+    }
+  }
+});
