@@ -27,4 +27,31 @@ router.post('/reset-password', adminControllers.resetPassword);
 
 router.get('/dashboard', auth('admin'), adminControllers.getAdminDashboard);
 
+
+
+
+
+
+// GET  /api/v1/admin/users?search=john&page=1&limit=10
+router.get("/", auth('admin'), adminControllers.getAllUsers);
+ 
+// GET  /api/v1/admin/users/:userId
+router.get("/:userId", auth('admin'), adminControllers.getSingleUser);
+ 
+// PATCH /api/v1/admin/users/:userId/block
+router.patch("/:userId/block", auth('admin'), adminControllers.blockUser);
+ 
+// PATCH /api/v1/admin/users/:userId/unblock
+router.patch("/:userId/unblock", auth('admin'), adminControllers.unblockUser);
+ 
+// DELETE /api/v1/admin/users/:userId
+router.delete("/:userId", auth('admin'), adminControllers.deleteUser);
+
+
+
+
+
+
+
+
 export const adminRoutes = router;

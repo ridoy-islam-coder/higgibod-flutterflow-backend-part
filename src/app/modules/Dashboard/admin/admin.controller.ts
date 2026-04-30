@@ -245,6 +245,78 @@ const getAdminDashboard = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+
+// GET /api/v1/admin/users?search=john&page=1&limit=10
+const getAllUsers = catchAsync(async (req: Request, res: Response) => {
+  const search = req.query.search as string;
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : 10;
+ 
+  const result = await adminService.getAllUsers(search, page, limit);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Users fetched successfully",
+    data: result,
+  });
+});
+ 
+// GET /api/v1/admin/users/:userId
+const getSingleUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await adminService.getSingleUser(req.params.userId as string);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User fetched successfully",
+    data: result,
+  });
+});
+ 
+// PATCH /api/v1/admin/users/:userId/block
+const blockUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await adminService.blockUser(req.params.userId as string);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User blocked successfully",
+    data: result,
+  });
+});
+ 
+// PATCH /api/v1/admin/users/:userId/unblock
+const unblockUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await adminService.unblockUser(req.params.userId as string);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User unblocked successfully",
+    data: result,
+  });
+});
+ 
+// DELETE /api/v1/admin/users/:userId
+const deleteUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await adminService.deleteUser(req.params.userId as string);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User deleted successfully",
+    data: result,
+  });
+});
+
+
+
+
+
+
+
 export const adminControllers = {
   adminRegister,
   adminLogin,
@@ -256,4 +328,9 @@ export const adminControllers = {
   getProfile,
   //dashboard analytics
   getAdminDashboard,
+  getAllUsers,
+  getSingleUser,
+  blockUser,
+  unblockUser,
+  deleteUser,
 };

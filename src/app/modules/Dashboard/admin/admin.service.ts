@@ -224,6 +224,81 @@ const getAdminDashboard = async (
 
 
 
+// ── Get All Users (Admin) ─────────────────────────────────────────────────────
+const getAllUsers = async (
+  search?: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const skip = (page - 1) * limit;
+ 
+  const filter: any = { isDeleted: false };
+ 
+  if (search && search.trim() !== "") {
+    filter.$or = [
+      { fullName: { $regex: search.trim(), $options: "i" } },
+      { email: { $regex: search.trim(), $options: "i" } },
+    ];
+  }
+ 
+  const total = await User.countDocuments(filter);
+ 
+  const users = await User.find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .select("fullName email image role isActive isVerified createdAt");
+ 
+  return {
+    users,
+    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+  };
+};
+ 
+// ── Block User ────────────────────────────────────────────────────────────────
+const blockUser = async (userId: string) => {
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { $set: { isActive: false } },
+    { new: true }
+  ).select("fullName email isActive");
+ 
+  if (!user) throw new Error("User not found");
+  return user;
+};
+ 
+// ── Unblock User ──────────────────────────────────────────────────────────────
+const unblockUser = async (userId: string) => {
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { $set: { isActive: true } },
+    { new: true }
+  ).select("fullName email isActive");
+ 
+  if (!user) throw new Error("User not found");
+  return user;
+};
+ 
+// ── Delete User ───────────────────────────────────────────────────────────────
+const deleteUser = async (userId: string) => {
+  const user = await User.findByIdAndUpdate(
+    userId,
+    { $set: { isDeleted: true } },
+    { new: true }
+  );
+ 
+  if (!user) throw new Error("User not found");
+  return { message: "User deleted successfully" };
+};
+ 
+// ── Get Single User ───────────────────────────────────────────────────────────
+const getSingleUser = async (userId: string) => {
+  const user = await User.findById(userId).select(
+    "fullName email image coverImage role isActive isVerified country phoneNumber createdAt"
+  );
+  if (!user) throw new Error("User not found");
+  return user;
+};
 
 
 
@@ -237,4 +312,9 @@ export const adminService = {
   verifyOtp,
   resetPassword,
   getAdminDashboard,
+  getAllUsers,
+  blockUser,
+  unblockUser,
+  deleteUser,
+  getSingleUser,
 };
