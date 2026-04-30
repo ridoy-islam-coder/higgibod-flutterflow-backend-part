@@ -8,6 +8,7 @@ import jwt from 'jsonwebtoken';
 import { adminService } from "./admin.service";
 import config from "../../../config";
 import { sendEmail } from "../../../utils/mailSender";
+import { uploadToS3 } from "../../../utils/fileHelper";
 
 
 // import { Request, Response } from 'express';
@@ -114,14 +115,14 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
 });
 
 const updateProfile = catchAsync(async (req: Request, res: Response) => {
-  // let image;
-  // if (req.file) {
-  //   image = await uploadToS3(req.file, 'admin-profile/');
-  // }
+  let image;
+  if (req.file) {
+    image = await uploadToS3(req.file, 'admin-profile/');
+  }
 
   const result = await adminService.updateAdminProfile(req.user.id, {
     ...req.body,
-    // ...(image && { image }),
+    ...(image && { image }),
   });
 
   sendResponse(res, {

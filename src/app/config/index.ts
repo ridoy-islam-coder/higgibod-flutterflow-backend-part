@@ -13,7 +13,9 @@ export default {
      port: process.env.PORT,
      google_maps_api_key: process.env.GOOGLE_MAPS_API,
      
-
+     firebase_project_id: process.env.FIREBASE_PROJECT_ID,
+     firebase_client_email: process.env.FIREBASE_CLIENT_EMAIL,
+     firebase_private_key: process.env.FIREBASE_PRIVATE_KEY,
      bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,
      socket_port: process.env.SOCKET_PORT,
      allowed_origins: process.env.ALLOWED_ORIGINS,
