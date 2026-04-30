@@ -3,6 +3,10 @@
 import httpStatus from 'http-status';
 import { Admin } from './admin.model';
 import AppError from '../../../error/AppError';
+import User from '../../user/user.model';
+import { Event } from '../../event/event.model';
+import { Order } from '../../userOrder/userOrder.model';
+import { Ticket } from '../../Ticke/ticke.model';
 
 const updateAdminProfile = async (id: string, payload: Record<string, any>) => {
   const allowedFields = ['fullName', 'phoneNumber', 'image'];
@@ -79,10 +83,158 @@ const resetPassword = async (email: string, newPassword: string) => {
   await admin.save();
 };
 
+
+
+//admin dasbord api 
+
+
+// ── Admin Dashboard ────────────────────────────────────────────────────────────
+const getAdminDashboard = async (
+  year?: number,
+  analyticsType: string = "tickets",
+  page: number = 1,
+  limit: number = 10
+) => {
+  const targetYear = year || new Date().getFullYear();
+  const skip = (page - 1) * limit;
+ 
+  // ── Active Users count ────────────────────────────────────
+  const activeUsers = await User.countDocuments({
+    isDeleted: false,
+    isActive: true,
+  });
+ 
+  // ── Ongoing Events count ──────────────────────────────────
+  const ongoingEvents = await Event.countDocuments({
+    isPast: false,
+    isDeleted: false,
+  });
+ 
+  // ── Total Earning (tickets + orders) ─────────────────────
+  const ticketEarning = await Ticket.aggregate([
+    { $match: { paymentStatus: "paid", isDeleted: false } },
+    { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+  ]);
+ 
+  const orderEarning = await Order.aggregate([
+    { $match: { paymentStatus: "paid", isDeleted: false } },
+    { $group: { _id: null, total: { $sum: "$total" } } },
+  ]);
+ 
+  const totalEarning =
+    (ticketEarning[0]?.total || 0) + (orderEarning[0]?.total || 0);
+ 
+  // ── Platform Analytics (monthly) ──────────────────────────
+  // analyticsType: "tickets" or "orders"
+  let monthlyAnalytics;
+ 
+  if (analyticsType === "tickets") {
+    const raw = await Ticket.aggregate([
+      {
+        $match: {
+          paymentStatus: "paid",
+          isDeleted: false,
+          createdAt: {
+            $gte: new Date(`${targetYear}-01-01`),
+            $lte: new Date(`${targetYear}-12-31`),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { $dayOfMonth: "$createdAt" },
+          count: { $sum: "$quantity" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+ 
+    monthlyAnalytics = Array.from({ length: 30 }, (_, i) => {
+      const found = raw.find((r) => r._id === i + 1);
+      return { day: i + 1, count: found?.count || 0 };
+    });
+  } else {
+    const raw = await Order.aggregate([
+      {
+        $match: {
+          paymentStatus: "paid",
+          isDeleted: false,
+          createdAt: {
+            $gte: new Date(`${targetYear}-01-01`),
+            $lte: new Date(`${targetYear}-12-31`),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { $dayOfMonth: "$createdAt" },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+ 
+    monthlyAnalytics = Array.from({ length: 30 }, (_, i) => {
+      const found = raw.find((r) => r._id === i + 1);
+      return { day: i + 1, count: found?.count || 0 };
+    });
+  }
+ 
+  // ── Event List (latest) ───────────────────────────────────
+  const eventList = await Event.find({ isDeleted: false })
+    .populate("host", "fullName image")
+    .populate("category", "name")
+    .sort({ createdAt: -1 })
+    .limit(4)
+    .select("title date coverImage location");
+ 
+  // ── New Users (latest with pagination) ───────────────────
+  const totalUsers = await User.countDocuments({ isDeleted: false });
+ 
+  const newUsers = await User.find({ isDeleted: false })
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .select("fullName image email role isActive isVerified createdAt");
+ 
+  return {
+    stats: {
+      activeUsers,
+      ongoingEvents,
+      totalEarning,
+    },
+    analytics: {
+      type: analyticsType,
+      year: targetYear,
+      data: monthlyAnalytics,
+    },
+    eventList,
+    newUsers: {
+      users: newUsers,
+      pagination: {
+        total: totalUsers,
+        page,
+        limit,
+        totalPages: Math.ceil(totalUsers / limit),
+      },
+    },
+  };
+};
+
+
+
+
+
+
+
+
+
+
 export const adminService = {
   updateAdminProfile,
   changePassword,
   setForgotOtp,
   verifyOtp,
   resetPassword,
+  getAdminDashboard,
 };

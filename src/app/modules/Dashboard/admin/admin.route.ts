@@ -21,4 +21,10 @@ router.post('/forgot-password', adminControllers.forgotPassword);
 router.post('/verify-otp', adminControllers.verifyOtp);
 router.post('/reset-password', adminControllers.resetPassword);
 
+// GET /api/v1/admin/dashboard
+// GET /api/v1/admin/dashboard?year=2025&type=tickets&page=1&limit=10
+// GET /api/v1/admin/dashboard?type=orders
+
+router.get('/dashboard', auth('admin'), adminControllers.getAdminDashboard);
+
 export const adminRoutes = router;
