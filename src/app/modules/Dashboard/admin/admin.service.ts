@@ -232,7 +232,7 @@ const getAllUsers = async (
 ) => {
   const skip = (page - 1) * limit;
  
-  const filter: any = { isDeleted: false };
+  const filter: any = { isDeleted: false, role: "USER" };
  
   if (search && search.trim() !== "") {
     filter.$or = [
