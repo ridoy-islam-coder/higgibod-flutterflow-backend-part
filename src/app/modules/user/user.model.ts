@@ -155,7 +155,7 @@ const UserSchema = new Schema<TUser, UserModel>(
     },
 
 
-
+   fcmToken: { type: String, default: "" },
     isActive: {
       type: Boolean,
       default: true,
