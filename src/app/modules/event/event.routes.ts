@@ -16,7 +16,7 @@ router.get("/getAll",auth(USER_ROLE.USER,), eventcontroller.getAllEvents);
 //not done
 router.get("/getPast", auth(USER_ROLE.USER,), eventcontroller.getPastEvents);
 //done
-router.get("/getevent-details/:id", auth(USER_ROLE.USER,), eventcontroller.getEventDetails);
+router.get("/getevent-details/:id", auth(USER_ROLE.USER,USER_ROLE.ORGANIZER,USER_ROLE.admin), eventcontroller.getEventDetails);
 //done
 router.put("/update-event/:id", auth(USER_ROLE.USER,), upload.fields([{ name: 'coverImage', maxCount: 1 },{ name: 'gallery', maxCount: 10 },]), eventcontroller.updateEvent);
 router.delete("/delete-event/:id", auth(USER_ROLE.USER,), eventcontroller.deleteEvent);

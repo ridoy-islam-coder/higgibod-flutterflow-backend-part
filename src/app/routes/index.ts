@@ -120,8 +120,11 @@ const moduleRoutes = [
    {
    path: '/notifications',
     route: NotificationRoutes,
-  }
-  
+  },
+  {
+   path: '/Settings',
+    route: NotificationRoutes,
+  } 
   
 
   

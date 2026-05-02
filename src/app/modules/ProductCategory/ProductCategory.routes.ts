@@ -9,18 +9,18 @@ const router = Router();
 // ─── Admin Routes ──────────────────────────────────────────────────────────────
 router.post(
   "/create-category-product",
-  auth(UserRole.USER),
+  auth(UserRole.USER,UserRole.admin),
   ProductCategoryController.createProductCategory
 );
 
-router.patch(
-  "/:id",
+router.patch( 
+  "/product-update/:id",
   auth(UserRole.admin),
   ProductCategoryController.updateProductCategory
 );
 
 router.delete(
-  "/:id",
+  "/product-delete/:id",
   auth(UserRole.admin),
   ProductCategoryController.deleteProductCategory
 );

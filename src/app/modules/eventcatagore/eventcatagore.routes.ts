@@ -11,7 +11,7 @@ const router = Router();
 
 router.get("/allcategories-event",auth(USER_ROLE.USER), categoryController.getAllCategories);
 
-router.post("/categories-event",auth(USER_ROLE.USER), upload.single('image'), categoryController.createCategory);
+router.post("/categories-event",auth(USER_ROLE.USER,USER_ROLE.admin), upload.single('image'), categoryController.createCategory);
 
 router.get("/details/:id",auth(USER_ROLE.USER), categoryController.getCategoryById);
 
