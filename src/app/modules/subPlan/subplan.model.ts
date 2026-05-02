@@ -10,6 +10,12 @@ const SubscriptionPlanSchema = new Schema<TSubscriptionPlan, SubscriptionPlanMod
       required: true,
       unique: true,
     },
+   role: {
+      type: String,
+      enum: ["ORGANIZER", "MARCHANT", "KAATEDJ"],
+      required: true,
+    },
+
     description: {
       type: String,
       required: true,

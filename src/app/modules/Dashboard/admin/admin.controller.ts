@@ -194,21 +194,56 @@ const verifyOtp = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+// const resetPassword = catchAsync(async (req: Request, res: Response) => {
+//   const { newPassword, confirmPassword } = req.body;
+
+//   if (newPassword !== confirmPassword)
+//     throw new AppError(400, 'Passwords do not match');
+
+//   // Find verified email
+//   const matchedEmail = [...verifiedAdmins.entries()].find(
+//     ([email, status]) => status === 'VERIFIED',
+//   )?.[0];
+
+//   if (!matchedEmail) throw new AppError(400, 'OTP not verified');
+
+//   await adminService.resetPassword(matchedEmail, newPassword);
+//   verifiedAdmins.delete(matchedEmail); // Clean up
+
+//   sendResponse(res, {
+//     statusCode: 200,
+//     success: true,
+//     message: 'Password reset successful',
+//     data: {},
+//   });
+// });
+
+
 const resetPassword = catchAsync(async (req: Request, res: Response) => {
-  const { newPassword, confirmPassword } = req.body;
+  const { email, newPassword, confirmPassword } = req.body;
 
-  if (newPassword !== confirmPassword)
+  // ✅ Required fields check
+  if (!email || !newPassword || !confirmPassword) {
+    throw new AppError(400, 'All fields are required');
+  }
+
+  // ✅ Password match check
+  if (newPassword !== confirmPassword) {
     throw new AppError(400, 'Passwords do not match');
+  }
 
-  // Find verified email
-  const matchedEmail = [...verifiedAdmins.entries()].find(
-    ([email, status]) => status === 'VERIFIED',
-  )?.[0];
+  // 🔐 Check OTP verified for this specific email
+  const isVerified = verifiedAdmins.get(email);
 
-  if (!matchedEmail) throw new AppError(400, 'OTP not verified');
+  if (isVerified !== 'VERIFIED') {
+    throw new AppError(400, 'OTP not verified');
+  }
 
-  await adminService.resetPassword(matchedEmail, newPassword);
-  verifiedAdmins.delete(matchedEmail); // Clean up
+  // 🔄 Reset password
+  await adminService.resetPassword(email, newPassword);
+
+  // 🧹 Cleanup
+  verifiedAdmins.delete(email);
 
   sendResponse(res, {
     statusCode: 200,

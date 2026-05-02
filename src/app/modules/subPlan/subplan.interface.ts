@@ -16,6 +16,7 @@ export type TSubscriptionPlan = {
   stripePriceId: string;
   features: string[];
   isActive: boolean;
+  role: "ORGANIZER" | "MARCHANT" | "KAATEDJ";
 };
 
 // ─── Model Type ──────────────────────────────────────────────────────────────
