@@ -595,8 +595,13 @@ const getHomeEvents = catchAsync(async (req, res) => {
 // event.controller.ts
 const getEventReviews = catchAsync(async (req, res) => {
   const { eventId } = req.params;
+  const { page, limit } = req.query;
 
-  const result = await eventServices.getEventReviews(eventId as string);
+  const result = await eventServices.getEventReviews(
+    eventId as string,
+    page ? Number(page) : 1,
+    limit ? Number(limit) : 10
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -605,7 +610,6 @@ const getEventReviews = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
 
 export const eventcontroller = {
 createEvent,

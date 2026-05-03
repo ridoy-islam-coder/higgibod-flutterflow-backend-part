@@ -989,9 +989,8 @@ const getHomeEvents = async (
 };
 
 
-
 // event.service.ts
-const getEventReviews = async (eventId: string) => {
+const getEventReviews = async (eventId: string, page: number = 1, limit: number = 10) => {
   if (!mongoose.Types.ObjectId.isValid(eventId)) {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid event ID");
   }
@@ -1007,7 +1006,7 @@ const getEventReviews = async (eventId: string) => {
     throw new AppError(httpStatus.NOT_FOUND, "Event not found");
   }
 
-  const reviews = (event.reviews ?? []).map((review) => {
+  const allReviews = (event.reviews ?? []).map((review) => {
     const { _id, user, isAnonymous, rating, comment, images, createdAt, updatedAt } = review;
 
     return {
@@ -1022,9 +1021,22 @@ const getEventReviews = async (eventId: string) => {
     };
   });
 
+  // pagination
+  const totalReviews = allReviews.length;
+  const totalPages = Math.ceil(totalReviews / limit);
+  const skip = (page - 1) * limit;
+  const reviews = allReviews.slice(skip, skip + limit);
+
   return {
-    totalReviews: reviews.length,
+
     reviews,
+    meta: {
+      totalReviews,
+      totalPages,
+      currentPage: page,
+      limit,
+    },
+   
   };
 };
 
