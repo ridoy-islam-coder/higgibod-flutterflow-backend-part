@@ -7,6 +7,7 @@ import { Ticket } from "../Ticke/ticke.model";
 import { Review } from "../profilereview/profilereview.model";
 import { Follow } from "../Follow/follow.model";
 import httpStatus  from 'http-status';
+import mongoose from "mongoose";
 
 
 
@@ -986,7 +987,48 @@ const getHomeEvents = async (
     },
   };
 };
-  
+
+
+
+// event.service.ts
+const getEventReviews = async (eventId: string) => {
+  if (!mongoose.Types.ObjectId.isValid(eventId)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid event ID");
+  }
+
+  const event = await Event.findById(eventId)
+    .select("reviews")
+    .populate({
+      path: "reviews.user",
+      select: "name email profileImage",
+    });
+
+  if (!event) {
+    throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+  }
+
+  const reviews = (event.reviews ?? []).map((review) => {
+    const { _id, user, isAnonymous, rating, comment, images, createdAt, updatedAt } = review;
+
+    return {
+      _id,
+      rating,
+      comment,
+      images,
+      isAnonymous,
+      createdAt,
+      updatedAt,
+      user: isAnonymous ? null : user,
+    };
+  });
+
+  return {
+    totalReviews: reviews.length,
+    reviews,
+  };
+};
+
+
 export const eventServices = {
 createEventService,
 getAllEventsService,
@@ -1014,4 +1056,5 @@ addReviewService,
   getHighlightedEvents,
   getPinnedEvents,
   getHomeEvents,
+  getEventReviews,
 };

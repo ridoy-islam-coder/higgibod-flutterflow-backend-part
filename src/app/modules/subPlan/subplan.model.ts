@@ -15,7 +15,10 @@ const SubscriptionPlanSchema = new Schema<TSubscriptionPlan, SubscriptionPlanMod
       enum: ["ORGANIZER", "MARCHANT", "KAATEDJ"],
       required: true,
     },
-
+     bio: {
+      type: String,
+      default: "",
+    },
     description: {
       type: String,
       required: true,

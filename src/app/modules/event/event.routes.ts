@@ -106,9 +106,8 @@ router.get("/attendees/:id", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcon
 
 
 
-
-
-
+// event.route.ts
+router.get("/get-reviews/:eventId", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcontroller.getEventReviews);
 
 
 

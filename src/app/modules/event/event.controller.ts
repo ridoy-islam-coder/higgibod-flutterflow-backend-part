@@ -1,4 +1,5 @@
 
+import mongoose from "mongoose";
 import AppError from "../../error/AppError";
 import catchAsync from "../../utils/catchAsync";
 import { uploadManyToS3, uploadToS3 } from "../../utils/fileHelper";
@@ -591,6 +592,21 @@ const getHomeEvents = catchAsync(async (req, res) => {
 
 
 
+// event.controller.ts
+const getEventReviews = catchAsync(async (req, res) => {
+  const { eventId } = req.params;
+
+  const result = await eventServices.getEventReviews(eventId as string);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Reviews fetched successfully",
+    data: result,
+  });
+});
+
+
 export const eventcontroller = {
 createEvent,
 getAllEvents,
@@ -619,6 +635,7 @@ addReview,
   getHighlightedEvents,
   getPinnedEvents,
   getHomeEvents,
+  getEventReviews,
 
 
 };
