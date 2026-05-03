@@ -25,13 +25,18 @@ const reportEventReview = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// ── Admin — Get all reports ───────────────────────────────────────────────────
-// GET /api/v1/event-reviews/admin/reports?page=1&limit=10
+
+
 const getAllReports = catchAsync(async (req: Request, res: Response) => {
   const page = req.query.page ? Number(req.query.page) : 1;
   const limit = req.query.limit ? Number(req.query.limit) : 10;
+  const search = req.query.search as string; // ← add
 
-  const result = await EventReviewReportService.getAllEventReviewReports(page, limit);
+  const result = await EventReviewReportService.getAllEventReviewReports(
+    page,
+    limit,
+    search // ← add
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -40,6 +45,35 @@ const getAllReports = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
+
+
+// ── Controller ────────────────────────────────────────────────────────────────
+// GET /api/v1/event-reviews/admin/reports/by-event/:eventId
+const getReportsByEventId = catchAsync(async (req: Request, res: Response) => {
+  const { eventId } = req.params;
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : 10;
+
+  const result = await EventReviewReportService.getReportsByEventId(
+    eventId as string,
+    page,
+    limit
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Reports fetched successfully",
+    data: result,
+  });
+});
+
+
+
+
+
+
 
 // ── Admin — Delete review ─────────────────────────────────────────────────────
 // DELETE /api/v1/event-reviews/admin/reports/:reportId
@@ -72,4 +106,5 @@ export const EventReviewReportController = {
   getAllReports,
   deleteEventReview,
   dismissReport,
+  getReportsByEventId,
 };

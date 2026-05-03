@@ -3,6 +3,7 @@ import { Product } from "../product/product.model";
 
 import httpStatus from "http-status";
 import { ProductReviewReport } from "./Productreviewreport.model";
+import User from "../user/user.model";
 
 // ── 1. Report Product Review (Host/User) ──────────────────────────────────────
 const reportProductReview = async (
@@ -38,23 +39,89 @@ const reportProductReview = async (
   return report;
 };
 
-// ── 2. Get All Reports (Admin) ────────────────────────────────────────────────
-const getAllProductReviewReports = async (page: number = 1, limit: number = 10) => {
-  const skip = (page - 1) * limit;
-  const total = await ProductReviewReport.countDocuments({ status: "pending" });
 
-  const reports = await ProductReviewReport.find({ status: "pending" })
-    .populate("product", "name images")
+
+
+// ── Helper: review details with user ─────────────────────────────────────────
+const buildReviewWithUser = async (report: any, productDoc: any) => {
+  const review = productDoc?.reviews?.find(
+    (r: any) => r._id.toString() === report.review.toString()
+  );
+ 
+  let reviewUser = null;
+  if (review?.user) {
+    reviewUser = await User.findById(review.user).select("fullName email image");
+  }
+ 
+  return {
+    ...report,
+    review: review
+      ? {
+          _id: (review as any)._id,
+          rating: (review as any).rating,
+          comment: (review as any).comment,
+          images: (review as any).images,
+          createdAt: (review as any).createdAt,
+          updatedAt: (review as any).updatedAt,
+          user: reviewUser,
+        }
+      : null,
+  };
+};
+
+
+
+
+
+
+
+// ── 2. Get All Reports (Admin) with search ────────────────────────────────────
+const getAllProductReviewReports = async (
+  page: number = 1,
+  limit: number = 10,
+  search?: string
+) => {
+  const skip = (page - 1) * limit;
+ 
+  const filter: any = { status: "pending" };
+ 
+  if (search && search.trim() !== "") {
+    const products = await Product.find({
+      name: { $regex: search.trim(), $options: "i" },
+    }).select("_id");
+    const users = await User.find({
+      fullName: { $regex: search.trim(), $options: "i" },
+    }).select("_id");
+ 
+    filter.$or = [
+      { product: { $in: products.map((p) => p._id) } },
+      { reportedBy: { $in: users.map((u) => u._id) } },
+    ];
+  }
+ 
+  const total = await ProductReviewReport.countDocuments(filter);
+ 
+  const reports = await ProductReviewReport.find(filter)
+    .populate("product", "name images price")
     .populate("reportedBy", "fullName image email")
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limit);
-
+    .limit(limit)
+    .lean();
+ 
+  const reportsWithReview = await Promise.all(
+    reports.map(async (report: any) => {
+      const productDoc = await Product.findById(report.product._id).select("reviews");
+      return buildReviewWithUser(report, productDoc);
+    })
+  );
+ 
   return {
-    reports,
+    reports: reportsWithReview,
     pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 };
+
 
 // ── 3. Delete Review (Admin) ──────────────────────────────────────────────────
 const deleteProductReview = async (reportId: string) => {
@@ -83,9 +150,64 @@ const dismissProductReviewReport = async (reportId: string) => {
   return report;
 };
 
+
+
+
+
+
+
+
+
+
+// ── 3. Get Reports by Product ID ──────────────────────────────────────────────
+const getReportsByProductId = async (
+  productId: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const skip = (page - 1) * limit;
+  const total = await ProductReviewReport.countDocuments({
+    product: productId,
+    status: "pending",
+  });
+ 
+  const reports = await ProductReviewReport.find({
+    product: productId,
+    status: "pending",
+  })
+    .populate("product", "name images price")
+    .populate("reportedBy", "fullName image email")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+ 
+  const productDoc = await Product.findById(productId).select("reviews");
+ 
+  const reportsWithReview = await Promise.all(
+    reports.map((report: any) => buildReviewWithUser(report, productDoc))
+  );
+ 
+  return {
+    reports: reportsWithReview,
+    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
 export const ProductReviewReportService = {
   reportProductReview,
   getAllProductReviewReports,
   deleteProductReview,
   dismissProductReviewReport,
+  getReportsByProductId,
 };

@@ -3,6 +3,7 @@ import { Event } from "../event/event.model";
 
 import httpStatus from "http-status";
 import { EventReviewReport } from "./Eventreviewreport.model";
+import User from "../user/user.model";
 
 
 // ── 1. Report Event Review (Organizer) ───────────────────────────────────────
@@ -42,23 +43,164 @@ const reportEventReview = async (
   return report;
 };
 
-// ── 2. Get All Reports (Admin) ────────────────────────────────────────────────
-const getAllEventReviewReports = async (page: number = 1, limit: number = 10) => {
-  const skip = (page - 1) * limit;
-  const total = await EventReviewReport.countDocuments({ status: "pending" });
 
-  const reports = await EventReviewReport.find({ status: "pending" })
-    .populate("event", "title coverImage")
+
+const getAllEventReviewReports = async (
+  page: number = 1,
+  limit: number = 10,
+  search?: string  // ← add
+) => {
+  const skip = (page - 1) * limit;
+
+  // ── Search logic ──────────────────────────────────────────
+  let matchEventIds: any[] = [];
+  let matchUserIds: any[] = [];
+
+  if (search && search.trim() !== "") {
+    // Event title দিয়ে search
+    const events = await Event.find({
+      title: { $regex: search.trim(), $options: "i" },
+    }).select("_id");
+    matchEventIds = events.map((e) => e._id);
+
+    // reportedBy name দিয়ে search
+    const users = await User.find({
+      fullName: { $regex: search.trim(), $options: "i" },
+    }).select("_id");
+    matchUserIds = users.map((u) => u._id);
+  }
+
+  const filter: any = { status: "pending" };
+
+  if (search && search.trim() !== "") {
+    filter.$or = [
+      { event: { $in: matchEventIds } },
+      { reportedBy: { $in: matchUserIds } },
+    ];
+  }
+
+  const total = await EventReviewReport.countDocuments(filter);
+
+  const reports = await EventReviewReport.find(filter)
+    .populate("event", "title coverImage date location time price")
     .populate("reportedBy", "fullName image email")
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limit);
+    .limit(limit)
+    .lean();
+
+  const reportsWithReview = await Promise.all(
+    reports.map(async (report: any) => {
+      const eventDoc = await Event.findById(report.event._id).select("reviews");
+      const review = eventDoc?.reviews?.find(
+        (r: any) => r._id.toString() === report.review.toString()
+      );
+
+      let reviewUser = null;
+      if (review?.user) {
+        reviewUser = await User.findById(review.user).select("fullName email image");
+      }
+
+      return {
+        ...report,
+        review: review
+          ? {
+              _id: (review as any)._id,
+              rating: (review as any).rating,
+              comment: (review as any).comment,
+              isAnonymous: (review as any).isAnonymous,
+              images: (review as any).images,
+              createdAt: (review as any).createdAt,
+              updatedAt: (review as any).updatedAt,
+              user: reviewUser,
+            }
+          : null,
+      };
+    })
+  );
 
   return {
-    reports,
+    reports: reportsWithReview,
     pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 };
+
+
+
+
+
+// ── Get Reports by Event ID ───────────────────────────────────────────────────
+const getReportsByEventId = async (
+  eventId: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  const skip = (page - 1) * limit;
+  const total = await EventReviewReport.countDocuments({
+    event: eventId,
+    status: "pending",
+  });
+
+  const reports = await EventReviewReport.find({
+    event: eventId,
+    status: "pending",
+  })
+    .populate("event", "title coverImage date location time price")
+    .populate("reportedBy", "fullName image email")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  const reportsWithReview = await Promise.all(
+    reports.map(async (report: any) => {
+      const eventDoc = await Event.findById(report.event._id).select("reviews");
+      const review = eventDoc?.reviews?.find(
+        (r: any) => r._id.toString() === report.review.toString()
+      );
+
+      let reviewUser = null;
+      if (review?.user) {
+        reviewUser = await User.findById(review.user).select(
+          "fullName email image"
+        );
+      }
+
+      return {
+        ...report,
+        review: review
+          ? {
+              _id: (review as any)._id,
+              rating: (review as any).rating,
+              comment: (review as any).comment,
+              isAnonymous: (review as any).isAnonymous,
+              images: (review as any).images,
+              createdAt: (review as any).createdAt,
+              updatedAt: (review as any).updatedAt,
+              user: reviewUser,
+            }
+          : null,
+      };
+    })
+  );
+
+  return {
+    reports: reportsWithReview,
+    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
 
 // ── 3. Delete Review (Admin) ──────────────────────────────────────────────────
 const deleteEventReview = async (reportId: string) => {
@@ -94,4 +236,5 @@ export const EventReviewReportService = {
   getAllEventReviewReports,
   deleteEventReview,
   dismissEventReviewReport,
+  getReportsByEventId,
 };

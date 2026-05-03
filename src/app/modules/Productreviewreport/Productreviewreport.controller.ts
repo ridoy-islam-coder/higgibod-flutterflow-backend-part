@@ -25,13 +25,18 @@ const reportProductReview = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// GET /api/v1/product-reviews/admin/reports?page=1&limit=10
+// GET /api/v1/product-reviews/admin/reports?search=john&page=1&limit=10
 const getAllReports = catchAsync(async (req: Request, res: Response) => {
   const page = req.query.page ? Number(req.query.page) : 1;
   const limit = req.query.limit ? Number(req.query.limit) : 10;
-
-  const result = await ProductReviewReportService.getAllProductReviewReports(page, limit);
-
+  const search = req.query.search as string;
+ 
+  const result = await ProductReviewReportService.getAllProductReviewReports(
+    page,
+    limit,
+    search
+  );
+ 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -39,6 +44,7 @@ const getAllReports = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+
 
 // DELETE /api/v1/product-reviews/admin/reports/:reportId
 const deleteProductReview = catchAsync(async (req: Request, res: Response) => {
@@ -64,9 +70,43 @@ const dismissReport = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+
+
+
+
+
+ // GET /api/v1/product-reviews/admin/reports/by-product/:productId
+const getReportsByProductId = catchAsync(async (req: Request, res: Response) => {
+  const { productId } = req.params;
+  const page = req.query.page ? Number(req.query.page) : 1;
+  const limit = req.query.limit ? Number(req.query.limit) : 10;
+ 
+  const result = await ProductReviewReportService.getReportsByProductId(
+    productId as string,
+    page,
+    limit
+  );
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Reports fetched successfully",
+    data: result,
+  });
+});
+
+
+
+
+
+
+
+
 export const ProductReviewReportController = {
   reportProductReview,
   getAllReports,
   deleteProductReview,
   dismissReport,
+  getReportsByProductId,
 };

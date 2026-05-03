@@ -22,6 +22,19 @@ router.get(
   EventReviewReportController.getAllReports
 );
 
+
+
+// ── Route ─────────────────────────────────────────────────────────────────────
+// GET /api/v1/event-reviews/admin/reports/by-event/:eventId?page=1&limit=10
+router.get(
+  "/by-event/:eventId",
+  auth(USER_ROLE.admin),
+  EventReviewReportController.getReportsByEventId
+);
+
+
+
+
 // ── Admin — delete review ─────────────────────────────────────────────────────
 // DELETE /api/v1/event-reviews/admin/reports/:reportId
 router.delete(

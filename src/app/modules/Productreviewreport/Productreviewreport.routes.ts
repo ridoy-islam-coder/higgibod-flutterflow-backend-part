@@ -8,14 +8,14 @@ const router = express.Router();
 
 // POST /api/v1/product-reviews/:productId/:reviewId/report
 router.post(
-  "/report",
+  "/product-report",
   auth( USER_ROLE.MARCHANT),
   ProductReviewReportController.reportProductReview
 );
 
 // GET /api/v1/product-reviews/admin/reports
 router.get(
-  "/admin/reports",
+  "/admin/get-product-reports",
   auth(USER_ROLE.admin),
   ProductReviewReportController.getAllReports
 );
@@ -32,6 +32,13 @@ router.patch(
   "/admin/reports/:reportId/dismiss",
   auth(USER_ROLE.admin),
   ProductReviewReportController.dismissReport
+);
+
+// GET /api/v1/product-reviews/admin/reports/by-product/:productId
+router.get(
+  "/by-product/:productId",
+  auth(USER_ROLE.admin),
+  ProductReviewReportController.getReportsByProductId
 );
 
 export const ProductReviewReportRoutes = router;
