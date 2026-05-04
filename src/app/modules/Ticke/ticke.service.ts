@@ -208,56 +208,90 @@ const scanTicket = async (ticketNumber: string) => {
 
 //confrem hridoy 
 
-// // ── 1. Buy Ticket — quantity support সহ ──────────────────────────────────────
+
+
+
 // const buyTicket = async (
 //   userId: string,
 //   eventId: string,
 //   quantity: number = 1,
 //   ticketType: string = "General"
 // ) => {
-//   // ── Validation ──────────────────────────────────────────────
 //   if (quantity < 1 || quantity > 10) {
 //     throw new Error("Quantity must be between 1 and 10");
 //   }
- 
-//   // User info
+
 //   const user = await User.findById(userId);
 //   if (!user) throw new Error("User not found");
- 
-//   // Event info
+
 //   const event = await Event.findById(eventId);
 //   if (!event) throw new Error("Event not found");
 //   if (event.isPast) throw new Error("This event has already passed");
- 
+
 //   const pricePerTicket = event.price || 0;
-//   const totalAmount = pricePerTicket * quantity; // quantity দিয়ে total
- 
-//   // ── Ticket DB তে save (pending) ─────────────────────────────
-//   // quantity যতই হোক — একটাই ticket record, quantity field এ number থাকবে
+//   const totalAmount = pricePerTicket * quantity;
+
+//   // ✅ Free event হলে সরাসরি ticket দিয়ে দিন
+//   if (pricePerTicket === 0) {
+//     const ticket = await Ticket.create({
+//       user: userId,
+//       event: eventId,
+//       ticketNumber: generateTicketNumber(),
+//       attendeeName: user.fullName,
+//       attendeeEmail: user.email,
+//       ticketType,
+//       quantity,
+//       price: 0,
+//       totalAmount: 0,
+//       paymentStatus: "paid", // ✅ সরাসরি paid
+//     });
+
+//     // ✅ attendees এ add করুন
+//     await Event.findByIdAndUpdate(eventId, {
+//       $addToSet: { attendees: userId },
+//     });
+
+//     return {
+//       ticketId: ticket._id,
+//       ticketNumber: ticket.ticketNumber,
+//       quantity,
+//       pricePerTicket: 0,
+//       totalAmount: 0,
+//       checkoutUrl: null, // ✅ free তে checkout নেই
+//       isFree: true,
+//       event: {
+//         title: event.title,
+//         date: event.date,
+//         time: event.time,
+//         location: event.location,
+//       },
+//     };
+//   }
+
+//   // ✅ Paid event হলে Stripe এ যাবে
 //   const ticket = await Ticket.create({
 //     user: userId,
 //     event: eventId,
 //     ticketNumber: generateTicketNumber(),
-//     attendeeName: user.name,
+//     attendeeName: user.fullName,
 //     attendeeEmail: user.email,
 //     ticketType,
-//     quantity,          // ← 1, 2, 3... যা দিবে
+//     quantity,
 //     price: pricePerTicket,
-//     totalAmount,       // ← price × quantity
-//     paymentStatus: "paid",
+//     totalAmount,
+//     paymentStatus: "pending", // ✅ pending
 //   });
- 
-//   // ── Stripe Checkout Session ──────────────────────────────────
+
 //   const session = await stripe.checkout.sessions.create({
 //     payment_method_types: ["card"],
 //     mode: "payment",
 //     customer_email: user.email,
 //     line_items: [
 //       {
-//         quantity,        // ← Stripe এও quantity যাচ্ছে
+//         quantity,
 //         price_data: {
 //           currency: "usd",
-//           unit_amount: Math.round(pricePerTicket * 100), // cents (per ticket)
+//           unit_amount: Math.round(pricePerTicket * 100),
 //           product_data: {
 //             name: `${event.title} — ${ticketType} Ticket`,
 //             description: `Quantity: ${quantity} | Date: ${new Date(event.date).toDateString()}`,
@@ -271,23 +305,23 @@ const scanTicket = async (ticketNumber: string) => {
 //       eventId: eventId.toString(),
 //       quantity: quantity.toString(),
 //     },
-//     success_url: `${config.backend_url}/payment/success?ticketId=${ticket._id}`,
-//     cancel_url: `${config.backend_url}/payment/cancel?ticketId=${ticket._id}`,
+//    success_url: `${config.backend_url}/tickets/success?ticketId=${ticket._id}`,
+//     cancel_url: `${config.backend_url}/tickets/cancel?ticketId=${ticket._id}`,
 //   });
- 
-//   // ── Session ID ticket এ save ─────────────────────────────────
-//   // model এ stripePaymentIntentId আছে — ওটাতেই session id রাখো
+
 //   await Ticket.findByIdAndUpdate(ticket._id, {
-//     stripePaymentIntentId: session.id, // ← session id এখানে save
+//     stripePaymentIntentId: session.id,
 //   });
- 
+
 //   return {
 //     ticketId: ticket._id,
 //     ticketNumber: ticket.ticketNumber,
 //     quantity,
 //     pricePerTicket,
 //     totalAmount,
-//     checkoutUrl: session.url, // ← frontend এই URL এ redirect করবে
+//     checkoutUrl: session.url, // ✅ paid এ checkout url আসবে
+//     isFree: false,
+//     success_url: `${config.backend_url}/tickets/success?ticketId=${ticket._id}`,
 //     event: {
 //       title: event.title,
 //       date: event.date,
@@ -296,8 +330,6 @@ const scanTicket = async (ticketNumber: string) => {
 //     },
 //   };
 // };
-
-
 
 
 const buyTicket = async (
@@ -320,7 +352,7 @@ const buyTicket = async (
   const pricePerTicket = event.price || 0;
   const totalAmount = pricePerTicket * quantity;
 
-  // ✅ Free event হলে সরাসরি ticket দিয়ে দিন
+  // ✅ Free event
   if (pricePerTicket === 0) {
     const ticket = await Ticket.create({
       user: userId,
@@ -332,10 +364,9 @@ const buyTicket = async (
       quantity,
       price: 0,
       totalAmount: 0,
-      paymentStatus: "paid", // ✅ সরাসরি paid
+      paymentStatus: "paid",
     });
 
-    // ✅ attendees এ add করুন
     await Event.findByIdAndUpdate(eventId, {
       $addToSet: { attendees: userId },
     });
@@ -346,8 +377,9 @@ const buyTicket = async (
       quantity,
       pricePerTicket: 0,
       totalAmount: 0,
-      checkoutUrl: null, // ✅ free তে checkout নেই
       isFree: true,
+      checkoutUrl: null,
+      successUrl: `${config.backend_url}/tickets/success?ticketId=${ticket._id}`, // ✅ add
       event: {
         title: event.title,
         date: event.date,
@@ -357,7 +389,7 @@ const buyTicket = async (
     };
   }
 
-  // ✅ Paid event হলে Stripe এ যাবে
+  // ✅ Paid event
   const ticket = await Ticket.create({
     user: userId,
     event: eventId,
@@ -368,7 +400,7 @@ const buyTicket = async (
     quantity,
     price: pricePerTicket,
     totalAmount,
-    paymentStatus: "pending", // ✅ pending
+    paymentStatus: "pending",
   });
 
   const session = await stripe.checkout.sessions.create({
@@ -394,8 +426,8 @@ const buyTicket = async (
       eventId: eventId.toString(),
       quantity: quantity.toString(),
     },
-   success_url: `${config.backend_url}/payment/success?ticketId=${ticket._id}`,
-    cancel_url: `${config.backend_url}/payment/cancel?ticketId=${ticket._id}`,
+    success_url: `${config.backend_url}/tickets/success?ticketId=${ticket._id}`,
+    cancel_url: `${config.backend_url}/tickets/cancel?ticketId=${ticket._id}`,
   });
 
   await Ticket.findByIdAndUpdate(ticket._id, {
@@ -408,8 +440,9 @@ const buyTicket = async (
     quantity,
     pricePerTicket,
     totalAmount,
-    checkoutUrl: session.url, // ✅ paid এ checkout url আসবে
     isFree: false,
+    checkoutUrl: session.url,
+    successUrl: null,
     event: {
       title: event.title,
       date: event.date,
@@ -418,9 +451,6 @@ const buyTicket = async (
     },
   };
 };
-
-
-
 
 
 
@@ -666,7 +696,7 @@ const getEarningByEvent = async (userId: string, eventId: string) => {
 
 
 // ── External image → base64 (timeout fix) ────────────────────────────────────
-const imageUrlToBase64 = async (url: string): Promise<string> => {
+ export const imageUrlToBase64 = async (url: string): Promise<string> => {
   try {
     const response = await fetch(url);
     const buffer = await response.arrayBuffer();
@@ -827,7 +857,7 @@ const imageUrlToBase64 = async (url: string): Promise<string> => {
 //   }
 // };
  
-const getPlaceName = async (lat: number, lng: number): Promise<string> => {
+ export const getPlaceName = async (lat: number, lng: number): Promise<string> => {
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=en`;  // ✅ accept-language=en add করুন
     const res = await fetch(url, {

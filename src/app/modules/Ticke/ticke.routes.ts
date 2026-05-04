@@ -95,5 +95,8 @@ router.get(
 
 
 
+
+router.get("/success", ticketController.paymentSuccess);
+router.get("/cancel", ticketController.paymentCancel);
  
 export const ticketRoutes = router;
