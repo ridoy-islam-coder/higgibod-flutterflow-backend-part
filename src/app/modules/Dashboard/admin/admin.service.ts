@@ -87,8 +87,12 @@ const resetPassword = async (email: string, newPassword: string) => {
 
 //admin dasbord api 
 
-
 // ── Admin Dashboard ────────────────────────────────────────────────────────────
+const MONTH_NAMES = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+];
+
 const getAdminDashboard = async (
   year?: number,
   analyticsType: string = "tickets",
@@ -97,37 +101,36 @@ const getAdminDashboard = async (
 ) => {
   const targetYear = year || new Date().getFullYear();
   const skip = (page - 1) * limit;
- 
+
   // ── Active Users count ────────────────────────────────────
   const activeUsers = await User.countDocuments({
     isDeleted: false,
     isActive: true,
   });
- 
+
   // ── Ongoing Events count ──────────────────────────────────
   const ongoingEvents = await Event.countDocuments({
     isPast: false,
     isDeleted: false,
   });
- 
+
   // ── Total Earning (tickets + orders) ─────────────────────
   const ticketEarning = await Ticket.aggregate([
     { $match: { paymentStatus: "paid", isDeleted: false } },
     { $group: { _id: null, total: { $sum: "$totalAmount" } } },
   ]);
- 
+
   const orderEarning = await Order.aggregate([
     { $match: { paymentStatus: "paid", isDeleted: false } },
     { $group: { _id: null, total: { $sum: "$total" } } },
   ]);
- 
+
   const totalEarning =
     (ticketEarning[0]?.total || 0) + (orderEarning[0]?.total || 0);
- 
+
   // ── Platform Analytics (monthly) ──────────────────────────
-  // analyticsType: "tickets" or "orders"
   let monthlyAnalytics;
- 
+
   if (analyticsType === "tickets") {
     const raw = await Ticket.aggregate([
       {
@@ -142,17 +145,22 @@ const getAdminDashboard = async (
       },
       {
         $group: {
-          _id: { $dayOfMonth: "$createdAt" },
+          _id: { $month: "$createdAt" },  // ✅ fixed
           count: { $sum: "$quantity" },
         },
       },
       { $sort: { _id: 1 } },
     ]);
- 
-    monthlyAnalytics = Array.from({ length: 30 }, (_, i) => {
+
+    monthlyAnalytics = Array.from({ length: 12 }, (_, i) => {
       const found = raw.find((r) => r._id === i + 1);
-      return { day: i + 1, count: found?.count || 0 };
+      return {
+        month: i + 1,
+        name: MONTH_NAMES[i],  // ✅ month name added
+        count: found?.count || 0,
+      };
     });
+
   } else {
     const raw = await Order.aggregate([
       {
@@ -167,36 +175,40 @@ const getAdminDashboard = async (
       },
       {
         $group: {
-          _id: { $dayOfMonth: "$createdAt" },
+          _id: { $month: "$createdAt" },  // ✅ fixed
           count: { $sum: 1 },
         },
       },
       { $sort: { _id: 1 } },
     ]);
- 
-    monthlyAnalytics = Array.from({ length: 30 }, (_, i) => {
+
+    monthlyAnalytics = Array.from({ length: 12 }, (_, i) => {
       const found = raw.find((r) => r._id === i + 1);
-      return { day: i + 1, count: found?.count || 0 };
+      return {
+        month: i + 1,
+        name: MONTH_NAMES[i],  // ✅ month name added
+        count: found?.count || 0,
+      };
     });
   }
- 
+
   // ── Event List (latest) ───────────────────────────────────
   const eventList = await Event.find({ isDeleted: false })
     .populate("host", "fullName image")
     .populate("category", "name")
     .sort({ createdAt: -1 })
-    .limit(4)
+    .limit(6)
     .select("title date coverImage location");
- 
+
   // ── New Users (latest with pagination) ───────────────────
   const totalUsers = await User.countDocuments({ isDeleted: false });
- 
+
   const newUsers = await User.find({ isDeleted: false })
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
     .select("fullName image email role isActive isVerified createdAt");
- 
+
   return {
     stats: {
       activeUsers,
