@@ -116,7 +116,7 @@ const userRegistration = catchAsync(async (req: Request, res: Response) => {
 
 const login = catchAsync(async (req: Request, res: Response) => {
   const { email, password } = req.body;
-  const user = await User.findOne({ email }).select('+password');
+  const user = await User.findOne({ email, isActive: true }).select('+password');
 
   if (!user || !user?.password) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');

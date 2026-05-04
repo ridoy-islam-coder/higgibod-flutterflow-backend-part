@@ -256,7 +256,7 @@ const getMarchantProfile = catchAsync(async (req: Request, res: Response) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Marchant profile fetched successfully",
+    message: " profile fetched successfully",
     data: result,
   });
 });
