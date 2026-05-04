@@ -25,10 +25,34 @@ app.use(cookieParser());
 //   }),
 // );
 
-app.use(cors({
-  origin: [config.frontend_url as string, config.backend_url as string], // React dev URLs
-  credentials: true,
-}));
+// app.use(cors({
+//   origin: [config.frontend_url as string, config.backend_url as string], // React dev URLs
+//   credentials: true,
+// }));
+
+
+
+
+
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "ngrok-skip-browser-warning"],
+    credentials: false, // ✅ origin "*" হলে credentials false রাখুন
+  })
+);
+
+
+
+
+
+
+
+
+
+
+
 // application routes
 app.use('/api/v1', router);
 app.get('/', (req: Request, res: Response) => {

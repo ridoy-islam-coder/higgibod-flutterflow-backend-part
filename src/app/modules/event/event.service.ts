@@ -8,6 +8,7 @@ import { Review } from "../profilereview/profilereview.model";
 import { Follow } from "../Follow/follow.model";
 import httpStatus  from 'http-status';
 import mongoose from "mongoose";
+import { Product } from "../product/product.model";
 
 
 
@@ -989,37 +990,118 @@ const getHomeEvents = async (
 };
 
 
-// event.service.ts
-const getEventReviews = async (eventId: string, page: number = 1, limit: number = 10) => {
-  if (!mongoose.Types.ObjectId.isValid(eventId)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid event ID");
+// // event.service.ts
+// const getEventReviews = async (eventId: string, page: number = 1, limit: number = 10) => {
+//   if (!mongoose.Types.ObjectId.isValid(eventId)) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "Invalid event ID");
+//   }
+
+//   const event = await Event.findById(eventId)
+//     .select("reviews")
+//     .populate({
+//       path: "reviews.user",
+//       select: "name email profileImage",
+//     });
+
+//   if (!event) {
+//     throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+//   }
+
+//   const allReviews = (event.reviews ?? []).map((review) => {
+//     const { _id, user, isAnonymous, rating, comment, images, createdAt, updatedAt } = review;
+
+//     return {
+//       _id,
+//       rating,
+//       comment,
+//       images,
+//       isAnonymous,
+//       createdAt,
+//       updatedAt,
+//       user: isAnonymous ? null : user,
+//     };
+//   });
+
+//   // pagination
+//   const totalReviews = allReviews.length;
+//   const totalPages = Math.ceil(totalReviews / limit);
+//   const skip = (page - 1) * limit;
+//   const reviews = allReviews.slice(skip, skip + limit);
+
+//   return {
+
+//     reviews,
+//     meta: {
+//       totalReviews,
+//       totalPages,
+//       currentPage: page,
+//       limit,
+//     },
+   
+//   };
+// };
+
+
+
+
+
+
+
+const getEventReviews = async (
+  id: string,
+  type: string,
+  page: number = 1,
+  limit: number = 10
+) => {
+  if (!mongoose.Types.ObjectId.isValid(id)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid ID");
   }
 
-  const event = await Event.findById(eventId)
-    .select("reviews")
-    .populate({
-      path: "reviews.user",
-      select: "name email profileImage",
-    });
+  let allReviews: any[] = [];
 
-  if (!event) {
-    throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+  if (type === "product") {
+    const product = await Product.findById(id)
+      .select("reviews")
+      .populate({
+        path: "reviews.user",
+        select: "fullName email image",
+      });
+
+    if (!product) {
+      throw new AppError(httpStatus.NOT_FOUND, "Product not found");
+    }
+
+  allReviews = (product.reviews ?? []).map((review: any) => ({  // ✅ any দিন
+  _id: review._id,
+  rating: review.rating,
+  comment: review.comment,
+  createdAt: review.createdAt,
+  updatedAt: review.updatedAt,
+  user: review.user,
+}));
+  } else if (type === "event") {
+    const event = await Event.findById(id)
+      .select("reviews")
+      .populate({
+        path: "reviews.user",
+        select: "fullName email image",
+      });
+
+    if (!event) {
+      throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+    }
+
+    allReviews = (event.reviews ?? []).map((review) => ({
+      _id: review._id,
+      rating: review.rating,
+      comment: review.comment,
+      images: review.images,
+      isAnonymous: review.isAnonymous,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+      user: review.isAnonymous ? null : review.user,
+    }));
   }
-
-  const allReviews = (event.reviews ?? []).map((review) => {
-    const { _id, user, isAnonymous, rating, comment, images, createdAt, updatedAt } = review;
-
-    return {
-      _id,
-      rating,
-      comment,
-      images,
-      isAnonymous,
-      createdAt,
-      updatedAt,
-      user: isAnonymous ? null : user,
-    };
-  });
 
   // pagination
   const totalReviews = allReviews.length;
@@ -1028,7 +1110,7 @@ const getEventReviews = async (eventId: string, page: number = 1, limit: number 
   const reviews = allReviews.slice(skip, skip + limit);
 
   return {
-
+    type,
     reviews,
     meta: {
       totalReviews,
@@ -1036,9 +1118,12 @@ const getEventReviews = async (eventId: string, page: number = 1, limit: number 
       currentPage: page,
       limit,
     },
-   
   };
 };
+
+
+
+
 
 
 export const eventServices = {
