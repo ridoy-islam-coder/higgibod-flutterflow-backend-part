@@ -7,6 +7,8 @@ import User from '../../user/user.model';
 import { Event } from '../../event/event.model';
 import { Order } from '../../userOrder/userOrder.model';
 import { Ticket } from '../../Ticke/ticke.model';
+import { updatePastEvents } from '../../../utils/updatePastEvents';
+import { ro } from 'date-fns/locale/ro';
 
 const updateAdminProfile = async (id: string, payload: Record<string, any>) => {
   const allowedFields = ['fullName', 'phoneNumber', 'image'];
@@ -99,6 +101,8 @@ const getAdminDashboard = async (
   page: number = 1,
   limit: number = 10
 ) => {
+
+  await updatePastEvents(); // ✅ query এর আগে update করুন
   const targetYear = year || new Date().getFullYear();
   const skip = (page - 1) * limit;
 
@@ -193,12 +197,20 @@ const getAdminDashboard = async (
   }
 
   // ── Event List (latest) ───────────────────────────────────
-  const eventList = await Event.find({ isDeleted: false })
-    .populate("host", "fullName image")
-    .populate("category", "name")
-    .sort({ createdAt: -1 })
-    .limit(6)
-    .select("title date coverImage location");
+const now = new Date();
+
+const eventList = await Event.find({ 
+  isDeleted: false, 
+  isPast: false,
+  date: { $gte: now }  // ✅ শুধু future events
+})
+  .populate("host", "fullName image")
+  .populate("category", "name")
+  .sort({ date: 1 })  // ✅ date ascending — সবচেয়ে কাছের date আগে
+  .limit(5)
+  .select("title date coverImage location");
+
+
 
   // ── New Users (latest with pagination) ───────────────────
   const totalUsers = await User.countDocuments({ isDeleted: false });
@@ -244,7 +256,7 @@ const getAllUsers = async (
 ) => {
   const skip = (page - 1) * limit;
  
-  const filter: any = { isDeleted: false, role: "USER" };
+  const filter: any = { isDeleted: false, role:  "USER"};
  
   if (search && search.trim() !== "") {
     filter.$or = [

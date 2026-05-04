@@ -9,6 +9,7 @@ import { Follow } from "../Follow/follow.model";
 import httpStatus  from 'http-status';
 import mongoose from "mongoose";
 import { Product } from "../product/product.model";
+import { updatePastEvents } from "../../utils/updatePastEvents";
 
 
 
@@ -73,6 +74,7 @@ export const createEventService = async (
 
 
 export const getAllEventsService = async (query: any) => {
+  await updatePastEvents(); // ✅ query এর আগে update করুন
   const page = Number(query.page) || 1;
   const limit = Number(query.limit) || 10;
 
@@ -140,6 +142,7 @@ export const getEventDetailsService = async (
   id: string,
   currentUserId?: string
 ) => {
+    await updatePastEvents(); // ✅ event details এর আগে update করুন
   const event = await Event.findById(id)
     .populate("host", "fullName image email")
     .populate("attendees", "fullName image email")

@@ -33,7 +33,7 @@ router.get('/dashboard', auth('admin'), adminControllers.getAdminDashboard);
 
 
 // GET  /api/v1/admin/users?search=john&page=1&limit=10
-router.get("/users", auth('admin'), adminControllers.getAllUsers);
+router.get("/allusers",auth('admin'), adminControllers.getAllUsers);
  
 // GET  /api/v1/admin/users/:userId
 router.get("/users/:userId", auth('admin'), adminControllers.getSingleUser);
