@@ -10,6 +10,8 @@ import httpStatus  from 'http-status';
 import mongoose from "mongoose";
 import { Product } from "../product/product.model";
 import { updatePastEvents } from "../../utils/updatePastEvents";
+import { isPast } from "date-fns/isPast";
+import User from "../user/user.model";
 
 
 
@@ -356,7 +358,7 @@ const searchEvents = async (query: {
     limit = 10,
   } = query;
  
-  const filter: Record<string, any> = { isDeleted: { $ne: true } };
+  const filter: Record<string, any> = { isDeleted: { $ne: true },isPast: false };
  
   // Keyword search (title + description)
   if (q) {
@@ -1050,6 +1052,80 @@ const getHomeEvents = async (
 
 
 
+// const getEventReviews = async (
+//   id: string,
+//   type: string,
+//   page: number = 1,
+//   limit: number = 10
+// ) => {
+//   if (!mongoose.Types.ObjectId.isValid(id)) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "Invalid ID");
+//   }
+
+//   let allReviews: any[] = [];
+
+//   if (type === "product") {
+//     const product = await Product.findById(id)
+//       .select("reviews")
+//       .populate({
+//         path: "reviews.user",
+//         select: "fullName email image",
+//       });
+
+//     if (!product) {
+//       throw new AppError(httpStatus.NOT_FOUND, "Product not found");
+//     }
+
+//   allReviews = (product.reviews ?? []).map((review: any) => ({  // ✅ any দিন
+//   _id: review._id,
+//   rating: review.rating,
+//   comment: review.comment,
+//   createdAt: review.createdAt,
+//   updatedAt: review.updatedAt,
+//   user: review.user,
+// }));
+//   } else if (type === "event") {
+//     const event = await Event.findById(id)
+//       .select("reviews")
+//       .populate({
+//         path: "reviews.user",
+//         select: "fullName email image",
+//       });
+
+//     if (!event) {
+//       throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+//     }
+
+//     allReviews = (event.reviews ?? []).map((review) => ({
+//       _id: review._id,
+//       rating: review.rating,
+//       comment: review.comment,
+//       images: review.images,
+//       isAnonymous: review.isAnonymous,
+//       createdAt: review.createdAt,
+//       updatedAt: review.updatedAt,
+//       user: review.isAnonymous ? null : review.user,
+//     }));
+//   }
+
+//   // pagination
+//   const totalReviews = allReviews.length;
+//   const totalPages = Math.ceil(totalReviews / limit);
+//   const skip = (page - 1) * limit;
+//   const reviews = allReviews.slice(skip, skip + limit);
+
+//   return {
+//     type,
+//     reviews,
+//     meta: {
+//       totalReviews,
+//       totalPages,
+//       currentPage: page,
+//       limit,
+//     },
+//   };
+// };
+
 const getEventReviews = async (
   id: string,
   type: string,
@@ -1074,14 +1150,15 @@ const getEventReviews = async (
       throw new AppError(httpStatus.NOT_FOUND, "Product not found");
     }
 
-  allReviews = (product.reviews ?? []).map((review: any) => ({  // ✅ any দিন
-  _id: review._id,
-  rating: review.rating,
-  comment: review.comment,
-  createdAt: review.createdAt,
-  updatedAt: review.updatedAt,
-  user: review.user,
-}));
+    allReviews = (product.reviews ?? []).map((review: any) => ({
+      _id: review._id,
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+      user: review.user,
+    }));
+
   } else if (type === "event") {
     const event = await Event.findById(id)
       .select("reviews")
@@ -1094,7 +1171,7 @@ const getEventReviews = async (
       throw new AppError(httpStatus.NOT_FOUND, "Event not found");
     }
 
-    allReviews = (event.reviews ?? []).map((review) => ({
+    allReviews = (event.reviews ?? []).map((review: any) => ({
       _id: review._id,
       rating: review.rating,
       comment: review.comment,
@@ -1104,9 +1181,29 @@ const getEventReviews = async (
       updatedAt: review.updatedAt,
       user: review.isAnonymous ? null : review.user,
     }));
+
+  } else if (type === "user") {
+    const user = await User.findById(id)
+      .select("reviews")
+      .populate({
+        path: "reviews.reviewedBy",
+        select: "fullName email image",
+      });
+
+    if (!user) {
+      throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    }
+
+    allReviews = (user.reviews ?? []).map((review: any) => ({
+      _id: review._id,
+      rating: review.rating,
+      comment: review.comment,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+      reviewedBy: review.reviewedBy,
+    }));
   }
 
-  // pagination
   const totalReviews = allReviews.length;
   const totalPages = Math.ceil(totalReviews / limit);
   const skip = (page - 1) * limit;
@@ -1123,8 +1220,6 @@ const getEventReviews = async (
     },
   };
 };
-
-
 
 
 

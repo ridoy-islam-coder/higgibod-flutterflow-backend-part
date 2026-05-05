@@ -303,7 +303,7 @@ export const register = async (payload: any) => {
 
     // 🔥 social fields
     shopName,
-    shopLink,
+    shoptype,
     facebook,
     instagram,
     linkedin,
@@ -311,7 +311,7 @@ export const register = async (payload: any) => {
     youtube,
     tiktok,
     website,
-
+    shoplink,
     file, // 👈 image
   } = payload;
 
@@ -373,14 +373,14 @@ export const register = async (payload: any) => {
 
   // ✅ Create Social Links (if any data exists)
   const hasSocialData =
-    shopName || shopLink || facebook || instagram ||
-    linkedin || twitter || youtube || tiktok || website;
+    shopName || shoptype || facebook || instagram ||
+    linkedin || twitter || youtube || tiktok || website || shoplink;
 
   if (hasSocialData) {
     await SocialLink.create({
       user: user._id,
       shopName: shopName || '',
-      shopLink: shopLink || '',
+      shoptype: shoptype || '',
       facebook: facebook || '',
       instagram: instagram || '',
       linkedin: linkedin || '',
@@ -388,6 +388,7 @@ export const register = async (payload: any) => {
       youtube: youtube || '',
       tiktok: tiktok || '',
       website: website || '',
+      shoplink: shoplink || '',
     });
   }
 
@@ -418,7 +419,124 @@ export const register = async (payload: any) => {
 };
 
 
+// export const register = async (payload: any) => {
+//   const {
+//     fullName,
+//     email,
+//     password,
+//     confirmPassword,
+//     role,
+//     country,
+//     phoneNumber,
+//     howDidYouHear,
+//     subscribeToEmails,
+//     termsAccepted,
+//     shopName,
+//     shoptype,
+//     facebook,
+//     instagram,
+//     linkedin,
+//     twitter,
+//     youtube,
+//     tiktok,
+//     website,
+//     shoplink,
+//     file,
+//   } = payload;
 
+//   // ✅ boolean convert — JSON.parse এ true/false ঠিকমতো আসে
+//   const isTermsAccepted = termsAccepted === true || termsAccepted === "true";
+//   const isSubscribed = subscribeToEmails === true || subscribeToEmails === "true";
+
+//   if (!isTermsAccepted) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "Accept terms first");
+//   }
+//   if (password !== confirmPassword) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "Password not match");
+//   }
+//   if (password.length < 6) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "Password too short");
+//   }
+
+//   const existingUser = await User.findOne({ email });
+//   if (existingUser) {
+//     throw new AppError(httpStatus.CONFLICT, "Email already exists");
+//   }
+
+//   if (phoneNumber) {
+//     const existingPhone = await User.findOne({ phoneNumber });
+//     if (existingPhone) {
+//       throw new AppError(httpStatus.CONFLICT, "Phone already exists");
+//     }
+//   }
+
+//   let uploadedImage;
+//   if (file) {
+//     uploadedImage = await uploadToS3(file, "user");
+//   }
+
+//   const user = await User.create({
+//     fullName,
+//     email,
+//     password,
+//     role,
+//     image: uploadedImage
+//       ? { id: uploadedImage.id, url: uploadedImage.url }
+//       : undefined,
+//     country: country || undefined,
+//     phoneNumber: phoneNumber || undefined,
+//     howDidYouHear: howDidYouHear || "",
+//     subscribeToEmails: isSubscribed,
+//     termsAccepted: isTermsAccepted,
+//     accountType: "emailvarifi",
+//     isVerified: false,
+//     isActive: true,
+//     needsPasswordChange: false,
+//   });
+
+//   const hasSocialData =
+//     shopName || shoptype || facebook || instagram ||
+//     linkedin || twitter || youtube || tiktok || website || shoplink;
+
+//   if (hasSocialData) {
+//     await SocialLink.create({
+//       user: user._id,
+//       shopName: shopName || "",
+//       shoptype: shoptype || "",
+//       facebook: facebook || "",
+//       instagram: instagram || "",
+//       linkedin: linkedin || "",
+//       twitter: twitter || "",
+//       youtube: youtube || "",
+//       tiktok: tiktok || "",
+//       website: website || "",
+//       shoplink: shoplink || "",
+//     });
+//   }
+
+//   const jwtPayload = {
+//     userId: user._id.toString(),
+//     role: user.role,
+//   };
+
+//   const accessToken = createToken(
+//     jwtPayload,
+//     config.jwt.jwt_access_secret as string,
+//     config.jwt.jwt_access_expires_in as string,
+//   );
+
+//   return {
+//     user: {
+//       _id: user._id,
+//       fullName: user.fullName,
+//       email: user.email,
+//       role: user.role,
+//       image: user.image,
+//       isVerified: user.isVerified,
+//     },
+//     accessToken,
+//   };
+// };
 
 
 

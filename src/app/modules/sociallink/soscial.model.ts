@@ -5,13 +5,14 @@ import { model, Schema, Types } from 'mongoose';
 export interface TSocialLink {
   user: Types.ObjectId;
   shopName?: string;
-  shopLink?: string;
+  shoptype?: string;
   facebook?: string;
   instagram?: string;
   linkedin?: string;
   twitter?: string;
   youtube?: string;
   tiktok?: string;
+  shoplink?: string;
   website?: string;
   createdAt?: Date;
   updatedAt?: Date;
@@ -29,10 +30,15 @@ const SocialLinkSchema = new Schema<TSocialLink>(
       type: String,
       default: '',
     },
-    shopLink: {
+    shoptype: {
       type: String,
       default: '',
     },
+     shoplink: {
+      type: String,
+      default: '',
+    },
+
     facebook: {
       type: String,
       default: '',

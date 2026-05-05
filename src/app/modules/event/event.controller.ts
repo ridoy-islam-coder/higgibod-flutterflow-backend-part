@@ -618,12 +618,38 @@ const getHomeEvents = catchAsync(async (req, res) => {
 
 
 
+// const getEventReviews = catchAsync(async (req, res) => {
+//   const { id } = req.params;
+//   const { type, page, limit } = req.query;
+
+//   if (!type || !["product", "event"].includes(type as string)) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "type must be 'product' or 'event'");
+//   }
+
+//   const result = await eventServices.getEventReviews(
+//     id as string,
+//     type as string,
+//     page ? Number(page) : 1,
+//     limit ? Number(limit) : 10
+//   );
+
+//   sendResponse(res, {
+//     statusCode: httpStatus.OK,
+//     success: true,
+//     message: "Reviews fetched successfully",
+//     data: result,
+//   });
+// });
+
 const getEventReviews = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { type, page, limit } = req.query;
 
-  if (!type || !["product", "event"].includes(type as string)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "type must be 'product' or 'event'");
+  if (!type || !["product", "event", "user"].includes(type as string)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "type must be 'product', 'event' or 'user'"
+    );
   }
 
   const result = await eventServices.getEventReviews(
@@ -640,8 +666,6 @@ const getEventReviews = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
-
 
 
 
@@ -675,7 +699,7 @@ addReview,
   getHighlightedEvents,
   getPinnedEvents,
   getHomeEvents,
-  getEventReviews,
+   getEventReviews,
 
 
 };

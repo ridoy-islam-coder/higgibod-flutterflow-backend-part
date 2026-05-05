@@ -281,7 +281,7 @@ const getUsersByRole = async (
   const filter: any = {
     role,
     isDeleted: false,
-    isActive: true,
+    
   };
  
   if (search && search.trim() !== "") {
@@ -298,7 +298,7 @@ const getUsersByRole = async (
     .skip(skip)
     .limit(limit)
     .select(
-      "fullName email image coverImage country phoneNumber role accountType isVerified createdAt"
+      "fullName email image  coverImage isActive country phoneNumber role accountType isVerified createdAt"
     );
  
   const usersWithStats = await Promise.all(

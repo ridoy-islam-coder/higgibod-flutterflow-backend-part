@@ -4,6 +4,7 @@ import catchAsync from "../../utils/catchAsync";
 import  httpStatus  from 'http-status';
 import sendResponse from "../../utils/sendResponse";
 import { sosalServices } from "./social.service";
+import AppError from "../../error/AppError";
 
 // Register + Merchant Profile একসাথে
 // const register = catchAsync(async (req: Request, res: Response) => {
@@ -78,7 +79,7 @@ export const register = catchAsync(async (req: Request, res: Response) => {
 
     // 🔥 social fields explicitly (optional but safe)
     shopName: req.body.shopName,
-    shopLink: req.body.shopLink,
+    shoptype: req.body.shoptype,
     facebook: req.body.facebook,
     instagram: req.body.instagram,
     linkedin: req.body.linkedin,
@@ -86,6 +87,7 @@ export const register = catchAsync(async (req: Request, res: Response) => {
     youtube: req.body.youtube,
     tiktok: req.body.tiktok,
     website: req.body.website,
+    shoplink: req.body.shoplink,
   });
 
   //  Response
@@ -98,6 +100,31 @@ export const register = catchAsync(async (req: Request, res: Response) => {
 });
 
 
+
+// export const register = catchAsync(async (req: Request, res: Response) => {
+//   if (!req.body.data) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "data field is required");
+//   }
+
+//   let body;
+//   try {
+//     body = JSON.parse(req.body.data);
+//   } catch (error) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "Invalid JSON in data field");
+//   }
+
+//   const result = await sosalServices.register({
+//     ...body,
+//     file: req.file,
+//   });
+
+//   sendResponse(res, {
+//     statusCode: httpStatus.CREATED,
+//     success: true,
+//     message: "Registration completed successfully.",
+//     data: result,
+//   });
+// });
 
 
 

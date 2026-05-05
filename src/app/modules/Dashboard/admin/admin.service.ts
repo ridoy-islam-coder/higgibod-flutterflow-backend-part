@@ -271,7 +271,7 @@ const getAllUsers = async (
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
-    .select("fullName email image role isActive isVerified createdAt");
+    .select("fullName country phoneNumber status accountType email image role isActive isVerified createdAt");
  
   return {
     users,
