@@ -13,6 +13,6 @@ router.get('/', auth(UserRole.admin), PromoCodeController.getAllPromoCodes);
 router.delete('/:id', auth(UserRole.admin), PromoCodeController.deletePromoCode);
 
 // ─── User ─────────────────────────────────────────────────────────────────────
-router.post('/validate', auth(UserRole.USER), PromoCodeController.validatePromoCode);
+router.post('/validate', auth(UserRole.USER,UserRole.MARCHANT,UserRole.ORGANIZER), PromoCodeController.validatePromoCode);
 
 export const PromoCodeRoutes = router;

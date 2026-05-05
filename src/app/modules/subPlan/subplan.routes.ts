@@ -16,4 +16,8 @@ router.post('/create-subplan', auth(UserRole.USER,UserRole.admin), SubscriptionP
 router.patch('/updatePlan/:id', auth(UserRole.USER,UserRole.admin), SubscriptionPlanController.updatePlan);
 router.delete('/deletePlan/:id', auth(UserRole.USER,UserRole.admin), SubscriptionPlanController.deletePlan);
  
+
+
+router.get("/subscription-plans/:role", SubscriptionPlanController.getSubscriptionPlansByRole);
+
 export const PlanRoutes = router;

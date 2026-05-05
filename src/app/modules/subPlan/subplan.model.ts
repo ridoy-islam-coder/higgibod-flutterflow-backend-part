@@ -8,7 +8,7 @@ const SubscriptionPlanSchema = new Schema<TSubscriptionPlan, SubscriptionPlanMod
       type: String,
       enum: ['starter', 'pro'],
       required: true,
-      unique: true,
+      
     },
    role: {
       type: String,
@@ -33,8 +33,8 @@ const SubscriptionPlanSchema = new Schema<TSubscriptionPlan, SubscriptionPlanMod
     },
     interval: {
       type: String,
-      enum: ['month', 'year'],
-      default: 'month',
+      enum: ['day', 'year'],
+      default: 'day',
     },
     trialDays: {
       type: Number,

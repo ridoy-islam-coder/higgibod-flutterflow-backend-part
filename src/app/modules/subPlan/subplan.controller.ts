@@ -60,6 +60,26 @@ const deletePlan = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+
+
+
+
+
+
+const getSubscriptionPlansByRole = catchAsync(async (req: Request, res: Response) => {
+  const { role } = req.params;
+
+  const result = await SubscriptionPlanService.getSubscriptionPlansByRole(role as string);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Subscription plans fetched successfully",
+    data: result,
+  });
+});
+
 // ─── Export ───────────────────────────────────────────────────────────────────
 export const SubscriptionPlanController = {
   createPlan,
@@ -67,4 +87,5 @@ export const SubscriptionPlanController = {
   getPlanById,
   updatePlan,
   deletePlan,
+  getSubscriptionPlansByRole,
 };

@@ -14,11 +14,11 @@ const stripe = new Stripe(config.stripe.stripe_secret_key as string, {
 });
 
 export const createPlan = async (payload: any) => {
-  const isExist = await SubscriptionPlan.findOne({ name: payload.name });
+  // const isExist = await SubscriptionPlan.findOne({ name: payload.name });
 
-  if (isExist) {
-    throw new Error(`${payload.name} already exists`);
-  }
+  // if (isExist) {
+  //   throw new Error(`${payload.name} already exists`);
+  // }
 
   // ─── 1. Create Stripe Product ───
   const product = await stripe.products.create({
@@ -85,6 +85,35 @@ const deletePlan = async (id: string) => {
   return result;
 };
 
+
+const getSubscriptionPlansByRole = async (role: string) => {
+  const validRoles = ["ORGANIZER", "MARCHANT", "KAATEDJ"];
+
+  if (!validRoles.includes(role)) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "role must be 'ORGANIZER', 'MARCHANT' or 'KAATEDJ'"
+    );
+  }
+
+  const plans = await SubscriptionPlan.find({
+    role,
+    isActive: true,
+  }).select("-stripePriceId"); // ✅ stripePriceId hide করুন
+
+  return plans;
+};
+
+
+
+
+
+
+
+
+
+
+
 // ─── Export ──────────────────────────────────────────────────────────────────
 export const SubscriptionPlanService = {
   createPlan,
@@ -92,4 +121,6 @@ export const SubscriptionPlanService = {
   getPlanById,
   updatePlan,
   deletePlan,
+  getSubscriptionPlansByRole,
+
 };

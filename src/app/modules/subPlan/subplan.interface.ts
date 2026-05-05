@@ -2,7 +2,7 @@ import { Model, Types } from 'mongoose';
 
 // ─── Plan Name Type ──────────────────────────────────────────────────────────
 export type TPlanName = 'starter' | 'pro';
-export type TInterval = 'month' | 'year';
+export type TInterval = 'day' | 'year';
 
 // ─── Subscription Plan Type ──────────────────────────────────────────────────
 export type TSubscriptionPlan = {
