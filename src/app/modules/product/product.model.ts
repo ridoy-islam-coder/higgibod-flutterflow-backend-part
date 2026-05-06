@@ -39,7 +39,11 @@ const productSchema = new Schema<IProduct>(
       default: 0,
       min: 0,
     },
-
+  material: { type: String, default: "" },
+discountedPrice: {
+  type: Number,
+  default: 0,
+},
     host: { type: Schema.Types.ObjectId, ref: "User", required: true },
     reviews: [reviewSchema],
     isDeleted: { type: Boolean, default: false },

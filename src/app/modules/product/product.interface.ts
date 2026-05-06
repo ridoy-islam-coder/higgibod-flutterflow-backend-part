@@ -29,6 +29,8 @@ export interface IProduct extends Document {
   reviews?: IReview[];
   isDeleted?: boolean;
   stock?: number;
+  material?: string;
+  discountedPrice?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }

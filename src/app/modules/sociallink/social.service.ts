@@ -267,9 +267,10 @@ const updateProfile = async (
 
 const getProfile = async (user: JwtPayload) => {
   const result = await User.findById(user.id)
+    .select('+coverImage')
     .populate({
       path: 'subscription.plan',
-      select: 'name price duration features',
+      select: 'name price duration features ',
     });
 
   if (!result) throw new Error('User not found');

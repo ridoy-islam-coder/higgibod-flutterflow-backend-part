@@ -58,6 +58,10 @@ export const createProductService = async (
     host: userId,
   });
 
+
+  
+
+
   return product;
 };
 

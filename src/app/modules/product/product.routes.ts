@@ -56,7 +56,7 @@ router.get("/monthly", auth(USER_ROLE.USER), productController.getMonthlyEarning
 // Screen 1 — Home: Total Sales, Monthly Earning, Order List
 router.get(
   "/dashboard",
-  auth(USER_ROLE.USER),
+  auth(USER_ROLE.USER,USER_ROLE.MARCHANT),
   productController.getProductDashboard
 );
  
@@ -64,7 +64,7 @@ router.get(
 // Screen 2 — Earning: Total Earning, Monthly Chart, Recent Transactions
 router.get(
   "/earning",
-  auth(USER_ROLE.USER),
+  auth(USER_ROLE.USER,USER_ROLE.MARCHANT),
   productController.getEarningOverview
 );
  
