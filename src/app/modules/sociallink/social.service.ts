@@ -300,7 +300,8 @@ export const register = async (payload: any) => {
     howDidYouHear,
     subscribeToEmails,
     termsAccepted,
-
+    longitude,
+    latitude,
     // 🔥 social fields
     shopName,
     shoptype,
@@ -346,6 +347,19 @@ export const register = async (payload: any) => {
   if (file) {
     uploadedImage = await uploadToS3(file, 'user');
   }
+  
+ // ✅ Geo location build
+  let geoLocation;
+
+  if (longitude && latitude) {
+    geoLocation = {
+      type: "Point",
+      coordinates: [
+        parseFloat(longitude),
+        parseFloat(latitude),
+      ],
+    };
+  }
 
   // ✅ Create User
   const user = await User.create({
@@ -359,7 +373,7 @@ export const register = async (payload: any) => {
           url: uploadedImage.url,
         }
       : undefined,
-
+    location: geoLocation,
     country: country || undefined,
     phoneNumber: phoneNumber || undefined,
     howDidYouHear: howDidYouHear || '',

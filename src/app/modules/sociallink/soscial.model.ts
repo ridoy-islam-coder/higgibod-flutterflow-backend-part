@@ -1,6 +1,7 @@
 import { model, Schema, Types } from 'mongoose';
 
 
+
 // ─── Interface ────────────────────────────────────────────────────────────────
 export interface TSocialLink {
   user: Types.ObjectId;
@@ -67,6 +68,8 @@ const SocialLinkSchema = new Schema<TSocialLink>(
       type: String,
       default: '',
     },
+    
+  
   },
   {
     timestamps: true,

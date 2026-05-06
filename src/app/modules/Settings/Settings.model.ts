@@ -14,9 +14,14 @@ const settingsSchema = new Schema<ISettings>(
       enum: ["privacy_policy", "terms_conditions", "about_us", "mission_statement"],
       required: true,
     },
+    // content: {
+    //   type: String,
+    //   default: "",
+    // },
+
     content: {
-      type: String,
-      default: "",
+     type: Schema.Types.Mixed,
+    required: true,
     },
     updatedBy: {
       type: Schema.Types.ObjectId,

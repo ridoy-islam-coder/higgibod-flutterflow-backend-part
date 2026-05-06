@@ -21,6 +21,7 @@ import { EventReviewReportRoutes } from '../modules/Eventreviewreport/Eventrevie
 import { ProductReviewReportRoutes } from '../modules/Productreviewreport/Productreviewreport.routes';
 import { FollowRoutes } from '../modules/Follow/follow.routes';
 import { NotificationRoutes } from '../modules/Dashboard/notifications/notifications.routes';
+import { SettingsRoutes } from '../modules/Settings/Settings.routes';
 // import { PromoCodeRoutes } from '../modules/PromoCode/promocode.routes';
 
 
@@ -123,7 +124,7 @@ const moduleRoutes = [
   },
   {
    path: '/Settings',
-    route: NotificationRoutes,
+    route: SettingsRoutes,
   } 
   
 

@@ -106,6 +106,7 @@ const getEventDetails = catchAsync(async (req, res) => {
 
 
 
+// ── Controller ──────────────────────────────────────────────────────────────
 export const updateEvent = catchAsync(async (req, res) => {
   let coverImage;
   let gallery: { id: string; url: string }[] = [];
@@ -113,6 +114,7 @@ export const updateEvent = catchAsync(async (req, res) => {
   if (req.files && (req.files as any).coverImage) {
     coverImage = await uploadToS3((req.files as any).coverImage[0], 'events/cover');
   }
+
   if (req.files && (req.files as any).gallery) {
     gallery = await uploadManyToS3(
       (req.files as any).gallery.map((file: any) => ({ file, path: 'events/gallery' }))
@@ -120,8 +122,15 @@ export const updateEvent = catchAsync(async (req, res) => {
   }
 
   const result = await eventServices.updateEventService(req, coverImage, gallery);
-  sendResponse(res, { statusCode: 200, success: true, message: "Event updated successfully", data: result });
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Event updated successfully',
+    data: result,
+  });
 });
+
 
 export const deleteEvent = catchAsync(async (req, res) => {
   const result = await eventServices.deleteEventService(req.params.id as string);

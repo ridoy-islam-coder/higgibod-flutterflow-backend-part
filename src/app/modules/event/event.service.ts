@@ -220,37 +220,59 @@ export const getEventDetailsService = async (
 
 
 
-// event.updateEvent
+// ── Service ──────────────────────────────────────────────────────────────────
 export const updateEventService = async (
   req: any,
   coverImage?: { id: string; url: string },
   gallery?: { id: string; url: string }[]
 ) => {
   const { id } = req.params;
+
   const {
     title,
     category,
     date,
     time,
-    location,
     description,
     price,
+    isFeatured,
+    isPinned,
+    isHighlighted,
+    isTopEvent,
+    longitude,
+    latitude,
   } = req.body;
 
+  // ✅ Geo location — নতুন coordinate আসলে update, না আসলে skip
+  let geoLocation;
+  if (longitude && latitude) {
+    geoLocation = {
+      type: 'Point',
+      coordinates: [parseFloat(longitude), parseFloat(latitude)],
+    };
+  }
+
   const updateData: any = {
-    ...(title && { title }),
-    ...(category && { category }),
-    ...(date && { date }),
-    ...(time && { time }),
-    ...(location && { location }),
-    ...(description && { description }),
-    ...(price && { price }),
+    ...(title !== undefined && { title }),
+    ...(category !== undefined && { category }),
+    ...(date !== undefined && { date }),
+    ...(time !== undefined && { time }),
+    ...(description !== undefined && { description }),
+    ...(price !== undefined && { price: Number(price) }),
+    ...(isFeatured !== undefined && { isFeatured: isFeatured === 'true' || isFeatured === true }),
+    ...(isPinned !== undefined && { isPinned: isPinned === 'true' || isPinned === true }),
+    ...(isHighlighted !== undefined && { isHighlighted: isHighlighted === 'true' || isHighlighted === true }),
+    ...(isTopEvent !== undefined && { isTopEvent: isTopEvent === 'true' || isTopEvent === true }),
+    ...(geoLocation && { location: geoLocation }),
     ...(coverImage && { coverImage }),
+    // ✅ নতুন gallery আসলে replace, না আসলে পুরনোটা থাকবে
     ...(gallery && gallery.length > 0 && { gallery }),
   };
 
-  const event = await Event.findByIdAndUpdate(id, updateData, { new: true });
-  if (!event) throw new AppError(404, "Event not found");
+  const event = await Event.findByIdAndUpdate(id, { $set: updateData }, { new: true });
+
+  if (!event) throw new AppError(404, 'Event not found');
+
   return event;
 };
 

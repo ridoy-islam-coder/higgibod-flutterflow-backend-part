@@ -172,8 +172,19 @@ const UserSchema = new Schema<TUser, UserModel>(
       type: VerificationSchema,
       required: false,
     },
+ 
 
-
+      location: {
+         type: {
+           type: String,
+          enum: ['Point'],
+        // default: 'Point'
+         },
+         coordinates: {
+          type: [Number],
+        
+        },
+      },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt fields

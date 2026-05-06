@@ -26,6 +26,12 @@ interface image {
   id: string | number;
   url: string;
 }
+
+export interface ILocation {
+  type: "Point";
+  coordinates: [longitude: number, latitude: number]; // [lng, lat]
+}
+
 export interface TUser {
   [x: string]: any;
   id?: string;
@@ -55,6 +61,7 @@ export interface TUser {
   howDidYouHear?: string;
   subscribeToEmails?: boolean;
   termsAccepted?: boolean;
+  location?: ILocation;
 }
 
 

@@ -74,7 +74,7 @@ const createCheckoutSession = async (
     });
 
     // ── User subscription update ──
-    await User.findByIdAndUpdate(userId, {
+   const user= await User.findByIdAndUpdate(userId, {
       subscription: {
         plan: new Types.ObjectId(planId),
         startsAt: now,
@@ -85,6 +85,9 @@ const createCheckoutSession = async (
       },
     });
 
+
+
+   
     return { url: null, message: 'Plan activated successfully with promo code', isFree: true };
   }
 

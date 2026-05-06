@@ -8,6 +8,9 @@ import { PaymentService } from './subpayment.service';
 
 import config from '../../config';
 import Stripe from 'stripe';
+import PaymentHistory from './subpayment.model';
+import User from '../user/user.model';
+import { Types } from 'mongoose';
  const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 
 // ─── Checkout Session Create ──────────────────────────────────────────────────
@@ -94,14 +97,62 @@ const cancelSubscription = catchAsync(async (req: Request, res: Response) => {
 
 
 
-
 const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
   const { session_id } = req.query;
 
   try {
-    const session = await stripe.checkout.sessions.retrieve(session_id as string);
+    const session = await stripe.checkout.sessions.retrieve(
+      session_id as string,
+      { expand: ['subscription'] },
+    );
 
     if (session.payment_status === 'paid') {
+      const { userId, planId, promoCodeId, trialDays } = session.metadata!;
+      const isTrial = Number(trialDays) > 0;
+// ✅ Best approach for v22
+const stripeSubscription = session.subscription as NonNullable<typeof session.subscription> & {
+  id: string;
+  start_date: number;
+  trial_end: number | null;
+  current_period_end: number;
+  items: { data: { current_period_end: number }[] };
+};
+      const startsAt = new Date(stripeSubscription.start_date * 1000);
+
+      const currentPeriodEnd =
+        (stripeSubscription as any).current_period_end ??
+        stripeSubscription.items?.data?.[0]?.current_period_end;
+      const expiresAt = new Date(currentPeriodEnd * 1000);
+
+      const trialEndsAt = stripeSubscription.trial_end
+        ? new Date(stripeSubscription.trial_end * 1000)
+        : null;
+
+      await PaymentHistory.findOneAndUpdate(
+        { stripeSessionId: session.id },
+        {
+          status: 'succeeded',
+          stripeSubscriptionId: stripeSubscription.id,
+          paidAt: new Date(),
+          amount: session.amount_total ?? 0,
+        },
+      );
+
+      await User.findByIdAndUpdate(userId, {
+        subscription: {
+          plan: new Types.ObjectId(planId),
+          stripeCustomerId: session.customer as string,
+          stripeSubscriptionId: stripeSubscription.id,
+          startsAt,
+          expiresAt,
+          trialEndsAt: trialEndsAt ?? undefined,
+          promoCodeUsed: promoCodeId
+            ? new Types.ObjectId(promoCodeId)
+            : undefined,
+          status: isTrial ? 'trialing' : 'active',
+        },
+      });
+
       return res.send(`
         <!DOCTYPE html>
         <html lang="en">
@@ -112,7 +163,6 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
           <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
-
             body {
               font-family: 'Inter', sans-serif;
               background: #0a0a0f;
@@ -123,15 +173,11 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
               overflow: hidden;
               position: relative;
             }
-
-            /* Ambient background blobs */
             body::before {
               content: '';
               position: fixed;
-              top: -200px;
-              left: -200px;
-              width: 600px;
-              height: 600px;
+              top: -200px; left: -200px;
+              width: 600px; height: 600px;
               background: radial-gradient(circle, rgba(124, 58, 237, 0.15) 0%, transparent 70%);
               border-radius: 50%;
               pointer-events: none;
@@ -139,26 +185,20 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
             body::after {
               content: '';
               position: fixed;
-              bottom: -200px;
-              right: -200px;
-              width: 600px;
-              height: 600px;
+              bottom: -200px; right: -200px;
+              width: 600px; height: 600px;
               background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
               border-radius: 50%;
               pointer-events: none;
             }
-
             .blob-mid {
               position: fixed;
-              top: 50%;
-              left: 50%;
+              top: 50%; left: 50%;
               transform: translate(-50%, -50%);
-              width: 800px;
-              height: 400px;
+              width: 800px; height: 400px;
               background: radial-gradient(ellipse, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
               pointer-events: none;
             }
-
             .card {
               position: relative;
               background: linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
@@ -176,31 +216,23 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
                 inset 0 1px 0 rgba(255,255,255,0.1);
               animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1);
             }
-
             @keyframes fadeUp {
               from { opacity: 0; transform: translateY(40px) scale(0.97); }
               to   { opacity: 1; transform: translateY(0) scale(1); }
             }
-
-            /* Top gradient line */
             .card::before {
               content: '';
               position: absolute;
-              top: 0;
-              left: 10%;
-              right: 10%;
+              top: 0; left: 10%; right: 10%;
               height: 1px;
               background: linear-gradient(90deg, transparent, rgba(124, 58, 237, 0.8), rgba(16, 185, 129, 0.8), transparent);
               border-radius: 50%;
             }
-
             .icon-wrap {
               position: relative;
-              width: 96px;
-              height: 96px;
+              width: 96px; height: 96px;
               margin: 0 auto 32px;
             }
-
             .icon-ring {
               position: absolute;
               inset: -8px;
@@ -209,7 +241,6 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
               animation: spin 4s linear infinite;
               opacity: 0.6;
             }
-
             .icon-ring::after {
               content: '';
               position: absolute;
@@ -217,11 +248,7 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
               background: #0a0a0f;
               border-radius: 50%;
             }
-
-            @keyframes spin {
-              to { transform: rotate(360deg); }
-            }
-
+            @keyframes spin { to { transform: rotate(360deg); } }
             .icon-inner {
               position: absolute;
               inset: 0;
@@ -232,17 +259,12 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
               justify-content: center;
               box-shadow: 0 0 40px rgba(124, 58, 237, 0.5);
             }
-
             .icon-inner svg {
-              width: 42px;
-              height: 42px;
-              stroke: white;
-              stroke-width: 2.5;
+              width: 42px; height: 42px;
+              stroke: white; stroke-width: 2.5;
               fill: none;
-              stroke-linecap: round;
-              stroke-linejoin: round;
+              stroke-linecap: round; stroke-linejoin: round;
             }
-
             .badge {
               display: inline-flex;
               align-items: center;
@@ -258,22 +280,18 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
               letter-spacing: 1.5px;
               text-transform: uppercase;
             }
-
             .badge::before {
               content: '';
-              width: 6px;
-              height: 6px;
+              width: 6px; height: 6px;
               background: #10b981;
               border-radius: 50%;
               box-shadow: 0 0 8px #10b981;
               animation: blink 1.5s ease infinite;
             }
-
             @keyframes blink {
               0%, 100% { opacity: 1; }
               50% { opacity: 0.3; }
             }
-
             h1 {
               font-size: 32px;
               font-weight: 800;
@@ -282,14 +300,12 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
               letter-spacing: -1px;
               line-height: 1.2;
             }
-
             h1 span {
               background: linear-gradient(135deg, #7c3aed, #10b981);
               -webkit-background-clip: text;
               -webkit-text-fill-color: transparent;
               background-clip: text;
             }
-
             p {
               font-size: 15px;
               color: rgba(255,255,255,0.45);
@@ -297,13 +313,11 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
               margin-bottom: 40px;
               font-weight: 400;
             }
-
             .divider {
               height: 1px;
               background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
               margin-bottom: 40px;
             }
-
             .btn {
               display: inline-flex;
               align-items: center;
@@ -321,51 +335,33 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
                 inset 0 1px 0 rgba(255,255,255,0.2);
               transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
             }
-
             .btn:hover {
               transform: translateY(-3px);
               box-shadow:
                 0 16px 40px rgba(124, 58, 237, 0.55),
                 inset 0 1px 0 rgba(255,255,255,0.2);
             }
-
             .btn svg {
-              width: 18px;
-              height: 18px;
-              stroke: white;
-              stroke-width: 2.5;
+              width: 18px; height: 18px;
+              stroke: white; stroke-width: 2.5;
               fill: none;
               transition: transform 0.25s;
             }
-
-            .btn:hover svg {
-              transform: translateX(3px);
-            }
-
+            .btn:hover svg { transform: translateX(3px); }
             .footer {
               margin-top: 36px;
               font-size: 12px;
               color: rgba(255,255,255,0.15);
               font-weight: 500;
             }
-
-            /* Floating particles */
-            .particles {
-              position: fixed;
-              inset: 0;
-              pointer-events: none;
-              overflow: hidden;
-            }
-
+            .particles { position: fixed; inset: 0; pointer-events: none; overflow: hidden; }
             .particle {
               position: absolute;
-              width: 2px;
-              height: 2px;
+              width: 2px; height: 2px;
               background: rgba(124, 58, 237, 0.6);
               border-radius: 50%;
               animation: float linear infinite;
             }
-
             @keyframes float {
               0%   { transform: translateY(100vh) translateX(0); opacity: 0; }
               10%  { opacity: 1; }
@@ -382,31 +378,22 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
             <div class="particle" style="left:70%; animation-duration:11s; animation-delay:1s; background:rgba(99,102,241,0.6);"></div>
             <div class="particle" style="left:85%; animation-duration:10s; animation-delay:3s; background:rgba(16,185,129,0.6);"></div>
           </div>
-
           <div class="blob-mid"></div>
-
           <div class="card">
             <div class="icon-wrap">
               <div class="icon-ring"></div>
               <div class="icon-inner">
-                <svg viewBox="0 0 24 24">
-                  <polyline points="20 6 9 17 4 12"/>
-                </svg>
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
               </div>
             </div>
-
             <div class="badge">Payment Confirmed</div>
-
             <h1>You're <span>Premium</span> Now!</h1>
             <p>Your subscription is active and ready.<br/>Unlock everything we have to offer.</p>
-
             <div class="divider"></div>
-
             <a href="${config.frontend_url}" class="btn">
               Go to Dashboard
               <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
             </a>
-
             <div class="footer">© ${new Date().getFullYear()} Higgibod · All rights reserved</div>
           </div>
         </body>
@@ -414,7 +401,7 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
       `);
     }
 
-    // ── Payment Failed ──────────────────────────────────────────────────────────
+    // ── Payment Failed ──
     return res.send(`
       <!DOCTYPE html>
       <html lang="en">
@@ -425,7 +412,6 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-
           body {
             font-family: 'Inter', sans-serif;
             background: #0a0a0f;
@@ -436,7 +422,6 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
             overflow: hidden;
             position: relative;
           }
-
           body::before {
             content: '';
             position: fixed;
@@ -446,7 +431,6 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
             border-radius: 50%;
             pointer-events: none;
           }
-
           body::after {
             content: '';
             position: fixed;
@@ -456,7 +440,6 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
             border-radius: 50%;
             pointer-events: none;
           }
-
           .card {
             position: relative;
             background: linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
@@ -473,12 +456,10 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
               inset 0 1px 0 rgba(255,255,255,0.08);
             animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1);
           }
-
           @keyframes fadeUp {
             from { opacity: 0; transform: translateY(40px) scale(0.97); }
             to   { opacity: 1; transform: translateY(0) scale(1); }
           }
-
           .card::before {
             content: '';
             position: absolute;
@@ -486,13 +467,11 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
             height: 1px;
             background: linear-gradient(90deg, transparent, rgba(239, 68, 68, 0.8), transparent);
           }
-
           .icon-wrap {
             position: relative;
             width: 96px; height: 96px;
             margin: 0 auto 32px;
           }
-
           .icon-ring {
             position: absolute;
             inset: -8px;
@@ -501,7 +480,6 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
             animation: spin 4s linear infinite;
             opacity: 0.5;
           }
-
           .icon-ring::after {
             content: '';
             position: absolute;
@@ -509,9 +487,7 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
             background: #0a0a0f;
             border-radius: 50%;
           }
-
           @keyframes spin { to { transform: rotate(360deg); } }
-
           .icon-inner {
             position: absolute;
             inset: 0;
@@ -522,14 +498,11 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
             justify-content: center;
             box-shadow: 0 0 40px rgba(239, 68, 68, 0.4);
           }
-
           .icon-inner svg {
             width: 42px; height: 42px;
             stroke: white; stroke-width: 2.5;
-            fill: none;
-            stroke-linecap: round;
+            fill: none; stroke-linecap: round;
           }
-
           .badge {
             display: inline-flex;
             align-items: center;
@@ -545,7 +518,6 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
             letter-spacing: 1.5px;
             text-transform: uppercase;
           }
-
           h1 {
             font-size: 32px;
             font-weight: 800;
@@ -553,20 +525,17 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
             margin-bottom: 14px;
             letter-spacing: -1px;
           }
-
           p {
             font-size: 15px;
             color: rgba(255,255,255,0.45);
             line-height: 1.8;
             margin-bottom: 40px;
           }
-
           .divider {
             height: 1px;
             background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
             margin-bottom: 40px;
           }
-
           .btn {
             display: inline-flex;
             align-items: center;
@@ -581,18 +550,15 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
             box-shadow: 0 8px 32px rgba(239, 68, 68, 0.35), inset 0 1px 0 rgba(255,255,255,0.2);
             transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
           }
-
           .btn:hover {
             transform: translateY(-3px);
             box-shadow: 0 16px 40px rgba(239, 68, 68, 0.5), inset 0 1px 0 rgba(255,255,255,0.2);
           }
-
           .btn svg {
             width: 18px; height: 18px;
             stroke: white; stroke-width: 2.5;
             fill: none;
           }
-
           .footer {
             margin-top: 36px;
             font-size: 12px;
@@ -611,19 +577,14 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
               </svg>
             </div>
           </div>
-
           <div class="badge">Payment Failed</div>
-
           <h1>Something Went Wrong</h1>
           <p>Your payment could not be processed.<br/>Please try again with a different card.</p>
-
           <div class="divider"></div>
-
           <a href="${config.frontend_url}" class="btn">
             <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>
             Try Again
           </a>
-
           <div class="footer">© ${new Date().getFullYear()} Higgibod · All rights reserved</div>
         </div>
       </body>
