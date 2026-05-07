@@ -30,7 +30,7 @@ export interface IProduct extends Document {
   isDeleted?: boolean;
   stock?: number;
   material?: string;
-  discountedPrice?: number;
+  discountPrice?: number;
   createdAt?: Date;
   updatedAt?: Date;
 }

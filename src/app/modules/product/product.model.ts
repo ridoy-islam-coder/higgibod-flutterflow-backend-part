@@ -40,7 +40,8 @@ const productSchema = new Schema<IProduct>(
       min: 0,
     },
   material: { type: String, default: "" },
-discountedPrice: {
+
+discountPrice: {
   type: Number,
   default: 0,
 },

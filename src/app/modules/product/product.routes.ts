@@ -10,11 +10,11 @@ const router = Router();
 
 
 // router.get("/all", auth(USER_ROLE.USER,),productController.getAllProducts);           // Manage Products list
-router.get("/product-details/:id", auth(USER_ROLE.USER,), productController.getProductDetails);   // Product Details
-router.post("/create-products", auth(USER_ROLE.USER,), upload.array("images", 10), productController.createProduct);  // Add Product
-router.put("/products/:id", auth(USER_ROLE.USER,), upload.array("images", 10), productController.updateProduct); // Edit Product
-router.delete("/products/:id", auth(USER_ROLE.USER,), productController.deleteProduct);    // Delete Product
-router.post("/review/:id", auth(USER_ROLE.USER,), productController.addProductReview); // Add Review
+router.get("/product-details/:id", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), productController.getProductDetails);   // Product Details
+router.post("/create-products", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), upload.array("images", 10), productController.createProduct);  // Add Product
+router.put("/products/:id", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), upload.array("images", 10), productController.updateProduct); // Edit Product
+router.delete("/delete-product/:id", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), productController.deleteProduct);    // Delete Product
+router.post("/review/:id", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), productController.addProductReview); // Add Review
 
 
 
@@ -24,19 +24,19 @@ router.post("/review/:id", auth(USER_ROLE.USER,), productController.addProductRe
 // PRODUCT ROUTES (add to existing product router)
 // ─────────────────────────────────────────────────────────────
 // GET /products/trending
-router.get("/all", auth(USER_ROLE.USER), productController.getTrending);
+router.get("/all", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), productController.getTrending);
  
 // GET /products/featured
-router.get("/products/featured", auth(USER_ROLE.USER), productController.getFeatured);
+router.get("/products/featured", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), productController.getFeatured);
  
 // GET /products/categories
-router.get("/products/categories", auth(USER_ROLE.USER), productController.getCategories);
+router.get("/products/categories", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), productController.getCategories);
  
 // GET /products/:id/related?category=skates
-router.get("/products/:id/related", auth(USER_ROLE.USER), productController.getRelated);
+router.get("/products/:id/related", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), productController.getRelated);
 
 
-router.post("/product-review/:id", auth(USER_ROLE.USER,), productController.addproductReview);
+router.post("/product-review/:id", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), productController.addproductReview);
 
 
 // 📊 SUMMARY API (totalOrders, totalProducts, totalSales)

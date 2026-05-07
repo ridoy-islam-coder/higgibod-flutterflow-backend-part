@@ -24,6 +24,54 @@ export const getProductDetailsService = async (id: string) => {
 };
 
 // ✅ Create Product
+
+
+// export const createProductService = async (
+//   req: any,
+//   images: { id: string; url: string }[]
+// ) => {
+//   const userId = req.user?.id;
+//   const {
+//     name,
+//     category,
+//     description,
+//     price,
+//     discount,
+//     stock,
+//     shippingCost,
+//     colors,
+//     sizes,
+//     material,
+//   } = req.body;
+
+//   if (!name || !category || !price || !stock)
+//     throw new AppError(400, "Name, category and price are required");
+
+//   const product = await Product.create({
+//     name,
+//     category,
+//     description: description || "",
+//     price: Number(price),
+//     discount: Number(discount) || 0,
+//     stock: stock|| 0,
+//     shippingCost: Number(shippingCost) || 0,
+//     colors: colors ? JSON.parse(colors) : [],
+//     sizes: sizes ? JSON.parse(sizes) : [],
+//     images: images || [],
+//     host: userId,
+//     material: material || "",
+//   });
+
+
+  
+
+
+//   return product;
+// };
+
+
+
+
 export const createProductService = async (
   req: any,
   images: { id: string; url: string }[]
@@ -35,35 +83,51 @@ export const createProductService = async (
     description,
     price,
     discount,
-    tax,
+    stock,
     shippingCost,
     colors,
     sizes,
+    material,
   } = req.body;
 
-  if (!name || !category || !price)
+  if (!name || !category || !price || !stock)
     throw new AppError(400, "Name, category and price are required");
+
+  const numericPrice = Number(price);
+  const numericDiscount = Number(discount) || 0;
+
+  // ✅ discountPrice calculate
+  const discountPrice = numericPrice - (numericPrice * numericDiscount / 100);
+
+  console.log("Calculated discountPrice:", discountPrice);
 
   const product = await Product.create({
     name,
     category,
     description: description || "",
-    price: Number(price),
-    discount: Number(discount) || 0,
-    tax: Number(tax) || 0,
+    price: numericPrice,
+    discount: numericDiscount,
+    discountPrice,           // ✅ save in DB
+    stock: stock || 0,
     shippingCost: Number(shippingCost) || 0,
     colors: colors ? JSON.parse(colors) : [],
     sizes: sizes ? JSON.parse(sizes) : [],
     images: images || [],
     host: userId,
+    material: material || "",
   });
-
-
-  
-
 
   return product;
 };
+
+
+
+
+
+
+
+
+
 
 // ✅ Update Product
 export const updateProductService = async (
