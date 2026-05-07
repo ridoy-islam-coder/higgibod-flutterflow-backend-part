@@ -2,6 +2,7 @@
 // order.service.ts
 
 import config from "../../config";
+import AppError from "../../error/AppError";
 import { Cart } from "../addtocard/addtotocard.model";
 import { Product } from "../product/product.model";
 import User from "../user/user.model";
@@ -10,7 +11,7 @@ import Stripe from 'stripe';
 
  
 const stripe = new Stripe(config.stripe.stripe_secret_key as string);
- 
+
 // ─── 1. Create Order + Stripe Payment Intent ───────────────────────────────
 
 
@@ -221,125 +222,115 @@ const cancelOrder = async (orderId: string, userId: string) => {
 
 //new code  
 
+export const createOrder = async (userId: string, body: any) => {
+  const { shippingAddress, cartId } = body;
 
-// ─── 1. Create Order + Stripe Checkout Session ────────────────────────────
-const createOrder = async (userId: string) => {
-  // Get user profile for shipping address
-  const user = await User.findById(userId);
-  if (!user) throw new Error('User not found');
+  // ✅ debug log
+  console.log("userId:", userId);
+  console.log("cartId:", cartId);
 
-  // Get user cart
-  const cart = await Cart.findOne({ user: userId }).populate('items.product');
-  if (!cart || cart.items.length === 0) throw new Error('Cart is empty');
+  const cart = await Cart.findOne({
+    _id: cartId,
+    user: userId,
+  }).populate({
+    path: "items.product",
+    select: "name price discountPrice shippingCost stock images",
+  });
 
-  // Build order items with current product prices (tomar logic same)
-  let subtotal = 0;
+  // ✅ debug log
+  console.log("cart:", JSON.stringify(cart, null, 2));
+
+  if (!cart) throw new AppError(404, "Cart not found");
+  if (cart.items.length === 0) throw new AppError(400, "Cart is empty");
+
+  const lineItems: any[] = [];
   let totalShipping = 0;
-  let totalTax = 0;
+  let subtotal = 0;
+  const orderItemsSnapshot: any[] = [];
 
-  const orderItems = cart.items.map((item: any) => {
+  for (const item of cart.items as any[]) {
     const product = item.product;
-    const discountedPrice =
-      product.price - (product.price * (product.discount || 0)) / 100;
 
-    subtotal += discountedPrice * item.quantity;
+    // ✅ debug log
+    console.log("item:", JSON.stringify(item, null, 2));
+    console.log("product:", product);
+
+    if (!product) throw new AppError(404, `Product not found`);
+
+    if (product.stock < item.quantity)
+      throw new AppError(400, `${product.name} is out of stock`);
+
+    const unitPrice = product.discountPrice || product.price;
+    subtotal += unitPrice * item.quantity;
     totalShipping += product.shippingCost || 0;
-    totalTax += (discountedPrice * item.quantity * (product.tax || 0)) / 100;
 
-    return {
+    orderItemsSnapshot.push({
       product: product._id,
       quantity: item.quantity,
-      color: item.color || '',
-      size: item.size || '',
-      price: discountedPrice,
-    };
-  });
+      color: item.color,
+      size: item.size,
+      price: unitPrice,
+    });
 
-  const total = subtotal + totalShipping + totalTax;
-
-  // Save order to DB — pending status (tomar existing fields same)
-  const order = await Order.create({
-    user: userId,
-    items: orderItems,
-    shippingAddress: {
-      fullName: user.name,
-      phone: user.phone || '',
-      // address: user.address.address,
-      // city: user.address.city,
-      // country: user.address.country,
-      // postalCode: user.address.postalCode || "",
-    },
-    subtotal,
-    shippingCost: totalShipping,
-    tax: totalTax,
-    total,
-    paymentStatus: 'pending',
-  });
-
-  // Stripe Checkout line_items — cart items theke build koro
-  const lineItems = cart.items.map((item: any) => {
-    const product = item.product;
-    const discountedPrice =
-      product.price - (product.price * (product.discount || 0)) / 100;
-
-    return {
-      quantity: item.quantity,
+    lineItems.push({
       price_data: {
-        currency: 'usd',
-        unit_amount: Math.round(discountedPrice * 100), // cents
+        currency: "usd",
         product_data: {
           name: product.name,
-          description: [item.color, item.size].filter(Boolean).join(' | ') || undefined,
-          ...(product.images?.[0] && { images: [product.images[0]] }),
+          images: product.images?.[0]?.url ? [product.images[0].url] : [],
         },
+        unit_amount: Math.round(unitPrice * 100),
       },
-    };
+      quantity: item.quantity,
+    });
+  }
+
+  const total = subtotal + totalShipping;
+
+  const pendingOrder = await Order.create({
+    user: userId,
+    items: orderItemsSnapshot,
+    shippingAddress,
+    subtotal,
+    shippingCost: totalShipping,
+    total,
+    paymentStatus: "pending",
+    orderStatus: "processing",
   });
 
-  // Stripe Checkout Session create
   const session = await stripe.checkout.sessions.create({
-    payment_method_types: ['card'],
-    mode: 'payment',
-    customer_email: user.email,
+    payment_method_types: ["card"],
     line_items: lineItems,
-
-    // Shipping + tax breakdown show korbe checkout page e
+    mode: "payment",
+    success_url: `${config.backend_url}/order-success?orderId=${pendingOrder._id}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${config.backend_url}/cart`,
+    metadata: {
+      orderId: pendingOrder._id.toString(),
+      userId: userId.toString(),
+      cartId: cartId.toString(),
+    },
     shipping_options: totalShipping > 0
       ? [
           {
             shipping_rate_data: {
-              type: 'fixed_amount',
-              display_name: 'Standard Shipping',
+              type: "fixed_amount",
               fixed_amount: {
                 amount: Math.round(totalShipping * 100),
-                currency: 'usd',
+                currency: "usd",
               },
+              display_name: "Standard Shipping",
             },
           },
         ]
       : [],
-
-    metadata: {
-      orderId: order._id.toString(), // webhook e use korbo
-      userId: userId.toString(),
-    },
-
-    success_url: `${config.backend_url}/payment/success?orderId=${order._id}`,
-    cancel_url: `${config.backend_url}/payment/cancel?orderId=${order._id}`,
-  });
-
-  // Session id order e save koro
-  await Order.findByIdAndUpdate(order._id, {
-    stripeSessionId: session.id,
   });
 
   return {
-    orderId: order._id,
-    checkoutUrl: session.url, // ← frontend redirect korbe ei url e
-    total,
+    checkoutUrl: session.url,
+    orderId: pendingOrder._id,
+    sessionId: session.id,
   };
 };
-
 // // ─── 2. Stripe Webhook — payment success hole order confirm ───────────────
 // const stripeWebhook = async (rawBody: Buffer, signature: string) => {
 //   let stripeEvent;

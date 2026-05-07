@@ -12,7 +12,7 @@ const router = Router();
 // router.get("/all", auth(USER_ROLE.USER,),productController.getAllProducts);           // Manage Products list
 router.get("/product-details/:id", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), productController.getProductDetails);   // Product Details
 router.post("/create-products", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), upload.array("images", 10), productController.createProduct);  // Add Product
-router.put("/products/:id", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), upload.array("images", 10), productController.updateProduct); // Edit Product
+router.put("/product-update/:id", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), upload.array("images", 10), productController.updateProduct); // Edit Product
 router.delete("/delete-product/:id", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), productController.deleteProduct);    // Delete Product
 router.post("/review/:id", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), productController.addProductReview); // Add Review
 

@@ -52,13 +52,19 @@ discountPrice: {
   { timestamps: true, versionKey: false }
 );
 
-productSchema.pre("find", function (next) {
+// productSchema.pre("find", function (next) {
+//   this.find({ isDeleted: { $ne: true } });
+//   next();
+// });
+
+productSchema.pre("findOne", function (next) {
   this.find({ isDeleted: { $ne: true } });
   next();
 });
 
-productSchema.pre("findOne", function (next) {
-  this.find({ isDeleted: { $ne: true } });
+// ✅ এটা দাও
+productSchema.pre(/^find/, function (next) {
+  (this as any).find({ isDeleted: { $ne: true } });
   next();
 });
 
