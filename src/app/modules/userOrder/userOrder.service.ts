@@ -164,8 +164,8 @@ export const createOrder = async (userId: string, body: any) => {
     payment_method_types: ["card"],
     line_items: lineItems,
     mode: "payment",
-    success_url: `${config.backend_url}/order-success?orderId=${pendingOrder._id}&session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${config.backend_url}/cart`,
+    success_url: `${config.backend_url}/order/success?orderId=${pendingOrder._id}&session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${config.backend_url}/order/cancel`,
     metadata: {
       orderId: pendingOrder._id.toString(),
       userId: userId.toString(),
@@ -197,6 +197,64 @@ export const createOrder = async (userId: string, body: any) => {
 
 
 
+// export const handleStripeWebhook = async (req: any) => {
+//   const sig = req.headers["stripe-signature"];
+//   let event: Stripe.Event;
+
+//   try {
+//     event = stripe.webhooks.constructEvent(
+//       req.body,
+//       sig,
+//       process.env.STRIPE_WEBHOOK_SECRET as string
+//     );
+//   } catch (err: any) {
+//     throw new AppError(400, `Webhook Error: ${err.message}`);
+//   }
+
+//   if (event.type === "checkout.session.completed") {
+//     const session = event.data.object as any;
+//     const orderId = session.metadata?.orderId;
+//     const cartId = session.metadata?.cartId;
+
+//     // ✅ Order paid update করো
+//     await Order.findByIdAndUpdate(orderId, {
+//       paymentStatus: "paid",
+//       stripePaymentIntentId: session.payment_intent,
+//       stripeSessionId: session.id,
+//     });
+
+//     // ✅ Cart clear করো
+//     await Cart.findByIdAndUpdate(cartId, { items: [] });
+//   }
+
+//   if (event.type === "checkout.session.expired") {
+//     const session = event.data.object as any;
+//     const orderId = session.metadata?.orderId;
+
+//     // ✅ Order cancel করো
+//     await Order.findByIdAndUpdate(orderId, {
+//       paymentStatus: "failed",
+//       orderStatus: "cancelled",
+//     });
+//   }
+// };
+
+
+
+export const updateOrderStatus = async (orderId: string, status: string) => {
+  const validStatus = ["processing", "shipped", "delivered", "cancelled"];
+  if (!validStatus.includes(status))
+    throw new AppError(400, "Invalid order status");
+
+  const order = await Order.findByIdAndUpdate(
+    orderId,
+    { orderStatus: status },
+    { new: true }
+  );
+
+  if (!order) throw new AppError(404, "Order not found");
+  return order;
+};
 
 
 
@@ -207,4 +265,6 @@ export const orderService = {
   getOrderHistory,
   getOrderDetails,
   cancelOrder,
+  updateOrderStatus,
+  
 };

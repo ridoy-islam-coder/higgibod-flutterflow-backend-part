@@ -11,12 +11,10 @@ import { orderController } from "./userOrder.controller";
  
 const router = Router();
  
-// ⚠️ Webhook route — MUST be before express.json() middleware
-// raw body lagbe Stripe signature verify korar jonno
-// app.ts e ei route ta express.json() er UPORE register korte hobe
 
+// ✅ Webhook — auth ছাড়া, raw body
 // router.post(
-//   "/webhook",
+//   "/stripe-webhook",
 //   express.raw({ type: "application/json" }),
 //   orderController.stripeWebhook
 // );
@@ -25,12 +23,18 @@ const router = Router();
 router.post("/create-orders", auth(USER_ROLE.USER), orderController.createOrder);
  
 // GET /orders — order history
-router.get("/order-history", auth(USER_ROLE.USER), orderController.getOrderHistory);
+router.get("/order-history", auth(USER_ROLE.USER,USER_ROLE.ORGANIZER), orderController.getOrderHistory);
  
 // GET /orders/:id — single order details
-router.get("/order-details/:id", auth(USER_ROLE.USER), orderController.getOrderDetails);
- 
-// PATCH /orders/:id/cancel — order cancel
-router.patch("/cancel/:id", auth(USER_ROLE.USER), orderController.cancelOrder);
- 
+router.get("/order-details/:id", auth(USER_ROLE.USER,USER_ROLE.ORGANIZER), orderController.getOrderDetails);
+
+ // ✅ Success & Cancel pages — auth ছাড়া (browser redirect)
+router.get("/success", orderController.orderSuccessPage);
+
+router.get("/cancel", orderController.orderCancelPage);
+
+// ✅ Admin only
+router.patch("/status/:orderId", auth(USER_ROLE.USER,USER_ROLE.ORGANIZER), orderController.updateOrderStatus);
+
+
 export const orderRoutes = router;

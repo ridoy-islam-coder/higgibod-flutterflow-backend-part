@@ -293,6 +293,7 @@ export const register = async (payload: any) => {
   const {
     fullName,
     email,
+    about,
     password,
     confirmPassword,
     role,
@@ -368,6 +369,7 @@ export const register = async (payload: any) => {
     email,
     password,
     role,
+    about: about || '',
     image: uploadedImage
       ? {
           id: uploadedImage.id,

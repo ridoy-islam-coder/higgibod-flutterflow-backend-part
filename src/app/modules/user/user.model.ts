@@ -79,10 +79,9 @@ const UserSchema = new Schema<TUser, UserModel>(
       type: Date,
     },
     
-    language: {
+    about: {
       type: String,
-      enum: ["en", "ar"],
-      default: "en",
+      default: "",
     },
 
     accountType: {

@@ -3,7 +3,11 @@ import { Request, Response } from "express";
 import catchAsync from "../../utils/catchAsync";
 import sendResponse from "../../utils/sendResponse";
 import { orderService } from "./userOrder.service";
-
+import { generateCancelHTML, generateSuccessHTML } from "../../utils/orderPage.helper";
+ import Stripe from 'stripe';
+import config from "../../config";
+import { Order } from "./userOrder.model";
+const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 
 
 const createOrder = catchAsync(async (req: Request, res: Response) => {
@@ -77,6 +81,24 @@ export const orderSuccessPage = catchAsync(async (req, res) => {
 export const orderCancelPage = catchAsync(async (req, res) => {
   res.send(generateCancelHTML(" payment cancel"));
 });
+
+
+
+
+
+export const updateOrderStatus = catchAsync(async (req, res) => {
+  const result = await orderService.updateOrderStatus(
+    req.params.orderId as string,
+    req.body.orderStatus
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Order status updated",
+    data: result,
+  });
+});
+
 export const orderController = {
   createOrder,
   // stripeWebhook,
@@ -84,5 +106,5 @@ export const orderController = {
   getOrderDetails,
   orderCancelPage,
   orderSuccessPage,
-  orderCancelPage,
+  updateOrderStatus,
 };
