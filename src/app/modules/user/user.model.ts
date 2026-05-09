@@ -33,7 +33,7 @@ const imageSchema = new Schema({
     default: "",
     required: true,
   },
-
+default: {},
 });
 // Define the schema for the User model
 const UserSchema = new Schema<TUser, UserModel>(
@@ -110,7 +110,9 @@ const UserSchema = new Schema<TUser, UserModel>(
         type: Boolean,
         default: false,
       },
-   
+      djname: { type: String, default: "" },
+
+
     // subscription: {
     //   plan: {
     //     type: Schema.Types.ObjectId,

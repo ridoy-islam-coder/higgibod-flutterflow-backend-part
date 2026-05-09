@@ -55,6 +55,7 @@ export interface TUser {
     id: string;
     url: string;
   };
+  djname?: string;
   accountType?: 'emailvarifi' | 'google' | 'facebook' | 'linkedin' | 'apple';
   country: string;
   fcmToken?: string;

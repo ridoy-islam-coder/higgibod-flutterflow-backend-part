@@ -29,6 +29,7 @@ export const register = async (payload: any) => {
     email,
     password,
     country,
+    djname,
     role,
     howDidYouHear,
     subscribeToEmails,
@@ -60,6 +61,7 @@ export const register = async (payload: any) => {
     howDidYouHear,
     subscribeToEmails,
     termsAccepted,
+    djname,
   });
 
 

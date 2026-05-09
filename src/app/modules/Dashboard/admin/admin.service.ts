@@ -9,6 +9,8 @@ import { Order } from '../../userOrder/userOrder.model';
 import { Ticket } from '../../Ticke/ticke.model';
 import { updatePastEvents } from '../../../utils/updatePastEvents';
 import { ro } from 'date-fns/locale/ro';
+import { Personalization } from '../../Personalizationuser/Personalization.model';
+import SocialLink from '../../sociallink/soscial.model';
 
 const updateAdminProfile = async (id: string, payload: Record<string, any>) => {
   const allowedFields = ['fullName', 'phoneNumber', 'image'];
@@ -314,14 +316,23 @@ const deleteUser = async (userId: string) => {
   if (!user) throw new Error("User not found");
   return { message: "User deleted successfully" };
 };
- 
-// ── Get Single User ───────────────────────────────────────────────────────────
-const getSingleUser = async (userId: string) => {
+ const getSingleUser = async (userId: string) => {
   const user = await User.findById(userId).select(
-    "fullName email image coverImage role isActive isVerified country phoneNumber createdAt"
+    "fullName email image coverImage role  fcmToken isActive isVerified location subscription country phoneNumber createdAt"
   );
   if (!user) throw new Error("User not found");
-  return user;
+
+  // ✅ Personalization data — থাকলে আসবে, না থাকলে null
+  const personalization = await Personalization.findOne({ user: userId });
+
+  // ✅ SocialLink data — থাকলে আসবে, না থাকলে null
+  const socialLink = await SocialLink.findOne({ user: userId });
+
+  return {
+    ...user.toObject(),
+    personalization: personalization ?? null,
+    socialLink: socialLink ?? null,
+  };
 };
 
 
