@@ -12,137 +12,7 @@ import Stripe from 'stripe';
  
 const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 
-// ─── 1. Create Order + Stripe Payment Intent ───────────────────────────────
 
-
-// const createOrder = async (userId: string) => {
-//   // Get user profile for shipping address
-//   const user = await User.findById(userId);
-//   if (!user) throw new Error("User not found");
- 
-//   // if (
-//   //   !user.address?.address ||
-//   //   !user.address?.city ||
-//   //   !user.address?.country
-//   // ) {
-//   //   throw new Error(
-//   //     "Please complete your shipping address in profile before placing order"
-//   //   );
-//   // }
- 
-//   // Get user cart
-//   const cart = await Cart.findOne({ user: userId }).populate("items.product");
-//   if (!cart || cart.items.length === 0) throw new Error("Cart is empty");
- 
-//   // Build order items with current product prices
-//   let subtotal = 0;
-//   let totalShipping = 0;
-//   let totalTax = 0;
- 
-//   const orderItems = cart.items.map((item: any) => {
-//     const product = item.product;
-//     const discountedPrice =
-//       product.price - (product.price * (product.discount || 0)) / 100;
- 
-//     subtotal += discountedPrice * item.quantity;
-//     totalShipping += product.shippingCost || 0;
-//     totalTax += (discountedPrice * item.quantity * (product.tax || 0)) / 100;
- 
-//     return {
-//       product: product._id,
-//       quantity: item.quantity,
-//       color: item.color || "",
-//       size: item.size || "",
-//       price: discountedPrice,
-//     };
-//   });
- 
-//   const total = subtotal + totalShipping + totalTax;
- 
-//   // Create Stripe Payment Intent
-//   const paymentIntent = await stripe.paymentIntents.create({
-//     amount: Math.round(total * 100), // Stripe uses cents
-//     currency: "usd",
-//     metadata: { userId: userId.toString() },
-//   });
- 
-//   // Save order to DB
-//   const order = await Order.create({
-//     user: userId,
-//     items: orderItems,
-//     shippingAddress: {
-//       fullName: user.name,
-//       phone: user.phone || "",
-//       // address: user.address.address,
-//       // city: user.address.city,
-//       // country: user.address.country,
-//       // postalCode: user.address.postalCode || "",
-//     },
-//     subtotal,
-//     shippingCost: totalShipping,
-//     tax: totalTax,
-//     total,
-//     stripePaymentIntentId: paymentIntent.id,
-//     stripeClientSecret: paymentIntent.client_secret,
-//   });
- 
-//   return {
-//     orderId: order._id,
-//     clientSecret: paymentIntent.client_secret, // send to frontend
-//     total,
-//   };
-// };
-
-
- 
-// ─── 2. Stripe Webhook — payment confirm hoile call hobe ──────────────────
-
-
-
-// const handleStripeWebhook = async (
-//   rawBody: Buffer,
-//   signature: string
-// ) => {
-//   let event: Stripe.Event ;
- 
-//   try {
-//     event = stripe.webhooks.constructEvent(
-//       rawBody,
-//       signature,
-//       process.env.STRIPE_WEBHOOK_SECRET as string
-//     );
-//   } catch {
-//     throw new Error("Webhook signature verification failed");
-//   }
- 
-//   if (event.type === "payment_intent.succeeded") {
-//     const paymentIntent = event.data.object as Stripe.PaymentIntent;
- 
-//     // Update order status to paid
-//     await Order.findOneAndUpdate(
-//       { stripePaymentIntentId: paymentIntent.id },
-//       { paymentStatus: "paid" }
-//     );
- 
-//     // Clear user cart after successful payment
-//     const order = await Order.findOne({
-//       stripePaymentIntentId: paymentIntent.id,
-//     });
-//     if (order) {
-//       await Cart.findOneAndUpdate({ user: order.user }, { items: [] });
-//     }
-//   }
- 
-//   if (event.type === "payment_intent.payment_failed") {
-//     const paymentIntent = event.data.object as Stripe.PaymentIntent;
-//     await Order.findOneAndUpdate(
-//       { stripePaymentIntentId: paymentIntent.id },
-//       { paymentStatus: "failed" }
-//     );
-//   }
- 
-//   return { received: true };
-// };
  
 // ─── 3. Get Order History ──────────────────────────────────────────────────
 const getOrderHistory = async (
@@ -225,10 +95,6 @@ const cancelOrder = async (orderId: string, userId: string) => {
 export const createOrder = async (userId: string, body: any) => {
   const { shippingAddress, cartId } = body;
 
-  // ✅ debug log
-  console.log("userId:", userId);
-  console.log("cartId:", cartId);
-
   const cart = await Cart.findOne({
     _id: cartId,
     user: userId,
@@ -236,9 +102,6 @@ export const createOrder = async (userId: string, body: any) => {
     path: "items.product",
     select: "name price discountPrice shippingCost stock images",
   });
-
-  // ✅ debug log
-  console.log("cart:", JSON.stringify(cart, null, 2));
 
   if (!cart) throw new AppError(404, "Cart not found");
   if (cart.items.length === 0) throw new AppError(400, "Cart is empty");
@@ -251,16 +114,15 @@ export const createOrder = async (userId: string, body: any) => {
   for (const item of cart.items as any[]) {
     const product = item.product;
 
-    // ✅ debug log
-    console.log("item:", JSON.stringify(item, null, 2));
-    console.log("product:", product);
-
     if (!product) throw new AppError(404, `Product not found`);
 
     if (product.stock < item.quantity)
       throw new AppError(400, `${product.name} is out of stock`);
 
-    const unitPrice = product.discountPrice || product.price;
+    // ✅ discountPrice > 0 হলে discountPrice, নাহলে original price
+    const unitPrice =
+      product.discountPrice > 0 ? product.discountPrice : product.price;
+
     subtotal += unitPrice * item.quantity;
     totalShipping += product.shippingCost || 0;
 
@@ -309,20 +171,21 @@ export const createOrder = async (userId: string, body: any) => {
       userId: userId.toString(),
       cartId: cartId.toString(),
     },
-    shipping_options: totalShipping > 0
-      ? [
-          {
-            shipping_rate_data: {
-              type: "fixed_amount",
-              fixed_amount: {
-                amount: Math.round(totalShipping * 100),
-                currency: "usd",
+    shipping_options:
+      totalShipping > 0
+        ? [
+            {
+              shipping_rate_data: {
+                type: "fixed_amount",
+                fixed_amount: {
+                  amount: Math.round(totalShipping * 100),
+                  currency: "usd",
+                },
+                display_name: "Standard Shipping",
               },
-              display_name: "Standard Shipping",
             },
-          },
-        ]
-      : [],
+          ]
+        : [],
   });
 
   return {
@@ -331,57 +194,6 @@ export const createOrder = async (userId: string, body: any) => {
     sessionId: session.id,
   };
 };
-// // ─── 2. Stripe Webhook — payment success hole order confirm ───────────────
-// const stripeWebhook = async (rawBody: Buffer, signature: string) => {
-//   let stripeEvent;
-
-//   try {
-//     stripeEvent = stripe.webhooks.constructEvent(
-//       rawBody,
-//       signature,
-//       config.stripe.webhook_secret as string,
-//     );
-//   } catch {
-//     throw new Error('Webhook signature verification failed');
-//   }
-
-//   // Payment success
-//   if (stripeEvent.type === 'checkout.session.completed') {
-//     const session = stripeEvent.data.object as Stripe.Checkout.Session;
-//     const orderId = session.metadata?.orderId;
-
-//     if (orderId) {
-//       await Order.findByIdAndUpdate(orderId, {
-//         paymentStatus: 'paid',
-//         stripeSessionId: session.id,
-//       });
-
-//       // Cart clear koro
-//       const order = await Order.findById(orderId);
-//       if (order) {
-//         await Cart.findOneAndUpdate(
-//           { user: order.user },
-//           { items: [] },
-//         );
-//       }
-//     }
-//   }
-
-//   // Payment cancel/expire
-//   if (stripeEvent.type === 'checkout.session.expired') {
-//     const session = stripeEvent.data.object as Stripe.Checkout.Session;
-//     const orderId = session.metadata?.orderId;
-
-//     if (orderId) {
-//       await Order.findByIdAndUpdate(orderId, {
-//         paymentStatus: 'failed',
-//       });
-//     }
-//   }
-
-//   return { received: true };
-// };
-
 
 
 

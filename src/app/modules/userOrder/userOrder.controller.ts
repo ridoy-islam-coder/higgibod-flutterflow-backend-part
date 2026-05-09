@@ -17,17 +17,7 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
 });
 
 
-// Stripe webhook — raw body lagbe, JSON parse korba na
 
-// const stripeWebhook = async (req: Request, res: Response) => {
-//   try {
-//     const signature = req.headers["stripe-signature"] as string;
-//     const result = await orderService.handleStripeWebhook(req.body, signature);
-//     res.status(200).json(result);
-//   } catch (error: any) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
 
 
 const getOrderHistory = catchAsync(async (req: Request, res: Response) => {
@@ -59,21 +49,40 @@ const getOrderDetails = catchAsync(async (req: Request, res: Response) => {
 });
 
 
-const cancelOrder = catchAsync(async (req: Request, res: Response) => {
-  const result = await orderService.cancelOrder(req.params.id as string, req.user._id);
-  sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: "Order cancelled successfully",
-    data: result,
+
+// GET /api/orders/order-success
+export const orderSuccessPage = catchAsync(async (req, res) => {
+  const { orderId, session_id } = req.query;
+
+  const order = await Order.findById(orderId).populate({
+    path: "items.product",
+    select: "name images price discountPrice",
   });
+
+  if (!order) {
+    return res.send(generateCancelHTML("Order not found."));
+  }
+
+  const session = await stripe.checkout.sessions.retrieve(session_id as string);
+  if (session.payment_status !== "paid") {
+    return res.send(generateCancelHTML("Payment not completed."));
+  }
+
+  res.send(generateSuccessHTML(order));
 });
 
 
+
+// GET /api/orders/cart
+export const orderCancelPage = catchAsync(async (req, res) => {
+  res.send(generateCancelHTML(" payment cancel"));
+});
 export const orderController = {
   createOrder,
   // stripeWebhook,
   getOrderHistory,
   getOrderDetails,
-  cancelOrder,
+  orderCancelPage,
+  orderSuccessPage,
+  orderCancelPage,
 };
