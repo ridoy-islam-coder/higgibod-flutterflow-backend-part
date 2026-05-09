@@ -33,12 +33,12 @@ const SubscriptionPlanSchema = new Schema<TSubscriptionPlan, SubscriptionPlanMod
     },
     interval: {
       type: String,
-      enum: ['day', 'year'],
-      default: 'day',
+      enum: ['month', 'year'],
+      default: 'month',
     },
-    trialDays: {
+    trialMonths: {
       type: Number,
-      default: 30,
+      default: 1,
     },
     stripePriceId: {
       type: String,
