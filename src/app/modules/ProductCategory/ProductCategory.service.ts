@@ -1,11 +1,37 @@
+import AppError from "../../error/AppError";
 import { getPaginationOptions, paginationResult } from "../eventcatagore/eventcatagore.service";
 import { Product } from "../product/product.model";
 import { ProductCategory } from "./ProductCategory.model";
+import  httpStatus  from 'http-status';
 
 // Create
 const createProductCategory = async (payload: any) => {
-  return await ProductCategory.create(payload);
+  const { name, isActive = true } = payload; // ✅ isActive নাও
+
+  const existing = await ProductCategory.findOne({ name: name.trim() });
+
+  // ✅ deleted থাকলে restore করো
+  if (existing && existing.isDeleted) {
+    const restored = await ProductCategory.findByIdAndUpdate(
+      existing._id,
+      {
+        isDeleted: false,
+        isActive: isActive, // ✅ isActive update করো
+      },
+      { new: true }
+    );
+    return restored;
+  }
+
+  // ✅ active থাকলে duplicate error
+  if (existing && !existing.isDeleted) {
+    throw new AppError(httpStatus.CONFLICT, "Category already exists");
+  }
+
+  // ✅ নতুন create করো
+  return await ProductCategory.create({ name: name.trim(), isActive });
 };
+
 
 // Get All (pagi// productCategory.service.ts
 

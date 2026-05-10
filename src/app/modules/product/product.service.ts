@@ -663,6 +663,7 @@ const getProductDashboard = async (
       },
     },
   ]);
+  
 
   const totalSales = totalSalesResult[0]?.totalSales || 0;
   const totalEarning = totalSalesResult[0]?.totalEarning || 0;
@@ -781,6 +782,26 @@ const getProductDashboard = async (
         createdAt: { $first: "$createdAt" },
       },
     },
+    // ✅ orderNumber add করো
+{
+  $addFields: {
+    orderId: "$_id",
+    orderNumber: {
+      $concat: [
+        "#",
+        {
+          $toUpper: {
+            $substrCP: [
+              { $toString: "$_id" },
+              19,
+              5,
+            ],
+          },
+        },
+      ],
+    },
+  },
+},
     { $sort: { createdAt: -1 } },
     { $skip: skip },
     { $limit: limit },
@@ -801,7 +822,7 @@ const getProductDashboard = async (
     },
   };
 };
- 
+
 const getEarningOverview = async (
   userId: string,
   year?: number,
@@ -825,7 +846,9 @@ const getEarningOverview = async (
       year: targetYear,
       monthlyEarning: Array.from({ length: 12 }, (_, i) => ({
         month: i + 1,
-        monthName: new Date(targetYear, i, 1).toLocaleString("en", { month: "short" }),
+        monthName: new Date(targetYear, i, 1).toLocaleString("en", {
+          month: "short",
+        }),
         earning: 0,
       })),
       recentTransactions: [],
@@ -878,7 +901,9 @@ const getEarningOverview = async (
     const found = monthlyRaw.find((m) => m._id === i + 1);
     return {
       month: i + 1,
-      monthName: new Date(targetYear, i, 1).toLocaleString("en", { month: "short" }),
+      monthName: new Date(targetYear, i, 1).toLocaleString("en", {
+        month: "short",
+      }),
       earning: found?.earning || 0,
     };
   });
@@ -893,13 +918,13 @@ const getEarningOverview = async (
   ]);
   const totalTransactions = totalTransactionsResult[0]?.total || 0;
 
-  // ── Recent Transactions — শুধু আমার product এর items ─────
+  // ── Recent Transactions ───────────────────────────────────
   const recentTransactions = await Order.aggregate([
     { $match: { paymentStatus: "paid", isDeleted: false } },
     { $unwind: "$items" },
     {
       $match: {
-        "items.product": { $in: productIds }, // ✅ শুধু আমার product
+        "items.product": { $in: productIds },
       },
     },
     {
@@ -915,10 +940,30 @@ const getEarningOverview = async (
     {
       $group: {
         _id: "$_id",
-        items: { $push: "$items" }, // ✅ শুধু আমার product এর items
+        orderId: { $first: "$_id" },
+        items: { $push: "$items" },
         total: { $first: "$total" },
         orderStatus: { $first: "$orderStatus" },
         createdAt: { $first: "$createdAt" },
+      },
+    },
+    // ✅ ObjectId → string → শেষের 5 char নাও
+    {
+      $addFields: {
+        orderNumber: {
+          $concat: [
+            "#",
+            {
+              $toUpper: {
+                $substrCP: [
+                  { $toString: "$orderId" },
+                  19,
+                  5,
+                ],
+              },
+            },
+          ],
+        },
       },
     },
     { $sort: { createdAt: -1 } },
@@ -939,7 +984,6 @@ const getEarningOverview = async (
     },
   };
 };
- 
 // ── Order List with filter ────────────────────────────────────────────────────
 const getMyOrders = async (
   userId: string,

@@ -7,30 +7,74 @@ import { Event } from '../event/event.model';
 
 
 
-// ─── Create Category ───────────────────────────────────────────────────────────
+// // ─── Create Category ───────────────────────────────────────────────────────────
+// const createCategory = async (
+//   payload: { name: string; description?: string },
+//   file: Express.Multer.File,
+// ) => {
+//   // Duplicate name check
+//   const isExist = await Category.findOne({ name: payload.name });
+//   if (isExist) throw new AppError(httpStatus.CONFLICT, 'Category already exists');
+
+//   // Image S3 te upload koro
+//   const uploadedImage = await uploadToS3(file, 'category');
+
+//   const result = await Category.create({
+//     ...payload,
+//     image: uploadedImage.url,
+//     imageId: uploadedImage.id,
+//   });
+
+//   return result;
+// };
+
 const createCategory = async (
-  payload: { name: string; description?: string },
+  payload: { name: string; description?: string; isActive?: boolean },
   file: Express.Multer.File,
 ) => {
-  // Duplicate name check
-  const isExist = await Category.findOne({ name: payload.name });
-  if (isExist) throw new AppError(httpStatus.CONFLICT, 'Category already exists');
+  const existing = await Category.findOne({ name: payload.name.trim() });
 
-  // Image S3 te upload koro
-  const uploadedImage = await uploadToS3(file, 'category');
+  // ✅ inactive থাকলে restore করো
+  if (existing && !existing.isActive) {
+    let updateData: any = {
+      isActive: true,
+      description: payload.description || existing.description,
+    };
+
+    // ✅ নতুন image দিলে S3 তে upload করো
+    if (file) {
+      const uploadedImage = await uploadToS3(file, "category");
+      updateData.image = uploadedImage.url;
+      updateData.imageId = uploadedImage.id;
+    }
+
+    const restored = await Category.findByIdAndUpdate(
+      existing._id,
+      updateData,
+      { new: true }
+    );
+    return restored;
+  }
+
+  // ✅ active থাকলে duplicate error
+  if (existing && existing.isActive) {
+    throw new AppError(httpStatus.CONFLICT, "Category already exists");
+  }
+
+  // ✅ নতুন create করো
+  if (!file) throw new AppError(httpStatus.BAD_REQUEST, "Image is required");
+
+  const uploadedImage = await uploadToS3(file, "category");
 
   const result = await Category.create({
     ...payload,
+    name: payload.name.trim(),
     image: uploadedImage.url,
     imageId: uploadedImage.id,
   });
 
   return result;
 };
-
-
-
-
 
 
 
@@ -125,25 +169,27 @@ export const paginationResult = (
 
 
 // eventcatagore.service.ts
-
 const getAllCategories = async (filters: ICategoryFilter, query: any) => {
   const { page, limit, skip } = getPaginationOptions(query);
-
-  const dbQuery: any = {};
+  const dbQuery: any = {
+    isActive: true, // ✅ default শুধু active গুলো আসবে
+  };
 
   if (filters.searchTerm) {
     dbQuery.name = { $regex: filters.searchTerm, $options: "i" };
   }
+
+  // ✅ isActive filter দিলে override হবে
   if (filters.isActive !== undefined) {
     dbQuery.isActive = filters.isActive;
   }
-  // ✅ isPopular filter
+
   if (query.isPopular !== undefined) {
     dbQuery.isPopular = query.isPopular === "true";
   }
 
   const pipeline: any[] = [
-    { $match: dbQuery },
+    { $match: dbQuery }, // ✅ inactive গুলো আসবে না
     {
       $lookup: {
         from: "events",
@@ -183,7 +229,6 @@ const getAllCategories = async (filters: ICategoryFilter, query: any) => {
     meta: paginationResult(total, page, limit),
   };
 };
-
 // eventcatagore.service.ts এ add করো
 
 // const getEventsByCategoryId = async (categoryId: string, query: any) => {

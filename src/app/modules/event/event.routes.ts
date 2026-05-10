@@ -9,19 +9,19 @@ import { eventcontroller } from "./event.controller";
 
 const router = Router();
 
-router.post('/create-event',auth(USER_ROLE.USER,),upload.fields([ { name: 'coverImage', maxCount: 1 }, { name: 'gallery', maxCount: 10 },]),eventcontroller.createEvent);
+router.post('/create-event',auth(USER_ROLE.USER,USER_ROLE.admin),upload.fields([ { name: 'coverImage', maxCount: 1 }, { name: 'gallery', maxCount: 10 },]),eventcontroller.createEvent);
 
 //done
-router.get("/getAll",auth(USER_ROLE.USER,), eventcontroller.getAllEvents);
+router.get("/getAll",auth(USER_ROLE.USER,USER_ROLE.admin), eventcontroller.getAllEvents);
 //not done
-router.get("/getPast", auth(USER_ROLE.USER,), eventcontroller.getPastEvents);
+router.get("/getPast", auth(USER_ROLE.USER,USER_ROLE.admin), eventcontroller.getPastEvents);
 //done
 router.get("/getevent-details/:id", auth(USER_ROLE.USER,USER_ROLE.ORGANIZER,USER_ROLE.admin), eventcontroller.getEventDetails);
 //done
-router.put("/update-event/:id", auth(USER_ROLE.USER,), upload.fields([{ name: 'coverImage', maxCount: 1 },{ name: 'gallery', maxCount: 10 },]), eventcontroller.updateEvent);
-router.delete("/delete-event/:id", auth(USER_ROLE.USER,), eventcontroller.deleteEvent);
+router.put("/update-event/:id", auth(USER_ROLE.USER,USER_ROLE.admin), upload.fields([{ name: 'coverImage', maxCount: 1 },{ name: 'gallery', maxCount: 10 },]), eventcontroller.updateEvent);
+router.delete("/delete-event/:id", auth(USER_ROLE.USER,USER_ROLE.admin), eventcontroller.deleteEvent);
 
-router.post("/attend-event/:id", auth(USER_ROLE.USER,), eventcontroller.attendEvent);
+router.post("/attend-event/:id", auth(USER_ROLE.USER,USER_ROLE.admin), eventcontroller.attendEvent);
 
 router.post("/add-review/:id", auth(USER_ROLE.USER,), eventcontroller.addReview);
 
@@ -32,7 +32,7 @@ router.post("/add-review/:id", auth(USER_ROLE.USER,), eventcontroller.addReview)
 // EVENT ROUTES (add to existing event router)
 // ─────────────────────────────────────────────────────────────
 // GET /events/search?q=disco&category=music&country=BD&minPrice=0&maxPrice=500&date=2024-12-01&page=1&limit=10
-router.get("/search", auth(USER_ROLE.USER), eventcontroller.searchEvents);
+router.get("/search", auth(USER_ROLE.USER,USER_ROLE.admin), eventcontroller.searchEvents);
  
 // GET /events/featured
 

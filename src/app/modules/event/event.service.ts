@@ -380,7 +380,7 @@ const searchEvents = async (query: {
     limit = 10,
   } = query;
  
-  const filter: Record<string, any> = { isDeleted: { $ne: true },isPast: false };
+  const filter: Record<string, any> = { isDeleted: { $ne: false },isPast: false };
  
   // Keyword search (title + description)
   if (q) {
@@ -414,13 +414,13 @@ if (category) filter.category = category;
   const skip = (page - 1) * limit;
   const total = await Event.countDocuments(filter);
   const events = await Event.find(filter)
-    .select("title  date time  location  attendees gallery gallery coverImage")
+    .select("title  date time  location  attendees gallery price gallery coverImage")
     .populate("host", "name email profileImage")
     .populate("attendees", "name email profileImage")
     .sort({ date: 1 })
     .skip(skip)
     .limit(limit);
- 
+  console.log("search filter:", filter);
   return {
     events,
     pagination: {
