@@ -257,6 +257,67 @@ export const updateOrderStatus = async (orderId: string, status: string) => {
 };
 
 
+const getMyProductOrders = async (
+  userId: string,
+  orderStatus?: "processing" | "shipped" | "delivered" | "cancelled"
+) => {
+
+  // আমার products বের করো
+  const myProducts = await Product.find(
+    {
+      host: userId,
+      isDeleted: false,
+    },
+    { _id: 1 }
+  );
+
+  const productIds = myProducts.map((p) => p._id.toString());
+
+  // filter
+  const filter: Record<string, any> = {
+    "items.product": { $in: productIds },
+    isDeleted: false,
+  };
+
+  // status filter
+  if (orderStatus) {
+    filter.orderStatus = orderStatus;
+  }
+
+  // orders
+  const orders = await Order.find(filter)
+    .populate("user", "name email profileImage")
+    .populate("items.product")
+    .sort({ createdAt: -1 });
+
+  // শুধু আমার product এর items রাখো
+  const formattedOrders = orders.map((order) => {
+
+    const myItems = order.items.filter((item: any) => {
+
+      const productId =
+        item.product?._id?.toString() ||
+        item.product?.toString();
+
+      return productIds.includes(productId);
+    });
+
+    return {
+      _id: order._id,
+      user: order.user,
+      shippingAddress: order.shippingAddress,
+      paymentStatus: order.paymentStatus,
+      orderStatus: order.orderStatus,
+      subtotal: order.subtotal,
+      total: order.total,
+      createdAt: order.createdAt,
+      items: myItems,
+    };
+  });
+
+  return formattedOrders;
+};
+
 
  
 export const orderService = {
@@ -266,5 +327,6 @@ export const orderService = {
   getOrderDetails,
   cancelOrder,
   updateOrderStatus,
+  getMyProductOrders,
   
 };

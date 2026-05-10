@@ -99,6 +99,34 @@ export const updateOrderStatus = catchAsync(async (req, res) => {
   });
 });
 
+
+
+
+
+
+const getMyProductOrders = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+
+  const orderStatus = req.query.orderStatus as
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled"
+    | undefined;
+
+  const result = await orderService.getMyProductOrders(
+    userId.toString(),
+    orderStatus
+  );
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: "Orders fetched successfully",
+    data: result,
+  });
+});
+
 export const orderController = {
   createOrder,
   // stripeWebhook,
@@ -107,4 +135,5 @@ export const orderController = {
   orderCancelPage,
   orderSuccessPage,
   updateOrderStatus,
+  getMyProductOrders,
 };

@@ -354,7 +354,6 @@ export const addReviewService = async (req: any) => {
 
 
 
-
 const searchEvents = async (query: {
   q?: string;
   category?: string;
@@ -379,48 +378,104 @@ const searchEvents = async (query: {
     page = 1,
     limit = 10,
   } = query;
- 
-  const filter: Record<string, any> = { isDeleted: { $ne: false },isPast: false };
- 
-  // Keyword search (title + description)
-  if (q) {
+
+  // ✅ Base filter
+  const filter: Record<string, any> = {
+    isDeleted: false,
+    isPast: false,
+  };
+
+  // ✅ Keyword search
+  if (q?.trim()) {
     filter.$or = [
-      { title: { $regex: q, $options: "i" } },
-      { description: { $regex: q, $options: "i" } },
+      {
+        title: {
+          $regex: q.trim(),
+          $options: "i",
+        },
+      },
+      {
+        description: {
+          $regex: q.trim(),
+          $options: "i",
+        },
+      },
     ];
   }
- 
-   // ✅ এখন — category id সরাসরি দাও
-if (category) filter.category = category;
-  if (country) filter.location = { $regex: country, $options: "i" };
-  if (eventType) filter.category = eventType; // map eventType to category
-  if (organizer) filter.host = organizer;
- 
-  // Price range
+
+  // ✅ Category filter
+  if (category) {
+    filter.category = category;
+  }
+
+  // ✅ Country filter
+  if (country) {
+    filter.location = {
+      $regex: country,
+      $options: "i",
+    };
+  }
+
+  // ✅ Event type filter
+  if (eventType) {
+    filter.eventType = eventType;
+  }
+
+  // ✅ Organizer filter
+  if (organizer) {
+    filter.host = organizer;
+  }
+
+  // ✅ Price filter
   if (minPrice !== undefined || maxPrice !== undefined) {
     filter.price = {};
-    if (minPrice !== undefined) filter.price.$gte = minPrice;
-    if (maxPrice !== undefined) filter.price.$lte = maxPrice;
+
+    if (minPrice !== undefined) {
+      filter.price.$gte = minPrice;
+    }
+
+    if (maxPrice !== undefined) {
+      filter.price.$lte = maxPrice;
+    }
   }
- 
-  // Date filter
+
+  // ✅ Date filter
   if (date) {
     const targetDate = new Date(date);
+
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
-    filter.date = { $gte: targetDate, $lt: nextDay };
+
+    filter.date = {
+      $gte: targetDate,
+      $lt: nextDay,
+    };
   }
- 
+
+  // ✅ Pagination
   const skip = (page - 1) * limit;
-  const total = await Event.countDocuments(filter);
-  const events = await Event.find(filter)
-    .select("title  date time  location  attendees gallery price gallery coverImage")
+
+  // ✅ Total count
+  const total = await Event.countDocuments({
+    ...filter,
+  });
+
+  // ✅ Fetch events
+  const events = await Event.find({
+    ...filter,
+  })
+    .select(
+      "title description date time location attendees gallery price coverImage"
+    )
     .populate("host", "name email profileImage")
     .populate("attendees", "name email profileImage")
     .sort({ date: 1 })
     .skip(skip)
     .limit(limit);
-  console.log("search filter:", filter);
+
+  console.log("Search Filter:", filter);
+  console.log("Total Events:", total);
+
   return {
     events,
     pagination: {

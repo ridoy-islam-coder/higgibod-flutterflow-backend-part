@@ -278,24 +278,24 @@ const getMyOrders = catchAsync(async (req, res) => {
 
 // PATCH /api/v1/products/orders/:orderId/status
 const updateOrderStatus = catchAsync(async (req, res) => {
-  const userId = req.user._id;
+
   const { orderId } = req.params;
+
   const { orderStatus } = req.body;
- 
+
   const result = await productServices.updateOrderStatus(
-    userId,
+    req.user._id as string,
     orderId as string,
-    orderStatus
+    orderStatus as any
   );
- 
+
   sendResponse(res, {
-    statusCode: httpStatus.OK,
+    statusCode: 200,
     success: true,
     message: "Order status updated successfully",
     data: result,
   });
 });
-
 
 // GET /api/v1/products/my-products?page=1&limit=10
 const getMyProducts = catchAsync(async (req, res) => {

@@ -79,8 +79,8 @@ router.get(
 // PATCH /api/v1/products/orders/:orderId/status
 // Update order status (Mark Ready / Ship Now)
 router.patch(
-  "/orders/:orderId/status",
-  auth(USER_ROLE.MARCHANT),
+  "/orders/:orderId",
+  auth(USER_ROLE.MARCHANT,USER_ROLE.USER),
   productController.updateOrderStatus
 );
 

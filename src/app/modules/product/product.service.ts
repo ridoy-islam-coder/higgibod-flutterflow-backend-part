@@ -1014,28 +1014,59 @@ const getMyOrders = async (
   };
 };
 
- 
-// ── Update Order Status ───────────────────────────────────────────────────────
-const updateOrderStatus = async (
-  userId: string,
-  orderId: string,
-  orderStatus: string
-) => {
-  const myProducts = await Product.find(
-    { host: userId, isDeleted: false },
-    { _id: 1 }
-  );
-  const productIds = myProducts.map((p) => p._id);
- 
-  const order = await Order.findOneAndUpdate(
-    { _id: orderId, "items.product": { $in: productIds } },
-    { $set: { orderStatus } },
-    { new: true }
-  );
- 
-  if (!order) throw new Error("Order not found");
-  return order;
-};
+
+
+
+
+// type OrderStatus =
+//   | "processing"
+//   | "shipped"
+//   | "delivered"
+//   | "cancelled";
+
+//  const updateOrderStatus = async (
+//   userId: string,
+//   orderId: string,
+//   orderStatus: OrderStatus
+// ) => {
+
+//   console.log("USER ID:", userId);
+//   console.log("ORDER ID:", orderId);
+
+//   // seller products
+//   const myProducts = await Product.find(
+//     {
+//       host: userId,
+//       isDeleted: false,
+//     },
+//     { _id: 1 }
+//   );
+
+//   console.log("MY PRODUCTS:", myProducts);
+
+//   const productIds = myProducts.map((p) => p._id);
+
+//   console.log("PRODUCT IDS:", productIds);
+
+//   // find order first
+//   const existingOrder = await Order.findOne({
+//     _id: orderId,
+//     "items.product": { $in: productIds },
+//   });
+
+//   console.log("EXISTING ORDER:", existingOrder);
+
+//   if (!existingOrder) {
+//     throw new Error("Order not found or not your product");
+//   }
+
+//   // update
+//   existingOrder.orderStatus = orderStatus;
+
+//   await existingOrder.save();
+
+//   return existingOrder;
+// };
 
 
 
@@ -1055,7 +1086,7 @@ const getMyProducts = async (
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
-    .select("name price images category colors sizes discount stock isDeleted createdAt");
+    .select("name price images category discountPrice colors sizes discount stock isDeleted createdAt");
  
   return {
     products,
@@ -1192,6 +1223,32 @@ const updateManageOrderStatus = async (
 
 
 
+
+const updateOrderStatus = async (
+  userId: string,
+  orderId: string,
+  orderStatus:
+    | "processing"
+    | "shipped"
+    | "delivered"
+    | "cancelled"
+) => {
+
+  // find order
+  const existingOrder = await Order.findById(orderId);
+
+  if (!existingOrder) {
+    throw new Error("Order not found");
+  }
+
+  // update status
+  existingOrder.orderStatus = orderStatus;
+
+  // save
+  await existingOrder.save();
+
+  return existingOrder;
+};
 
 export const productServices = {
     getAllProductsService,

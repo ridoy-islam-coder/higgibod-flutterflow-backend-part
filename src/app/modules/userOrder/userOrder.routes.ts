@@ -37,4 +37,7 @@ router.get("/cancel", orderController.orderCancelPage);
 router.patch("/status/:orderId", auth(USER_ROLE.USER,USER_ROLE.ORGANIZER), orderController.updateOrderStatus);
 
 
+router.get("/myproductorders",auth(USER_ROLE.USER,USER_ROLE.MARCHANT),orderController.getMyProductOrders);
+
+
 export const orderRoutes = router;
