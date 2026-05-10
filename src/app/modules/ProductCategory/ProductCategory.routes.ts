@@ -21,15 +21,15 @@ router.patch(
 
 router.delete(
   "/product-delete/:id",
-  auth(UserRole.admin),
+  auth(UserRole.admin,UserRole.admin),
   ProductCategoryController.deleteProductCategory
 );
 
 // ─── Public Routes ─────────────────────────────────────────────────────────────
-router.get("/product-category",auth(UserRole.USER,UserRole.MARCHANT), ProductCategoryController.getAllProductCategories);
+router.get("/product-category",auth(UserRole.USER,UserRole.MARCHANT,UserRole.admin), ProductCategoryController.getAllProductCategories);
 
-router.get("/category/:id", auth(UserRole.USER,UserRole.MARCHANT), ProductCategoryController.getProductCategoryById);
+router.get("/category/:id", auth(UserRole.USER,UserRole.MARCHANT,UserRole.admin), ProductCategoryController.getProductCategoryById);
 
-router.get("/products/:categoryId", auth(UserRole.USER,UserRole.MARCHANT), ProductCategoryController.getProductsByCategoryId);
+router.get("/products/:categoryId", auth(UserRole.USER,UserRole.MARCHANT,UserRole.admin), ProductCategoryController.getProductsByCategoryId);
 
 export const ProductCategoryRoutes = router;

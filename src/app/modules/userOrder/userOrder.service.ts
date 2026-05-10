@@ -156,7 +156,7 @@ export const createOrder = async (userId: string, body: any) => {
     subtotal,
     shippingCost: totalShipping,
     total,
-    paymentStatus: "pending",
+    paymentStatus: "paid",
     orderStatus: "processing",
   });
 

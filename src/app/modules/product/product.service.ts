@@ -482,7 +482,125 @@ export const addproducetReviewService = async (req: any) => {
 
 
 
-// ── Home Dashboard ─────────────────────────────────────────────────────────────
+// // ── Home Dashboard ─────────────────────────────────────────────────────────────
+// const getProductDashboard = async (
+//   userId: string,
+//   year?: number,
+//   page: number = 1,
+//   limit: number = 10
+// ) => {
+//   const targetYear = year || new Date().getFullYear();
+//   const skip = (page - 1) * limit;
+ 
+//   // আমার সব product IDs
+//   const myProducts = await Product.find(
+//     { host: userId, isDeleted: false },
+//     { _id: 1 }
+//   );
+//   const productIds = myProducts.map((p) => p._id);
+ 
+//   // ── Total Products Count ──────────────────────────────────
+//   const totalProducts = productIds.length;
+ 
+//   // ── Total Sales & Earning ─────────────────────────────────
+//   const totalSalesResult = await Order.aggregate([
+//     {
+//       $match: {
+//         "items.product": { $in: productIds },
+//         paymentStatus: "paid",
+//         isDeleted: false,
+//       },
+//     },
+//     { $unwind: "$items" },
+//     { $match: { "items.product": { $in: productIds } } },
+//     {
+//       $group: {
+//         _id: null,
+//         totalSales: { $sum: "$items.quantity" },
+//         totalEarning: {
+//           $sum: { $multiply: ["$items.price", "$items.quantity"] },
+//         },
+//       },
+//     },
+//   ]);
+ 
+//   const totalSales = totalSalesResult[0]?.totalSales || 0;
+//   const totalEarning = totalSalesResult[0]?.totalEarning || 0;
+ 
+
+
+
+//   // ── Monthly Earning ───────────────────────────────────────
+//   const monthlyEarningRaw = await Order.aggregate([
+//     {
+//       $match: {
+//         "items.product": { $in: productIds },
+//         paymentStatus: "paid",
+//         isDeleted: false,
+//         createdAt: {
+//           $gte: new Date(`${targetYear}-01-01`),
+//           $lte: new Date(`${targetYear}-12-31`),
+//         },
+//       },
+//     },
+//     { $unwind: "$items" },
+//     { $match: { "items.product": { $in: productIds } } },
+//     {
+//       $group: {
+//         _id: { $month: "$createdAt" },
+//         earning: {
+//           $sum: { $multiply: ["$items.price", "$items.quantity"] },
+//         },
+//       },
+//     },
+//     { $sort: { _id: 1 } },
+//   ]);
+ 
+//   const monthlyEarning = Array.from({ length: 12 }, (_, i) => {
+//     const found = monthlyEarningRaw.find((m) => m._id === i + 1);
+//     return {
+//       month: i + 1,
+//       monthName: new Date(targetYear, i, 1).toLocaleString("en", {
+//         month: "short",
+//       }),
+//       earning: found?.earning || 0,
+//     };
+//   });
+ 
+//   // ── Recent Orders with pagination ─────────────────────────
+//   const totalOrders = await Order.countDocuments({
+//     "items.product": { $in: productIds },
+//     isDeleted: false,
+//   });
+ 
+//   const recentOrders = await Order.find({
+//     "items.product": { $in: productIds },
+//     isDeleted: false,
+//   })
+//     .populate({ path: "items.product", select: "name images price" })
+//     .populate("user", "fullName image email")
+//     .sort({ createdAt: -1 })
+//     .skip(skip)
+//     .limit(limit)
+//     .select("items subtotal total orderStatus paymentStatus createdAt");
+ 
+//   return {
+//     totalProducts,
+//     totalSales,
+//     totalEarning,
+//     year: targetYear,
+//     monthlyEarning,
+//     recentOrders,
+//     pagination: {
+//       total: totalOrders,
+//       page,
+//       limit,
+//       totalPages: Math.ceil(totalOrders / limit),
+//     },
+//   };
+// };
+ 
+
 const getProductDashboard = async (
   userId: string,
   year?: number,
@@ -491,28 +609,50 @@ const getProductDashboard = async (
 ) => {
   const targetYear = year || new Date().getFullYear();
   const skip = (page - 1) * limit;
- 
-  // আমার সব product IDs
+
+  // ✅ শুধু আমার product IDs
   const myProducts = await Product.find(
-    { host: userId, isDeleted: false },
+    { host: new Types.ObjectId(userId), isDeleted: false },
     { _id: 1 }
   );
   const productIds = myProducts.map((p) => p._id);
- 
+
+  // ✅ product না থাকলে early return
+  if (productIds.length === 0) {
+    return {
+      totalProducts: 0,
+      totalSales: 0,
+      totalEarning: 0,
+      year: targetYear,
+      monthlyEarning: Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        monthName: new Date(targetYear, i, 1).toLocaleString("en", {
+          month: "short",
+        }),
+        earning: 0,
+      })),
+      recentOrders: [],
+      pagination: { total: 0, page, limit, totalPages: 0 },
+    };
+  }
+
   // ── Total Products Count ──────────────────────────────────
   const totalProducts = productIds.length;
- 
+
   // ── Total Sales & Earning ─────────────────────────────────
   const totalSalesResult = await Order.aggregate([
     {
       $match: {
-        "items.product": { $in: productIds },
         paymentStatus: "paid",
         isDeleted: false,
       },
     },
     { $unwind: "$items" },
-    { $match: { "items.product": { $in: productIds } } },
+    {
+      $match: {
+        "items.product": { $in: productIds },
+      },
+    },
     {
       $group: {
         _id: null,
@@ -523,28 +663,28 @@ const getProductDashboard = async (
       },
     },
   ]);
- 
+
   const totalSales = totalSalesResult[0]?.totalSales || 0;
   const totalEarning = totalSalesResult[0]?.totalEarning || 0;
- 
-
-
 
   // ── Monthly Earning ───────────────────────────────────────
   const monthlyEarningRaw = await Order.aggregate([
     {
       $match: {
-        "items.product": { $in: productIds },
         paymentStatus: "paid",
         isDeleted: false,
         createdAt: {
           $gte: new Date(`${targetYear}-01-01`),
-          $lte: new Date(`${targetYear}-12-31`),
+          $lte: new Date(`${targetYear}-12-31T23:59:59`),
         },
       },
     },
     { $unwind: "$items" },
-    { $match: { "items.product": { $in: productIds } } },
+    {
+      $match: {
+        "items.product": { $in: productIds },
+      },
+    },
     {
       $group: {
         _id: { $month: "$createdAt" },
@@ -555,7 +695,7 @@ const getProductDashboard = async (
     },
     { $sort: { _id: 1 } },
   ]);
- 
+
   const monthlyEarning = Array.from({ length: 12 }, (_, i) => {
     const found = monthlyEarningRaw.find((m) => m._id === i + 1);
     return {
@@ -566,24 +706,86 @@ const getProductDashboard = async (
       earning: found?.earning || 0,
     };
   });
- 
-  // ── Recent Orders with pagination ─────────────────────────
-  const totalOrders = await Order.countDocuments({
-    "items.product": { $in: productIds },
-    isDeleted: false,
-  });
- 
-  const recentOrders = await Order.find({
-    "items.product": { $in: productIds },
-    isDeleted: false,
-  })
-    .populate({ path: "items.product", select: "name images price" })
-    .populate("user", "fullName image email")
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .select("items subtotal total orderStatus paymentStatus createdAt");
- 
+
+  // ── Total Orders Count ────────────────────────────────────
+  const totalOrdersResult = await Order.aggregate([
+    {
+      $match: {
+        isDeleted: false,
+      },
+    },
+    { $unwind: "$items" },
+    {
+      $match: {
+        "items.product": { $in: productIds },
+      },
+    },
+    {
+      $group: {
+        _id: "$_id",
+      },
+    },
+    {
+      $count: "total",
+    },
+  ]);
+
+  const totalOrders = totalOrdersResult[0]?.total || 0;
+
+  // ── Recent Orders ─────────────────────────────────────────
+  const recentOrders = await Order.aggregate([
+    {
+      $match: {
+        "items.product": { $in: productIds },
+        isDeleted: false,
+      },
+    },
+    { $unwind: "$items" },
+    {
+      $match: {
+        "items.product": { $in: productIds }, // ✅ শুধু আমার product এর items
+      },
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "items.product",
+        foreignField: "_id",
+        as: "items.product",
+        pipeline: [{ $project: { name: 1, images: 1, price: 1 } }],
+      },
+    },
+    { $unwind: "$items.product" },
+    {
+      $lookup: {
+        from: "users",
+        localField: "user",
+        foreignField: "_id",
+        as: "userInfo",
+        pipeline: [{ $project: { fullName: 1, image: 1, email: 1 } }],
+      },
+    },
+    {
+     // ✅ সঠিক
+ $unwind: { path: "$userInfo", preserveNullAndEmptyArrays: true },
+    },
+    {
+      $group: {
+        _id: "$_id",
+        user: { $first: "$userInfo" },
+        items: { $push: "$items" }, // ✅ শুধু আমার product এর items
+        subtotal: { $first: "$subtotal" },
+        total: { $first: "$total" },
+        orderStatus: { $first: "$orderStatus" },
+        paymentStatus: { $first: "$paymentStatus" },
+        createdAt: { $first: "$createdAt" },
+      },
+    },
+    { $sort: { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: limit },
+  ]);
+
   return {
     totalProducts,
     totalSales,
@@ -600,10 +802,6 @@ const getProductDashboard = async (
   };
 };
  
-
-
- 
-// ── Earning Overview with pagination ──────────────────────────────────────────
 const getEarningOverview = async (
   userId: string,
   year?: number,
@@ -612,32 +810,54 @@ const getEarningOverview = async (
 ) => {
   const targetYear = year || new Date().getFullYear();
   const skip = (page - 1) * limit;
- 
-  const myProducts = await Product.find({ host: userId, isDeleted: false }, { _id: 1 });
+
+  // ✅ ObjectId convert
+  const myProducts = await Product.find(
+    { host: new Types.ObjectId(userId), isDeleted: false },
+    { _id: 1 }
+  );
   const productIds = myProducts.map((p) => p._id);
- 
+
+  // ✅ product না থাকলে early return
+  if (productIds.length === 0) {
+    return {
+      totalEarning: 0,
+      year: targetYear,
+      monthlyEarning: Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        monthName: new Date(targetYear, i, 1).toLocaleString("en", { month: "short" }),
+        earning: 0,
+      })),
+      recentTransactions: [],
+      pagination: { total: 0, page, limit, totalPages: 0 },
+    };
+  }
+
+  // ── Total Earning ─────────────────────────────────────────
   const totalResult = await Order.aggregate([
-    { $match: { "items.product": { $in: productIds }, paymentStatus: "paid", isDeleted: false } },
+    { $match: { paymentStatus: "paid", isDeleted: false } },
     { $unwind: "$items" },
     { $match: { "items.product": { $in: productIds } } },
     {
       $group: {
         _id: null,
-        totalEarning: { $sum: { $multiply: ["$items.price", "$items.quantity"] } },
+        totalEarning: {
+          $sum: { $multiply: ["$items.price", "$items.quantity"] },
+        },
       },
     },
   ]);
   const totalEarning = totalResult[0]?.totalEarning || 0;
- 
+
+  // ── Monthly Earning ───────────────────────────────────────
   const monthlyRaw = await Order.aggregate([
     {
       $match: {
-        "items.product": { $in: productIds },
         paymentStatus: "paid",
         isDeleted: false,
         createdAt: {
           $gte: new Date(`${targetYear}-01-01`),
-          $lte: new Date(`${targetYear}-12-31`),
+          $lte: new Date(`${targetYear}-12-31T23:59:59`),
         },
       },
     },
@@ -646,12 +866,14 @@ const getEarningOverview = async (
     {
       $group: {
         _id: { $month: "$createdAt" },
-        earning: { $sum: { $multiply: ["$items.price", "$items.quantity"] } },
+        earning: {
+          $sum: { $multiply: ["$items.price", "$items.quantity"] },
+        },
       },
     },
     { $sort: { _id: 1 } },
   ]);
- 
+
   const monthlyEarning = Array.from({ length: 12 }, (_, i) => {
     const found = monthlyRaw.find((m) => m._id === i + 1);
     return {
@@ -660,24 +882,50 @@ const getEarningOverview = async (
       earning: found?.earning || 0,
     };
   });
- 
-  const totalTransactions = await Order.countDocuments({
-    "items.product": { $in: productIds },
-    paymentStatus: "paid",
-    isDeleted: false,
-  });
- 
-  const recentTransactions = await Order.find({
-    "items.product": { $in: productIds },
-    paymentStatus: "paid",
-    isDeleted: false,
-  })
-    .populate({ path: "items.product", select: "name images" })
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .select("total createdAt orderStatus");
- 
+
+  // ── Total Transactions Count ──────────────────────────────
+  const totalTransactionsResult = await Order.aggregate([
+    { $match: { paymentStatus: "paid", isDeleted: false } },
+    { $unwind: "$items" },
+    { $match: { "items.product": { $in: productIds } } },
+    { $group: { _id: "$_id" } },
+    { $count: "total" },
+  ]);
+  const totalTransactions = totalTransactionsResult[0]?.total || 0;
+
+  // ── Recent Transactions — শুধু আমার product এর items ─────
+  const recentTransactions = await Order.aggregate([
+    { $match: { paymentStatus: "paid", isDeleted: false } },
+    { $unwind: "$items" },
+    {
+      $match: {
+        "items.product": { $in: productIds }, // ✅ শুধু আমার product
+      },
+    },
+    {
+      $lookup: {
+        from: "products",
+        localField: "items.product",
+        foreignField: "_id",
+        as: "items.product",
+        pipeline: [{ $project: { name: 1, images: 1 } }],
+      },
+    },
+    { $unwind: "$items.product" },
+    {
+      $group: {
+        _id: "$_id",
+        items: { $push: "$items" }, // ✅ শুধু আমার product এর items
+        total: { $first: "$total" },
+        orderStatus: { $first: "$orderStatus" },
+        createdAt: { $first: "$createdAt" },
+      },
+    },
+    { $sort: { createdAt: -1 } },
+    { $skip: skip },
+    { $limit: limit },
+  ]);
+
   return {
     totalEarning,
     year: targetYear,

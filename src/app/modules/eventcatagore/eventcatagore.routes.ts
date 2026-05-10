@@ -9,23 +9,23 @@ import upload from "../../middleware/fileUpload";
 const router = Router();
  
 
-router.get("/allcategories-event",auth(USER_ROLE.USER), categoryController.getAllCategories);
+router.get("/allcategories-event",auth(USER_ROLE.USER,USER_ROLE.admin), categoryController.getAllCategories);
 
 router.post("/categories-event",auth(USER_ROLE.USER,USER_ROLE.admin), upload.single('image'), categoryController.createCategory);
 
-router.get("/details/:id",auth(USER_ROLE.USER), categoryController.getCategoryById);
+router.get("/details/:id",auth(USER_ROLE.USER,USER_ROLE.admin), categoryController.getCategoryById);
 
-router.patch("/update/:id",auth(USER_ROLE.USER), categoryController.updateCategory);
+router.patch("/update/:id",auth(USER_ROLE.USER,USER_ROLE.admin), categoryController.updateCategory);
 
-router.delete("/delete/:id",auth(USER_ROLE.USER), categoryController.deleteCategory);
+router.delete("/delete/:id",auth(USER_ROLE.USER,USER_ROLE.admin), categoryController.deleteCategory);
 
 
 //newapi
 
-router.get("/getAllCategories", auth(USER_ROLE.USER), categoryController.getAllCategories);
+router.get("/getAllCategories", auth(USER_ROLE.USER,USER_ROLE.admin), categoryController.getAllCategories);
 
-router.get("/details/:id",auth(USER_ROLE.USER), categoryController.getCategoryByIdnew);
+router.get("/details/:id",auth(USER_ROLE.USER,USER_ROLE.admin), categoryController.getCategoryByIdnew);
 
-router.get("/events",auth(USER_ROLE.USER), categoryController.getEventsByCategoryId);
+router.get("/events",auth(USER_ROLE.USER,USER_ROLE.admin), categoryController.getEventsByCategoryId);
  
 export const catagoreeventRoutes = router;
