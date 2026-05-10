@@ -13,7 +13,10 @@ import { Personalization } from '../../Personalizationuser/Personalization.model
 import SocialLink from '../../sociallink/soscial.model';
 
 const updateAdminProfile = async (id: string, payload: Record<string, any>) => {
-  const allowedFields = ['fullName', 'phoneNumber', 'image'];
+  console.log("Update id:", id);
+  console.log("Payload:", payload);
+
+  const allowedFields = ["fullName", "phoneNumber", "image"];
   const updateData: Record<string, any> = {};
 
   allowedFields.forEach((field) => {
@@ -21,15 +24,21 @@ const updateAdminProfile = async (id: string, payload: Record<string, any>) => {
       updateData[field] = payload[field];
     }
   });
+
+ 
+
   const admin = await Admin.findByIdAndUpdate(id, updateData, {
     new: true,
     runValidators: true,
   });
 
-  if (!admin) throw new AppError(httpStatus.NOT_FOUND, 'Admin not found');
-
+  
+  if (!admin) throw new AppError(httpStatus.NOT_FOUND, "Admin not found");
   return admin;
 };
+
+
+
 
 const changePassword = async (
   id: string,
@@ -317,9 +326,7 @@ const deleteUser = async (userId: string) => {
   return { message: "User deleted successfully" };
 };
  const getSingleUser = async (userId: string) => {
-  const user = await User.findById(userId).select(
-    "fullName email image coverImage role  fcmToken isActive isVerified location subscription country phoneNumber createdAt"
-  );
+  const user = await User.findById(userId)
   if (!user) throw new Error("User not found");
 
   // ✅ Personalization data — থাকলে আসবে, না থাকলে null

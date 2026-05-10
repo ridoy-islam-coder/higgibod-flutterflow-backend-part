@@ -17,10 +17,12 @@ const PromoCodeSchema = new Schema<TPromoCode, PromoCodeModel>(
       ref: 'SubscriptionPlan',
       required: true,
     },
-    trialDays: {
-      type: Number,
-      required: true,
-    },
+   // ✅ এটা দাও
+trialMonths: {
+  type: Number,
+  required: true,
+  default: 1,
+},
     usedBy: {
       type: Schema.Types.ObjectId,
       ref: 'User',

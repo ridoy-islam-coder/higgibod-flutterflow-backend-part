@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { adminControllers } from './admin.controller';
 // import upload from '../../../middleware/fileUpload';
 import auth from '../../../middleware/auth.middleware';
+import upload from '../../../middleware/fileUpload';
 
 const router = Router();
 
@@ -11,9 +12,7 @@ router.post('/adminRegister', adminControllers.adminRegister);
 router.post('/login', adminControllers.adminLogin);
 router.get('/get-profile', auth('admin'), adminControllers.getProfile);
 
-router.patch('/update-profile',auth('admin'),//   upload.single('file'),
-  adminControllers.updateProfile,
-);
+router.patch('/update-profile',auth('admin'), upload.single('file'),adminControllers.updateProfile,);
 router.patch('/change-password',auth('admin',),adminControllers.changePassword,);
 
 

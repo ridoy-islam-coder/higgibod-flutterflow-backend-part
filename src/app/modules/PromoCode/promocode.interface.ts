@@ -5,7 +5,7 @@ export type TPromoCode = {
   _id?: Types.ObjectId;
   code: string;
   plan: Types.ObjectId;
-  trialDays: number;
+  trialMonths: number;
   usedBy?: Types.ObjectId | null;
   isUsed: boolean;
   expiresAt?: Date;

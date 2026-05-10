@@ -377,11 +377,11 @@ const handleStripeWebhook = async (rawBody: Buffer, signature: string) => {
 };
 
 
-// ─── Get My Payment History ───────────────────────────────────────────────────
+// ─── Get My Payment History ──────────────────────────────────────────────────
 const getMyPaymentHistory = async (userId: string) => {
   const result = await PaymentHistory.find({ user: new Types.ObjectId(userId) })
-    .populate('plan', 'name price interval currency')
-    .populate('promoCode', 'code trialDays')
+    .populate("plan", "name price interval currency trialMonths") // ✅ trialMonths
+    .populate("promoCode", "code trialMonths")                    // ✅ trialMonths
     .sort({ createdAt: -1 });
   return result;
 };
@@ -430,6 +430,85 @@ const cancelSubscription = async (userId: string) => {
 
 
 
+const getMySubscription = async (userId: string) => {
+  const user = await User.findById(userId).populate(
+    "subscription.plan",
+    "name price interval trialMonths currency"
+  );
+
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found");
+
+  const subscription = user.subscription;
+  if (!subscription || !subscription.plan) {
+    return { hasSubscription: false };
+  }
+
+  const now = new Date();
+  const startsAt = new Date(subscription.startsAt);
+  const expiresAt = new Date(subscription.expiresAt);
+
+  // ✅ Days remaining calculate
+  const daysRemaining = Math.max(
+    0,
+    Math.ceil((expiresAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+  );
+
+  // ✅ Total days calculate
+  const totalDays = Math.ceil(
+    (expiresAt.getTime() - startsAt.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  // ✅ Days used calculate
+  const daysUsed = Math.max(
+    0,
+    Math.ceil((now.getTime() - startsAt.getTime()) / (1000 * 60 * 60 * 24))
+  );
+
+  // ✅ Trial ending soon — 5 দিন বা কম বাকি থাকলে
+  const isEndingSoon = daysRemaining <= 5;
+
+  // ✅ Promo code use হয়েছে কিনা
+  const promoCode = subscription.promoCodeUsed
+    ? await PromoCode.findById(subscription.promoCodeUsed).select("code")
+    : null;
+
+  return {
+    hasSubscription: true,
+    plan: subscription.plan,
+    status: subscription.status,
+    startsAt: subscription.startsAt,
+    expiresAt: subscription.expiresAt,
+    daysRemaining,
+    daysUsed,
+    totalDays,
+    isEndingSoon,         // ✅ ending soon warning
+    isTrial: subscription.status === "trialing",
+    promoApplied: !!promoCode,
+    promoCode: promoCode?.code ?? null,
+  };
+};
+
+
+
+
+
+
+
+
+
+
+const cancelTrial = async (userId: string) => {
+  const user = await User.findById(userId);
+  if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found");
+
+  await User.findByIdAndUpdate(userId, {
+    "subscription.status": "cancelled",
+    "subscription.expiresAt": new Date(), // ✅ আজকেই expire করো
+  });
+
+  return { message: "Trial cancelled successfully" };
+};
+
 
 
 // ─── Export ───────────────────────────────────────────────────────────────────
@@ -439,6 +518,8 @@ export const PaymentService = {
   getMyPaymentHistory,
   getAllPaymentHistory,
   cancelSubscription,
+  getMySubscription,  
+  cancelTrial,
 };
 
 

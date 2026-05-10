@@ -24,11 +24,11 @@ router.get('/subscription', PaymentController.paymentSuccess);
 
 // ─── User Routes ───────────────────────────────────────────────────────────────
 router.post('/checkout', auth(UserRole.USER), PaymentController.createCheckoutSession);
-router.get('/history', auth(UserRole.USER), PaymentController.getMyPaymentHistory);
+router.get('/history', auth(UserRole.admin,UserRole.MARCHANT,UserRole.KAATEDJ,UserRole.ORGANIZER,UserRole.USER), PaymentController.getMyPaymentHistory);
 // router.post('/cancel', auth(UserRole.USER), PaymentController.cancelSubscription);
 
 // ─── Admin Routes ──────────────────────────────────────────────────────────────
-router.get('/all-history', auth(UserRole.admin), PaymentController.getAllPaymentHistory);
+router.get('/all-history', auth(UserRole.admin,UserRole.MARCHANT,UserRole.KAATEDJ,UserRole.ORGANIZER,UserRole.USER), PaymentController.getAllPaymentHistory);
 
 // Checkout
 router.post(
@@ -36,6 +36,16 @@ router.post(
   auth(),
   PaymentController.createCheckoutSession,
 );
+
+
+
+
+router.patch("/cancel-trial", auth(UserRole.admin,UserRole.MARCHANT,UserRole.KAATEDJ,UserRole.ORGANIZER,UserRole.USER), PaymentController.cancelTrial);
+
+
+router.get("/my-subscription", auth(UserRole.admin,UserRole.MARCHANT,UserRole.KAATEDJ,UserRole.ORGANIZER,UserRole.USER), PaymentController.getMySubscription);
+
+
 
 
 

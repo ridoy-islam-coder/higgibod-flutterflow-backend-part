@@ -1231,6 +1231,34 @@ const paymentCancel = (req: Request, res: Response) => {
 
 
 
+
+// GET /api/subscription/my-subscription
+const getMySubscription = catchAsync(async (req: Request, res: Response) => {
+  const result = await PaymentService.getMySubscription(req.user._id as string);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Subscription fetched successfully",
+    data: result,
+  });
+});
+
+
+
+
+// PATCH /api/subscription/cancel-trial
+const cancelTrial = catchAsync(async (req: Request, res: Response) => {
+  const result = await PaymentService.cancelTrial(req.user._id);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Trial cancelled successfully",
+    data: result,
+  });
+});
+
+
+
 // ─── Export ───────────────────────────────────────────────────────────────────
 export const PaymentController = {
   createCheckoutSession,
@@ -1240,4 +1268,7 @@ export const PaymentController = {
   getAllPaymentHistory,
   cancelSubscription,
   paymentCancel,
+  getMySubscription,
+  cancelTrial,
+
 };
