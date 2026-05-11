@@ -6,6 +6,7 @@ import sendResponse from "../../utils/sendResponse";
 import { personalizationService } from "./Personalization.service";
 import { uploadToS3 } from "../../utils/fileHelper";
 import httpStatus  from 'http-status';
+import User from "../user/user.model";
 
 
  
@@ -193,7 +194,14 @@ console.log("req.body →", req.body);
     );
     payload.codeOfConductFileUrl = uploaded.url;
   }
- 
+
+  const { subscribedToEmails, ...personalizationPayload } = payload;
+   
+if (payload.subscribedToEmails !== undefined) {
+  await User.findByIdAndUpdate(userId, {
+    $set: { subscribeToEmails: payload.subscribedToEmails },
+  });
+}
   // ── Upsert ────────────────────────────────────────────────────
   const result = await personalizationService.upsertPersonalization(
     userId,

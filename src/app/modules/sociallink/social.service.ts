@@ -7,6 +7,7 @@ import config from "../../config";
 import { deleteFromS3, deleteManyFromS3, uploadToS3 } from "../../utils/fileHelper";
 import mongoose from "mongoose";
 import { JwtPayload } from "jsonwebtoken";
+import { Personalization } from "../Personalizationuser/Personalization.model";
 
 // const register = async (payload: {
 //   fullName: string;
@@ -277,8 +278,9 @@ const getProfile = async (user: JwtPayload) => {
 
   // Social links also fetch koro
   const socialLinks = await SocialLink.findOne({ user: user.id });
+  const Personalizationdata = await Personalization.findOne({ user: user.id });
 
-  return { user: result, socialLinks };
+  return { user: result, socialLinks, Personalization: Personalizationdata };
 };
 
 

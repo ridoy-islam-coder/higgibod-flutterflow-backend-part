@@ -114,9 +114,14 @@ const getMyProductOrders = catchAsync(async (req, res) => {
     | "cancelled"
     | undefined;
 
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+
   const result = await orderService.getMyProductOrders(
     userId.toString(),
-    orderStatus
+    orderStatus,
+    page,
+    limit
   );
 
   sendResponse(res, {

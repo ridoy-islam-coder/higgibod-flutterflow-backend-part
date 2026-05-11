@@ -20,7 +20,7 @@ const settingsSchema = new Schema<ISettings>(
     // },
 
     content: {
-     type: Schema.Types.Mixed,
+     type: String,
     required: true,
     },
     updatedBy: {

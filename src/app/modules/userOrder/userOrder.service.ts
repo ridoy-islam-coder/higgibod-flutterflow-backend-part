@@ -255,69 +255,95 @@ export const updateOrderStatus = async (orderId: string, status: string) => {
   if (!order) throw new AppError(404, "Order not found");
   return order;
 };
-
-
 const getMyProductOrders = async (
   userId: string,
-  orderStatus?: "processing" | "shipped" | "delivered" | "cancelled"
+  orderStatus?: "processing" | "shipped" | "delivered" | "cancelled",
+  page: number = 1,
+  limit: number = 10
 ) => {
-
-  // আমার products বের করো
   const myProducts = await Product.find(
-    {
-      host: userId,
-      isDeleted: false,
-    },
+    { host: userId, isDeleted: false },
     { _id: 1 }
   );
 
   const productIds = myProducts.map((p) => p._id.toString());
 
-  // filter
+  if (productIds.length === 0) {
+    return {
+      data: [],
+      meta: { total: 0, page, limit, totalPages: 0 },
+    };
+  }
+
   const filter: Record<string, any> = {
     "items.product": { $in: productIds },
     isDeleted: false,
   };
 
-  // status filter
   if (orderStatus) {
     filter.orderStatus = orderStatus;
   }
 
-  // orders
+  const skip = (page - 1) * limit;
+
+  // Total count
+  const totalOrders = await Order.countDocuments(filter);
+
   const orders = await Order.find(filter)
     .populate("user", "name email profileImage")
     .populate("items.product")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
 
-  // শুধু আমার product এর items রাখো
-  const formattedOrders = orders.map((order) => {
+  const formattedOrders = orders
+    .map((order) => {
+      const myItems = order.items.filter((item: any) => {
+        const productId =
+          item.product?._id?.toString() || item.product?.toString();
+        return productIds.includes(productId);
+      });
 
-    const myItems = order.items.filter((item: any) => {
+      if (myItems.length === 0) return null;
 
-      const productId =
-        item.product?._id?.toString() ||
-        item.product?.toString();
+      const mySubtotal = myItems.reduce(
+        (sum: number, item: any) => sum + item.price * item.quantity,
+        0
+      );
+      const myShippingCost = order.shippingCost ?? 0;
+      const myTotal = mySubtotal + myShippingCost;
 
-      return productIds.includes(productId);
-    });
+       const orderId = order._id.toString();
+      const orderNumber = "#" + orderId.substring(19, 24).toUpperCase();
 
-    return {
-      _id: order._id,
-      user: order.user,
-      shippingAddress: order.shippingAddress,
-      paymentStatus: order.paymentStatus,
-      orderStatus: order.orderStatus,
-      subtotal: order.subtotal,
-      total: order.total,
-      createdAt: order.createdAt,
-      items: myItems,
-    };
-  });
 
-  return formattedOrders;
+      return {
+        _id: order._id,
+        user: order.user,
+        orderNumber,
+        shippingAddress: order.shippingAddress,
+        paymentStatus: order.paymentStatus,
+        // paymentMethod: order.paymentMethod,
+        orderStatus: order.orderStatus,
+        subtotal: mySubtotal,
+        // shippingCost: myShippingCost,
+        total: myTotal,
+        createdAt: order.createdAt,
+        items: myItems,
+      };
+    })
+    .filter(Boolean);
+
+  return {
+    data: formattedOrders,
+    meta: {
+      total: totalOrders,
+      page,
+      limit,
+      totalPages: Math.ceil(totalOrders / limit),
+    },
+  };
 };
-
 
  
 export const orderService = {

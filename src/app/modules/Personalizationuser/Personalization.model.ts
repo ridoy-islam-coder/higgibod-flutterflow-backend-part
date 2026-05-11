@@ -226,10 +226,10 @@ const personalizationSchema = new Schema<IPersonalization>(
     },
 
     // "Subscribe me to emails"
-    subscribedToEmails: {
-      type: Boolean,
-      default: false,
-    },
+    // subscribedToEmails: {
+    //   type: Boolean,
+    //   default: false,
+    // },
 
     // "I agree to the Organizer Terms & Conditions"
     agreedToOrganizerTerms: {

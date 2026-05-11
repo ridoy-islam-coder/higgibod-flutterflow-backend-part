@@ -6,7 +6,7 @@ const SubscriptionPlanSchema = new Schema<TSubscriptionPlan, SubscriptionPlanMod
   {
     name: {
       type: String,
-      enum: ['starter', 'pro'],
+      enum: ['free','starter', 'pro'],
       required: true,
       
     },
