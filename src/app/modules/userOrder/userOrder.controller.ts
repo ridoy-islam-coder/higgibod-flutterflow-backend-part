@@ -7,6 +7,7 @@ import { generateCancelHTML, generateSuccessHTML } from "../../utils/orderPage.h
  import Stripe from 'stripe';
 import config from "../../config";
 import { Order } from "./userOrder.model";
+import  httpStatus from 'http-status';
 const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 
 
@@ -103,31 +104,21 @@ export const updateOrderStatus = catchAsync(async (req, res) => {
 
 
 
-
-const getMyProductOrders = catchAsync(async (req, res) => {
+const getMyProductOrders = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user._id;
-
-  const orderStatus = req.query.orderStatus as
-    | "processing"
-    | "shipped"
-    | "delivered"
-    | "cancelled"
-    | undefined;
-
-  const page = Number(req.query.page) || 1;
-  const limit = Number(req.query.limit) || 10;
+  const { orderStatus, page, limit } = req.query;
 
   const result = await orderService.getMyProductOrders(
-    userId.toString(),
-    orderStatus,
-    page,
-    limit
+    userId,
+    orderStatus as string | undefined,
+    Number(page) || 1,
+    Number(limit) || 10,
   );
 
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: httpStatus.OK,
     success: true,
-    message: "Orders fetched successfully",
+    message: 'Your product orders fetched successfully',
     data: result,
   });
 });

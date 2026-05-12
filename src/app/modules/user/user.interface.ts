@@ -59,6 +59,7 @@ export interface TUser {
   accountType?: 'emailvarifi' | 'google' | 'facebook' | 'linkedin' | 'apple';
   country: string;
   fcmToken?: string;
+  adminapproval?: 'pending' | 'approved' | 'rejected';
   howDidYouHear?: string;
   subscribeToEmails?: boolean;
   termsAccepted?: boolean;

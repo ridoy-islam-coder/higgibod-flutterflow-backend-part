@@ -15,7 +15,7 @@ const router = Router();
 router.post(
   "/create",
   auth(USER_ROLE.USER),
-  personalizationController.savePersonalization
+  personalizationController.upsertPersonalizationoriginal
 );
 
 

@@ -18,7 +18,7 @@ const SubscriptionPlanSchema = new Schema<TSubscriptionPlan, SubscriptionPlanMod
   
     description: {
       type: String,
-      required: true,
+   
     },
     price: {
       type: Number,

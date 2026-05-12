@@ -8,6 +8,7 @@ import { Product } from "../product/product.model";
 import User from "../user/user.model";
 import { Order } from "./userOrder.model";
 import Stripe from 'stripe';
+import  httpStatus  from 'http-status';
 
  
 const stripe = new Stripe(config.stripe.stripe_secret_key as string);
@@ -255,96 +256,98 @@ export const updateOrderStatus = async (orderId: string, status: string) => {
   if (!order) throw new AppError(404, "Order not found");
   return order;
 };
+
 const getMyProductOrders = async (
   userId: string,
-  orderStatus?: "processing" | "shipped" | "delivered" | "cancelled",
+  orderStatus?: string,
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
 ) => {
+  // ─── Step 1: host দিয়ে আমার সব product খোঁজো ──────────────
   const myProducts = await Product.find(
-    { host: userId, isDeleted: false },
-    { _id: 1 }
+    { host: userId },
+    { _id: 1 },
   );
 
-  const productIds = myProducts.map((p) => p._id.toString());
+  const myProductIds = myProducts.map((p) => p._id);
 
-  if (productIds.length === 0) {
+  if (myProductIds.length === 0) {
     return {
-      data: [],
-      meta: { total: 0, page, limit, totalPages: 0 },
+      meta: { page, limit, total: 0, totalPages: 0 },
+      totalOrders: 0,
+      totalQuantity: 0,
+      orders: [],
     };
   }
 
-  const filter: Record<string, any> = {
-    "items.product": { $in: productIds },
-    isDeleted: false,
+  // ─── Step 2: filter query বানাও ─────────────────────────────
+  const query: Record<string, any> = {
+    'items.product': { $in: myProductIds },
   };
 
   if (orderStatus) {
-    filter.orderStatus = orderStatus;
+    const validStatuses = ['processing', 'shipped', 'delivered', 'cancelled'];
+    if (!validStatuses.includes(orderStatus)) {
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        `Invalid orderStatus. Must be one of: ${validStatuses.join(', ')}`,
+      );
+    }
+    query.orderStatus = orderStatus;
   }
 
+  // ─── Step 3: pagination calculate ───────────────────────────
   const skip = (page - 1) * limit;
+  const total = await Order.countDocuments(query);
+  const totalPages = Math.ceil(total / limit);
 
-  // Total count
-  const totalOrders = await Order.countDocuments(filter);
-
-  const orders = await Order.find(filter)
-    .populate("user", "name email profileImage")
-    .populate("items.product")
+  // ─── Step 4: order খোঁজো ────────────────────────────────────
+  const orders = await Order.find(query)
+    .populate('user', 'fullName email phoneNumber')
+    .populate('items.product', 'name discountPrice  images host')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
 
-  const formattedOrders = orders
-    .map((order) => {
-      const myItems = order.items.filter((item: any) => {
-        const productId =
-          item.product?._id?.toString() || item.product?.toString();
-        return productIds.includes(productId);
-      });
+  // ─── Step 5: শুধু আমার product এর items ফিল্টার করো ────────
+  const myProductIdStrings = myProductIds.map((id) => id.toString());
 
-      if (myItems.length === 0) return null;
+  const result = orders.map((order) => {
+    const myItems = order.items.filter((item) =>
+      myProductIdStrings.includes(item.product._id.toString()),
+    );
 
-      const mySubtotal = myItems.reduce(
-        (sum: number, item: any) => sum + item.price * item.quantity,
-        0
-      );
-      const myShippingCost = order.shippingCost ?? 0;
-      const myTotal = mySubtotal + myShippingCost;
+    const orderId = order._id.toString();
+    const orderNumber = '#' + orderId.substring(19, 24).toUpperCase();
 
-       const orderId = order._id.toString();
-      const orderNumber = "#" + orderId.substring(19, 24).toUpperCase();
-
-
-      return {
-        _id: order._id,
-        user: order.user,
-        orderNumber,
-        shippingAddress: order.shippingAddress,
-        paymentStatus: order.paymentStatus,
-        // paymentMethod: order.paymentMethod,
-        orderStatus: order.orderStatus,
-        subtotal: mySubtotal,
-        // shippingCost: myShippingCost,
-        total: myTotal,
-        createdAt: order.createdAt,
-        items: myItems,
-      };
-    })
-    .filter(Boolean);
+    return {
+      orderId: order._id,
+      orderNumber,
+      orderStatus: order.orderStatus,
+      paymentStatus: order.paymentStatus,
+      customer: order.user,
+      shippingAddress: order.shippingAddress,
+      myItems,
+      total: order.total,
+      createdAt: order.createdAt,
+    };
+  });
 
   return {
-    data: formattedOrders,
-    meta: {
-      total: totalOrders,
+ 
+    totalQuantity: result.reduce(
+      (sum, o) => sum + o.myItems.reduce((s, i) => s + i.quantity, 0),
+      0,
+    ),
+    orders: result,
+       meta: {
       page,
       limit,
-      totalPages: Math.ceil(totalOrders / limit),
+      total,
+      totalPages,
     },
   };
 };
-
  
 export const orderService = {
   createOrder,

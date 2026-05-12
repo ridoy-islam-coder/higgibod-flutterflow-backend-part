@@ -60,7 +60,8 @@ const UserSchema = new Schema<TUser, UserModel>(
       type: String,
       // required: function(this: TUser) { return this.isVerified === true; },
       sparse: true, // 🔥 important
-      
+      // import admin from './../Dashboard/notifications/Firebase ';
+
     },
 
     phoneNumber: {
@@ -111,7 +112,12 @@ const UserSchema = new Schema<TUser, UserModel>(
         default: false,
       },
       djname: { type: String, default: "" },
-
+      
+      adminapproval: {
+        type: String,
+        enum: ['pending', 'approved', 'rejected'],
+        default: 'pending',
+      },
 
     // subscription: {
     //   plan: {
@@ -152,7 +158,8 @@ const UserSchema = new Schema<TUser, UserModel>(
 
    coverImage: {       
       type: imageSchema,
-      required: false,
+      // required: false,
+      default: "", // 👈 এটা add koro
     },
 
 

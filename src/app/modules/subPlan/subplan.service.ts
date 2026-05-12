@@ -28,7 +28,8 @@ export const createPlan = async (payload: any) => {
 
   // ─── 2. Create Stripe Price AUTO ───
   const price = await stripe.prices.create({
-    unit_amount: payload.price * 100, // dollars → cents
+    // unit_amount: payload.price * 100, // dollars → cents
+     unit_amount: Math.round(payload.price * 100),
     currency: payload.currency || 'usd',
     recurring: {
       interval: payload.interval || 'month',

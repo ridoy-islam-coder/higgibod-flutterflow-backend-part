@@ -19,6 +19,8 @@ import config from '../../config';
 const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 
 
+
+
 // const createCheckoutSession = async (
 //   userId: string,
 //   planId: string,
@@ -26,29 +28,30 @@ const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 // ) => {
 //   const plan = await SubscriptionPlan.findById(planId);
 //   if (!plan || !plan.isActive) {
-//     throw new AppError(httpStatus.NOT_FOUND, 'Subscription plan not found');
+//     throw new AppError(httpStatus.NOT_FOUND, "Subscription plan not found");
 //   }
 
-//   // ─── Promo Code Flow (0 টাকা, Stripe bypass) ─────────────────────────────
+//   // ─── Promo Code Flow (0 টাকা, Stripe bypass) ────────────────────────────
 //   if (promoCode) {
 //     const promo = await PromoCode.findOne({ code: promoCode.toUpperCase() });
+//     if (!promo || !promo.isActive)
+//       throw new AppError(httpStatus.NOT_FOUND, "Invalid promo code");
 
-//     if (!promo || !promo.isActive) {
-//       throw new AppError(httpStatus.NOT_FOUND, 'Invalid promo code');
-//     }
-//     if (promo.isUsed) {
-//       throw new AppError(httpStatus.BAD_REQUEST, 'Promo code already used');
-//     }
-//     if (promo.expiresAt && promo.expiresAt < new Date()) {
-//       throw new AppError(httpStatus.BAD_REQUEST, 'Promo code has expired');
-//     }
-//     if (promo.plan.toString() !== planId) {
-//       throw new AppError(httpStatus.BAD_REQUEST, 'Promo code is not valid for this plan');
-//     }
+//     if (promo.isUsed)
+//       throw new AppError(httpStatus.BAD_REQUEST, "Promo code already used");
+
+//     if (promo.expiresAt && promo.expiresAt < new Date())
+//       throw new AppError(httpStatus.BAD_REQUEST, "Promo code has expired");
+
+//     if (promo.plan.toString() !== planId)
+//       throw new AppError(httpStatus.BAD_REQUEST, "Promo code is not valid for this plan");
 
 //     const now = new Date();
-//     const trialDays = promo.trialDays;
-//     const expiresAt = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
+
+//     // ✅ trialMonths থেকে expiresAt calculate
+//     const trialMonths = plan.trialMonths ?? 1;
+//     const expiresAt = new Date(now);
+//     expiresAt.setMonth(expiresAt.getMonth() + trialMonths);
 
 //     // ── Atomic: race condition থেকে বাঁচাবে ──
 //     const updatedPromo = await PromoCode.findOneAndUpdate(
@@ -56,48 +59,53 @@ const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 //       { isUsed: true, usedBy: new Types.ObjectId(userId) },
 //       { new: true },
 //     );
-
-//     if (!updatedPromo) {
-//       throw new AppError(httpStatus.BAD_REQUEST, 'Promo code already used');
-//     }
+//     if (!updatedPromo)
+//       throw new AppError(httpStatus.BAD_REQUEST, "Promo code already used");
 
 //     // ── Payment History (0 টাকা) ──
 //     await PaymentHistory.create({
 //       user: new Types.ObjectId(userId),
 //       plan: new Types.ObjectId(planId),
 //       promoCode: promo._id,
-//       stripeSessionId: `PROMO-${promo._id}-${userId}-${Date.now()}`, // fake unique id
+//       stripeSessionId: `PROMO-${promo._id}-${userId}-${Date.now()}`,
 //       amount: 0,
-//       currency: plan.currency ?? 'usd',
-//       status: 'succeeded',
+//       currency: plan.currency ?? "usd",
+//       status: "succeeded",
 //       isTrial: true,
-//       trialDays,
+//       trialMonths,        // ✅ trialMonths
 //       paidAt: now,
 //     });
 
 //     // ── User subscription update ──
-//    const user= await User.findByIdAndUpdate(userId, {
+//     await User.findByIdAndUpdate(userId, {
 //       subscription: {
 //         plan: new Types.ObjectId(planId),
 //         startsAt: now,
 //         expiresAt,
 //         trialEndsAt: expiresAt,
 //         promoCodeUsed: promo._id,
-//         status: 'trialing',
+//         status: "trialing",
 //       },
 //     });
 
-
-
-   
-//     return { url: null, message: 'Plan activated successfully with promo code', isFree: true };
+//     return {
+//       url: null,
+//       message: "Plan activated successfully with promo code",
+//       isFree: true,
+//     };
 //   }
 
-//   // ─── Normal Stripe Checkout Flow ──────────────────────────────────────────
-//  // ✅ Stripe v22
-// const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0]= {
-//     mode: 'subscription',
-//     payment_method_types: ['card'],
+//   // ─── Normal Stripe Checkout Flow ─────────────────────────────────────────
+//   const now = new Date();
+
+//   // ✅ trialMonths থেকে expiresAt calculate
+//   const trialMonths = plan.trialMonths ?? 1;
+//   const expiresAt = new Date(now);
+//   expiresAt.setMonth(expiresAt.getMonth() + trialMonths);
+
+//   const sessionParams: Parameters<typeof stripe.checkout.sessions.create>[0] = {
+//     mode: "subscription",
+//     payment_method_types: ["card"],
 //     line_items: [
 //       {
 //         price: plan.stripePriceId,
@@ -107,40 +115,46 @@ const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 //     metadata: {
 //       userId: userId.toString(),
 //       planId: planId.toString(),
-//       promoCodeId: '',
-//       trialDays: '0',
-//      },
-//    success_url: `${config.backend_url}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
-//    cancel_url: `${config.backend_url}/payment/cancel`,
+//       trialMonths: trialMonths.toString(), // ✅ trialMonths metadata তে
+//     },
+//     success_url: `${config.backend_url}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+//     cancel_url: `${config.backend_url}/payment/cancel`,
 //   };
 
 //   const session = await stripe.checkout.sessions.create(sessionParams);
 
+//   // ── Payment History (pending) ──
 //   await PaymentHistory.create({
 //     user: new Types.ObjectId(userId),
 //     plan: new Types.ObjectId(planId),
 //     promoCode: null,
 //     stripeSessionId: session.id,
 //     amount: plan.price,
-//     currency: plan.currency ?? 'usd',
-//     status: 'pending',
+//     currency: plan.currency ?? "usd",
+//     status: "pending",
 //     isTrial: false,
-//     trialDays: 0,
+//     trialMonths,          // ✅ trialMonths
 //   });
 
 //   return { url: session.url, isFree: false };
 // };
+
+
+
+
+
+
+
+
+
+
+
 
 const createCheckoutSession = async (
   userId: string,
   planId: string,
   promoCode?: string,
 ) => {
-  const plan = await SubscriptionPlan.findById(planId);
-  if (!plan || !plan.isActive) {
-    throw new AppError(httpStatus.NOT_FOUND, "Subscription plan not found");
-  }
-
   // ─── Promo Code Flow (0 টাকা, Stripe bypass) ────────────────────────────
   if (promoCode) {
     const promo = await PromoCode.findOne({ code: promoCode.toUpperCase() });
@@ -150,20 +164,30 @@ const createCheckoutSession = async (
     if (promo.isUsed)
       throw new AppError(httpStatus.BAD_REQUEST, "Promo code already used");
 
+    // ── অন্য user আগে use করেছে কিনা ──────────────────────────
+    if (promo.usedBy && promo.usedBy.toString() !== userId.toString())
+      throw new AppError(httpStatus.BAD_REQUEST, "Promo code already used by another user");
+
     if (promo.expiresAt && promo.expiresAt < new Date())
       throw new AppError(httpStatus.BAD_REQUEST, "Promo code has expired");
 
-    if (promo.plan.toString() !== planId)
+    // ── planId না দিলে promo code এর plan use করো ─────────────
+    let resolvedPlanId = planId ?? promo.plan.toString();
+
+    // planId দিলে check করো promo code ওই plan এর জন্য কিনা
+    if (planId && promo.plan.toString() !== planId)
       throw new AppError(httpStatus.BAD_REQUEST, "Promo code is not valid for this plan");
 
-    const now = new Date();
+    const plan = await SubscriptionPlan.findById(resolvedPlanId);
+    if (!plan || !plan.isActive)
+      throw new AppError(httpStatus.NOT_FOUND, "Subscription plan not found");
 
-    // ✅ trialMonths থেকে expiresAt calculate
+    const now = new Date();
     const trialMonths = plan.trialMonths ?? 1;
     const expiresAt = new Date(now);
     expiresAt.setMonth(expiresAt.getMonth() + trialMonths);
 
-    // ── Atomic: race condition থেকে বাঁচাবে ──
+    // ── Atomic: race condition থেকে বাঁচাবে ──────────────────
     const updatedPromo = await PromoCode.findOneAndUpdate(
       { _id: promo._id, isUsed: false },
       { isUsed: true, usedBy: new Types.ObjectId(userId) },
@@ -172,24 +196,24 @@ const createCheckoutSession = async (
     if (!updatedPromo)
       throw new AppError(httpStatus.BAD_REQUEST, "Promo code already used");
 
-    // ── Payment History (0 টাকা) ──
+    // ── Payment History (0 টাকা) ──────────────────────────────
     await PaymentHistory.create({
       user: new Types.ObjectId(userId),
-      plan: new Types.ObjectId(planId),
+      plan: new Types.ObjectId(resolvedPlanId),
       promoCode: promo._id,
       stripeSessionId: `PROMO-${promo._id}-${userId}-${Date.now()}`,
       amount: 0,
       currency: plan.currency ?? "usd",
       status: "succeeded",
       isTrial: true,
-      trialMonths,        // ✅ trialMonths
+      trialMonths,
       paidAt: now,
     });
 
-    // ── User subscription update ──
+    // ── User subscription update ───────────────────────────────
     await User.findByIdAndUpdate(userId, {
       subscription: {
-        plan: new Types.ObjectId(planId),
+        plan: new Types.ObjectId(resolvedPlanId),
         startsAt: now,
         expiresAt,
         trialEndsAt: expiresAt,
@@ -202,13 +226,21 @@ const createCheckoutSession = async (
       url: null,
       message: "Plan activated successfully with promo code",
       isFree: true,
+      plan: plan.name,
+      expiresAt,
+      trialMonths,
     };
   }
 
-  // ─── Normal Stripe Checkout Flow ─────────────────────────────────────────
-  const now = new Date();
+  // ─── Normal Stripe Checkout — planId required ─────────────────────────────
+  if (!planId)
+    throw new AppError(httpStatus.BAD_REQUEST, "Plan ID is required");
 
-  // ✅ trialMonths থেকে expiresAt calculate
+  const plan = await SubscriptionPlan.findById(planId);
+  if (!plan || !plan.isActive)
+    throw new AppError(httpStatus.NOT_FOUND, "Subscription plan not found");
+
+  const now = new Date();
   const trialMonths = plan.trialMonths ?? 1;
   const expiresAt = new Date(now);
   expiresAt.setMonth(expiresAt.getMonth() + trialMonths);
@@ -225,7 +257,7 @@ const createCheckoutSession = async (
     metadata: {
       userId: userId.toString(),
       planId: planId.toString(),
-      trialMonths: trialMonths.toString(), // ✅ trialMonths metadata তে
+      trialMonths: trialMonths.toString(),
     },
     success_url: `${config.backend_url}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${config.backend_url}/payment/cancel`,
@@ -233,7 +265,7 @@ const createCheckoutSession = async (
 
   const session = await stripe.checkout.sessions.create(sessionParams);
 
-  // ── Payment History (pending) ──
+  // ── Payment History (pending) ──────────────────────────────────
   await PaymentHistory.create({
     user: new Types.ObjectId(userId),
     plan: new Types.ObjectId(planId),
@@ -243,11 +275,22 @@ const createCheckoutSession = async (
     currency: plan.currency ?? "usd",
     status: "pending",
     isTrial: false,
-    trialMonths,          // ✅ trialMonths
+    trialMonths,
   });
 
   return { url: session.url, isFree: false };
 };
+
+
+
+
+
+
+
+
+
+
+
 
 
 const handleStripeWebhook = async (rawBody: Buffer, signature: string) => {
@@ -314,6 +357,60 @@ const handleStripeWebhook = async (rawBody: Buffer, signature: string) => {
       },
     });
   }
+
+
+// ── invoice.payment_succeeded — auto renewal ─────────────────────────────────
+if (event.type === 'invoice.payment_succeeded') {
+  const invoice = event.data.object;
+
+  // first time checkout এ skip করো — checkout.session.completed handle করবে
+  if (invoice.billing_reason === 'subscription_create') return { received: true };
+
+  // Stripe v22: subscription id
+  const subscriptionId =
+    (invoice as any).subscription ??
+    (invoice.parent as any)?.subscription_details?.subscription ??
+    null;
+
+  if (!subscriptionId) return { received: true };
+
+  const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+
+  // নতুন expiresAt
+  const currentPeriodEnd =
+    (stripeSubscription as any).current_period_end ??
+    stripeSubscription.items?.data?.[0]?.current_period_end;
+
+  const newExpiresAt = new Date(currentPeriodEnd * 1000);
+
+  // ── User subscription renew ───────────────────────────────────
+  await User.findOneAndUpdate(
+    { 'subscription.stripeSubscriptionId': subscriptionId },
+    {
+      'subscription.status': 'active',
+      'subscription.expiresAt': newExpiresAt,
+      'subscription.trialEndsAt': undefined,
+    },
+  );
+
+  // ── Payment History — নতুন renewal record ────────────────────
+  const user = await User.findOne({
+    'subscription.stripeSubscriptionId': subscriptionId,
+  });
+
+  await PaymentHistory.create({
+    user: user?._id,
+    stripeSessionId: invoice.id,
+    stripeSubscriptionId: subscriptionId,
+    amount: invoice.amount_paid ?? 0,
+    currency: invoice.currency ?? 'usd',
+    status: 'succeeded',
+    isTrial: false,
+    paidAt: new Date(),
+  });
+}
+
+
 
   // ── customer.subscription.updated ───────────────────────────────────────────
   if (event.type === 'customer.subscription.updated') {

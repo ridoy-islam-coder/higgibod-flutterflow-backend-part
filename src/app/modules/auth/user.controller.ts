@@ -127,6 +127,18 @@ const login = catchAsync(async (req: Request, res: Response) => {
     throw new AppError(httpStatus.UNAUTHORIZED, 'Incorrect password');
   }
 
+
+//   if (user.role === 'ORGANIZER') {
+//   if (user.adminApproval !== 'approved') {
+//     throw new AppError(
+//       httpStatus.FORBIDDEN,
+//       user.adminApproval === 'pending'
+//         ? 'Your account is pending admin approval. Please wait.'
+//         : 'Your account has been rejected. Please contact support.',
+//     );
+//   }
+// }
+
   const accessToken = jwt.sign(
     {
       id: user._id,
@@ -156,6 +168,88 @@ const login = catchAsync(async (req: Request, res: Response) => {
     },
   });
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// const login 
+
+const ornagizerlogin = catchAsync(async (req: Request, res: Response) => {
+  const { email, password } = req.body;    //adminapproval: 'approved'
+  const user = await User.findOne({ email, isActive: true ,}).select('+password');
+
+  if (!user || !user?.password) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+  }
+
+
+
+  const isPasswordMatched = await bcrypt.compare(password, user.password);
+  if (!isPasswordMatched) {
+    throw new AppError(httpStatus.UNAUTHORIZED, 'Incorrect password');
+  }
+  
+
+  //  // Admin approval check
+  // if (user.adminApproval !== 'approved') {
+
+  //   throw new AppError(
+  //     httpStatus.FORBIDDEN,
+  //     'Admin has not approved your account yet'
+  //   );
+  // }
+
+  const accessToken = jwt.sign(
+    {
+      id: user._id,
+      role: user.role,
+    },
+    config.jwt.jwt_access_secret as Secret,
+    { expiresIn: '24h' },
+  );
+
+  const refreshToken = jwt.sign(
+    {
+      id: user._id,
+      role: user.role,
+    },
+    config.jwt.jwt_refresh_secret as Secret,
+    { expiresIn: '7d' },
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Login successful',
+    data: {
+      user,
+      accessToken,
+      refreshToken,
+    },
+  });
+});
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -757,9 +851,8 @@ export const authControllers = {
   refreshToken,
   linkedInLogin,
   googleLogin,
-
   facebookLogin,
-
+  ornagizerlogin,
   userRegistration,
   appleLogin,
   

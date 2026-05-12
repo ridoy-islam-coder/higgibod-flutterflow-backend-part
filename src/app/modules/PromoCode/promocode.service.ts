@@ -93,33 +93,117 @@ const markPromoCodeAsUsed = async (promoCodeId: string, userId: string) => {
 
 
 
+// const validatePromoCode = async (code: string, planId: string, userId: string) => {
+//   const promo = await PromoCode.findOne({ code: code.toUpperCase() });
+
+//   if (!promo || !promo.isActive)
+//     throw new AppError(httpStatus.NOT_FOUND, "Invalid promo code");
+
+//   if (promo.isUsed)
+//     throw new AppError(httpStatus.BAD_REQUEST, "Promo code already used");
+
+//   if (promo.expiresAt && promo.expiresAt < new Date())
+//     throw new AppError(httpStatus.BAD_REQUEST, "Promo code has expired");
+
+//   if (promo.plan.toString() !== planId)
+//     throw new AppError(httpStatus.BAD_REQUEST, "Promo code is not valid for this plan");
+
+//   const plan = await SubscriptionPlan.findById(planId);
+//   if (!plan || !plan.isActive)
+//     throw new AppError(httpStatus.NOT_FOUND, "Subscription plan not found");
+
+//   const now = new Date();
+
+//   // ✅ trialMonths থেকে expiresAt calculate
+//   const trialMonths = plan.trialMonths ?? 1;
+//   const expiresAt = new Date(now);
+//   expiresAt.setMonth(expiresAt.getMonth() + trialMonths);
+
+//   // ✅ Atomic — race condition থেকে বাঁচাবে
+//   const updatedPromo = await PromoCode.findOneAndUpdate(
+//     { _id: promo._id, isUsed: false },
+//     { isUsed: true, usedBy: new Types.ObjectId(userId) },
+//     { new: true },
+//   );
+//   if (!updatedPromo)
+//     throw new AppError(httpStatus.BAD_REQUEST, "Promo code already used");
+
+//   // ✅ Payment History (0 টাকা)
+//   await PaymentHistory.create({
+//     user: new Types.ObjectId(userId),
+//     plan: new Types.ObjectId(planId),
+//     promoCode: promo._id,
+//     stripeSessionId: `PROMO-${promo._id}-${userId}-${Date.now()}`,
+//     amount: 0,
+//     currency: plan.currency ?? "usd",
+//     status: "succeeded",
+//     isTrial: true,
+//     trialMonths,
+//     paidAt: now,
+//   });
+
+//   // ✅ User subscription update
+//   await User.findByIdAndUpdate(userId, {
+//     subscription: {
+//       plan: new Types.ObjectId(planId),
+//       startsAt: now,
+//       expiresAt,
+//       trialEndsAt: expiresAt,
+//       promoCodeUsed: promo._id,
+//       status: "trialing",
+//     },
+//   });
+
+//   return {
+//     message: "Plan activated successfully with promo code",
+//     isFree: true,
+//     plan: plan.name,
+//     expiresAt,
+//     trialMonths,
+//   };
+// };
+
+
+
+
+
+
+
 const validatePromoCode = async (code: string, planId: string, userId: string) => {
   const promo = await PromoCode.findOne({ code: code.toUpperCase() });
-
   if (!promo || !promo.isActive)
     throw new AppError(httpStatus.NOT_FOUND, "Invalid promo code");
 
   if (promo.isUsed)
     throw new AppError(httpStatus.BAD_REQUEST, "Promo code already used");
 
+  // ── অন্য user আগে use করেছে কিনা ──────────────────────────
+  if (promo.usedBy && promo.usedBy.toString() !== userId.toString())
+    throw new AppError(httpStatus.BAD_REQUEST, "Promo code already used by another user");
+
   if (promo.expiresAt && promo.expiresAt < new Date())
     throw new AppError(httpStatus.BAD_REQUEST, "Promo code has expired");
 
-  if (promo.plan.toString() !== planId)
-    throw new AppError(httpStatus.BAD_REQUEST, "Promo code is not valid for this plan");
+  // ── planId optional — না দিলে promo code এর plan use করো ──
+  let resolvedPlanId = planId;
 
-  const plan = await SubscriptionPlan.findById(planId);
+  if (!resolvedPlanId) {
+    resolvedPlanId = promo.plan.toString();
+  } else {
+    if (promo.plan.toString() !== resolvedPlanId)
+      throw new AppError(httpStatus.BAD_REQUEST, "Promo code is not valid for this plan");
+  }
+
+  const plan = await SubscriptionPlan.findById(resolvedPlanId);
   if (!plan || !plan.isActive)
     throw new AppError(httpStatus.NOT_FOUND, "Subscription plan not found");
 
   const now = new Date();
-
-  // ✅ trialMonths থেকে expiresAt calculate
   const trialMonths = plan.trialMonths ?? 1;
   const expiresAt = new Date(now);
   expiresAt.setMonth(expiresAt.getMonth() + trialMonths);
 
-  // ✅ Atomic — race condition থেকে বাঁচাবে
+  // ── Atomic update — race condition থেকে বাঁচাবে ────────────
   const updatedPromo = await PromoCode.findOneAndUpdate(
     { _id: promo._id, isUsed: false },
     { isUsed: true, usedBy: new Types.ObjectId(userId) },
@@ -128,10 +212,10 @@ const validatePromoCode = async (code: string, planId: string, userId: string) =
   if (!updatedPromo)
     throw new AppError(httpStatus.BAD_REQUEST, "Promo code already used");
 
-  // ✅ Payment History (0 টাকা)
+  // ── Payment History (0 টাকা) ─────────────────────────────────
   await PaymentHistory.create({
     user: new Types.ObjectId(userId),
-    plan: new Types.ObjectId(planId),
+    plan: new Types.ObjectId(resolvedPlanId),
     promoCode: promo._id,
     stripeSessionId: `PROMO-${promo._id}-${userId}-${Date.now()}`,
     amount: 0,
@@ -142,10 +226,10 @@ const validatePromoCode = async (code: string, planId: string, userId: string) =
     paidAt: now,
   });
 
-  // ✅ User subscription update
+  // ── User subscription update ──────────────────────────────────
   await User.findByIdAndUpdate(userId, {
     subscription: {
-      plan: new Types.ObjectId(planId),
+      plan: new Types.ObjectId(resolvedPlanId),
       startsAt: now,
       expiresAt,
       trialEndsAt: expiresAt,
@@ -162,8 +246,6 @@ const validatePromoCode = async (code: string, planId: string, userId: string) =
     trialMonths,
   };
 };
-
-
 
 
 

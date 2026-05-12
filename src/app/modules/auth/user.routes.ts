@@ -23,8 +23,8 @@ router.post('/userVerifyOtp', authControllers.verifyOtpController,);
 
 router.patch('/change-password',auth(USER_ROLE.USER, USER_ROLE.MARCHANT),authControllers.changePassword,);
 router.patch('/reset-password', authControllers.resetPassword);
-
-
+// For organizer login
+router.post('/organizer-login', validateRequest(authValidation.loginZodSchema), authControllers.ornagizerlogin);
 
 //forget password এর জন্য OTP পাঠানোর route
 router.post('/send-otp',validateRequest(authValidation.requestOtpZodSchema), authControllers.sendOtp,);

@@ -150,7 +150,7 @@ const upsertPersonalization = catchAsync(async (req: Request, res: Response) => 
 
 const upsertPersonalizationoriginal = catchAsync(async (req: Request, res: Response) => {
   const userId = req.user?._id;
- 
+ console.log("userId →", userId);
   // ── Text data (body থেকে) ─────────────────────────────────────
   const payload: any = {};
  
