@@ -26,7 +26,7 @@ router.delete("/delete-event/:id", auth(USER_ROLE.USER,USER_ROLE.admin), eventco
 
 router.post("/attend-event/:id", auth(USER_ROLE.USER,USER_ROLE.admin), eventcontroller.attendEvent);
 
-router.post("/add-review/:id", auth(USER_ROLE.USER,), eventcontroller.addReview);
+// router.post("/add-review/:id", auth(USER_ROLE.USER,), eventcontroller.addReview);
 
 
 

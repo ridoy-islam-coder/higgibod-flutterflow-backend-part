@@ -435,32 +435,6 @@ export const getMonthlyEarningsService = async (req: any) => {
 
 
 
-export const addproducetReviewService = async (req: any) => {
-  const userId = req.user?.id;
-  const { id } = req.params;
-  const { rating, comment } = req.body;
-
-  if (!rating || !comment)
-    throw new AppError(400, "Rating and comment are required");
-
-  const event = await Product.findById(id);
-  if (!event) throw new AppError(404, "Event not found");
-
-  const alreadyReviewed = event.reviews?.some(
-    (review: any) => review.user.toString() === userId
-  );
-  if (alreadyReviewed)
-    throw new AppError(400, "You have already reviewed this event");
-
-  const updatedEvent = await Product.findByIdAndUpdate(
-    id,
-    { $push: { reviews: { user: userId, rating: Number(rating), comment } } },
-    { new: true }
-  ).populate("reviews.user", "fullName image");
-
-  return updatedEvent;
-};
-
 
 
 
@@ -1264,7 +1238,7 @@ export const productServices = {
   getProductCategories,
   getDashboardSummaryService,
   getMonthlyEarningsService,
-  addproducetReviewService,
+
   getProductDashboard,
   getEarningOverview,
   getMyOrders,

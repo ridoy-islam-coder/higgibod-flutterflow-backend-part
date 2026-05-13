@@ -36,7 +36,7 @@ router.get("/products/categories", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), prod
 router.get("/products/:id/related", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), productController.getRelated);
 
 
-router.post("/product-review/:id", auth(USER_ROLE.USER,USER_ROLE.MARCHANT), productController.addproductReview);
+router.post("/product-review/:id", auth(USER_ROLE.USER),upload.fields([{ name: "image", maxCount: 1 }]), productController.addproductReview);
 
 
 // 📊 SUMMARY API (totalOrders, totalProducts, totalSales)

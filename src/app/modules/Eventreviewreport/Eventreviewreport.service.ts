@@ -48,82 +48,100 @@ const reportEventReview = async (
 const getAllEventReviewReports = async (
   page: number = 1,
   limit: number = 10,
-  search?: string  // ← add
+  search?: string,
 ) => {
   const skip = (page - 1) * limit;
-
-  // ── Search logic ──────────────────────────────────────────
-  let matchEventIds: any[] = [];
-  let matchUserIds: any[] = [];
-
-  if (search && search.trim() !== "") {
-    // Event title দিয়ে search
-    const events = await Event.find({
-      title: { $regex: search.trim(), $options: "i" },
-    }).select("_id");
-    matchEventIds = events.map((e) => e._id);
-
-    // reportedBy name দিয়ে search
-    const users = await User.find({
-      fullName: { $regex: search.trim(), $options: "i" },
-    }).select("_id");
-    matchUserIds = users.map((u) => u._id);
-  }
-
-  const filter: any = { status: "pending" };
-
-  if (search && search.trim() !== "") {
+ 
+  // Base filter — always pending
+  const filter: any = { status: 'pending' };
+ 
+  // Search logic — only when search provided
+  if (search && search.trim() !== '') {
+    const [events, users] = await Promise.all([
+      Event.find({
+        title: { $regex: search.trim(), $options: 'i' },
+      }).select('_id'),
+ 
+      User.find({
+        fullName: { $regex: search.trim(), $options: 'i' },
+      }).select('_id'),
+    ]);
+ 
     filter.$or = [
-      { event: { $in: matchEventIds } },
-      { reportedBy: { $in: matchUserIds } },
+      { event: { $in: events.map((e) => e._id) } },
+      { reportedBy: { $in: users.map((u) => u._id) } },
     ];
   }
-
-  const total = await EventReviewReport.countDocuments(filter);
-
-  const reports = await EventReviewReport.find(filter)
-    .populate("event", "title coverImage date location time price")
-    .populate("reportedBy", "fullName image email")
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .lean();
-
+ 
+  const [total, reports] = await Promise.all([
+    EventReviewReport.countDocuments(filter),
+ 
+    EventReviewReport.find(filter)
+      .populate('event', 'title coverImage date location time price')
+      .populate('reportedBy', 'fullName image email')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean(),
+  ]);
+ 
   const reportsWithReview = await Promise.all(
     reports.map(async (report: any) => {
-      const eventDoc = await Event.findById(report.event._id).select("reviews");
-      const review = eventDoc?.reviews?.find(
-        (r: any) => r._id.toString() === report.review.toString()
-      );
-
-      let reviewUser = null;
-      if (review?.user) {
-        reviewUser = await User.findById(review.user).select("fullName email image");
+      // event null হলে — deleted event, skip
+      if (!report.event) {
+        return { ...report, review: null };
       }
-
+ 
+      // review id না থাকলে skip
+      if (!report.review) {
+        return { ...report, review: null };
+      }
+ 
+      const eventDoc = await Event.findById(report.event._id).select('reviews');
+ 
+      const review = eventDoc?.reviews?.find(
+        (r: any) => r._id.toString() === report.review.toString(),
+      );
+ 
+      // review না পেলে null
+      if (!review) {
+        return { ...report, review: null };
+      }
+ 
+      let reviewUser = null;
+      if ((review as any).user) {
+        reviewUser = await User.findById((review as any).user).select(
+          'fullName email image',
+        );
+      }
+ 
       return {
         ...report,
-        review: review
-          ? {
-              _id: (review as any)._id,
-              rating: (review as any).rating,
-              comment: (review as any).comment,
-              isAnonymous: (review as any).isAnonymous,
-              images: (review as any).images,
-              createdAt: (review as any).createdAt,
-              updatedAt: (review as any).updatedAt,
-              user: reviewUser,
-            }
-          : null,
+        review: {
+          _id: (review as any)._id,
+          rating: (review as any).rating,
+          comment: (review as any).comment,
+          isAnonymous: (review as any).isAnonymous,
+          images: (review as any).images,
+          createdAt: (review as any).createdAt,
+          updatedAt: (review as any).updatedAt,
+          user: reviewUser,
+        },
       };
-    })
+    }),
   );
-
+ 
   return {
     reports: reportsWithReview,
-    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    meta: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
   };
 };
+
 
 
 

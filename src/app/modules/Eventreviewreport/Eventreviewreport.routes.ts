@@ -10,7 +10,7 @@ const router = express.Router();
 // POST /api/v1/event-reviews/:eventId/:reviewId/report
 router.post(
   "/report",
-  auth(USER_ROLE.ORGANIZER),
+  auth(USER_ROLE.ORGANIZER,),
   EventReviewReportController.reportEventReview
 );
 

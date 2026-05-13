@@ -10,6 +10,8 @@ export interface IReview {
   user: Types.ObjectId;
   rating: number;
   comment: string;
+  images?: IImageFile[];
+  isAnonymous?: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }

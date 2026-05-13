@@ -8,6 +8,16 @@ const reviewSchema = new Schema<IReview>(
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
     rating: { type: Number, min: 1, max: 5, required: true },
     comment: { type: String, required: true },
+     images: [
+      {
+        id: { type: String, default: "" },
+        url: { type: String, default: "" },
+      },
+    ],
+      isAnonymous: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );

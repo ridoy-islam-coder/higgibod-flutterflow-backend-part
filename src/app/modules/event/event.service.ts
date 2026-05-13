@@ -467,8 +467,8 @@ const searchEvents = async (query: {
     .select(
       "title description date time location attendees gallery price coverImage"
     )
-    .populate("host", "name email profileImage")
-    .populate("attendees", "name email profileImage")
+    .populate("host", "image email fullName")
+    .populate("attendees", "image email fullName")
     .sort({ date: 1 })
     .skip(skip)
     .limit(limit);

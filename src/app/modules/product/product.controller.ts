@@ -1,6 +1,8 @@
+import AppError from "../../error/AppError";
 import catchAsync from "../../utils/catchAsync";
-import { uploadManyToS3 } from "../../utils/fileHelper";
+import { uploadManyToS3, uploadToS3 } from "../../utils/fileHelper";
 import sendResponse from "../../utils/sendResponse";
+import { Product } from "./product.model";
 import { productServices } from "./product.service";
 import httpStatus  from 'http-status';
 
@@ -195,13 +197,6 @@ export const getMonthlyEarnings = catchAsync(async (req, res) => {
 
 
 
-export const addproductReview = catchAsync(async (req, res) => {
-  const result = await productServices.addproducetReviewService(req);
-  sendResponse(res, { statusCode: 200, success: true, message: "Review added successfully", data: result });
-});
-
-
-
 
 
 //dashboard extra features end here
@@ -381,6 +376,72 @@ const updateManageOrderStatus = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+
+
+
+
+
+
+export const addproductReview = catchAsync(async (req, res) => {
+  const { id } = req.params;
+
+  const userId = req.user?.id;
+
+  const event = await Product.findById(id);
+
+  if (!event) {
+    throw new AppError(404, "Product not found");
+  }
+
+  // ✅ ensure reviews array exists (fix TS + runtime issue)
+  if (!event.reviews) {
+    event.reviews = [];
+  }
+
+  // ❌ prevent duplicate review
+  const alreadyReviewed = event.reviews.find(
+    (r: any) => r.user.toString() === userId.toString()
+  );
+
+  if (alreadyReviewed) {
+    throw new AppError(400, "You already reviewed this product");
+  }
+
+  // ✅ single image upload
+  let image = { id: "", url: "" };
+
+  if (req.files && (req.files as any).image) {
+    const file = (req.files as any).image[0];
+    image = await uploadToS3(file, "events/reviews");
+  }
+
+  // ✅ create review
+  const newReview = {
+    user: userId,
+    rating: Number(req.body.rating),
+    comment: req.body.comment,
+    images: image.url ? [image] : [],
+    isAnonymous: req.body.isAnonymous || false,
+  };
+
+  // ✅ push review
+  event.reviews.push(newReview as any);
+
+  await event.save();
+
+  res.status(201).json({
+    success: true,
+    message: "Review added successfully",
+    data: newReview,
+  });
+});
+
+
+
+
+
+
 
 
 export const productController = {
