@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import AppError from "../../error/AppError";
 import catchAsync from "../../utils/catchAsync";
 import { uploadManyToS3, uploadToS3 } from "../../utils/fileHelper";
@@ -387,6 +388,8 @@ export const addproductReview = catchAsync(async (req, res) => {
   const { id } = req.params;
 
   const userId = req.user?.id;
+
+
 
   const event = await Product.findById(id);
 
