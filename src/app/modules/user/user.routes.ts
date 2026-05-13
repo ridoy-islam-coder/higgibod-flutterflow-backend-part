@@ -25,6 +25,8 @@ router.get("/organizer-profile/:userId",auth(UserRole.USER, UserRole.ORGANIZER, 
 router.get("/marchant-profile/:userId",auth(UserRole.USER, UserRole.ORGANIZER, UserRole.MARCHANT, UserRole.KAATEDJ,UserRole.KAATEDJ,UserRole.admin ),userControllers.getMarchantProfile);
 
 
+// GET /api/v1/subscribe-email
+router.get('/subscribe-email',auth(UserRole.admin),userControllers.getAllSubscribers,);
 
 
 

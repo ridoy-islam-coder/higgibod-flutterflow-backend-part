@@ -263,6 +263,27 @@ const getMarchantProfile = catchAsync(async (req: Request, res: Response) => {
 
 
 
+
+
+
+
+
+// GET /api/v1/subscribe-email
+// Query: page, limit, search, status (active | inactive | all)
+const getAllSubscribers = catchAsync(async (req: Request, res: Response) => {
+  const result = await userServices.getAllSubscribers(req.query);
+ 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Subscribed users retrieved successfully',
+    data: result,
+  });
+});
+
+
+
+
 export const userControllers = {
   getme,
   updateProfile,
@@ -278,4 +299,5 @@ export const userControllers = {
   getUsersByRole,
   getOrganizerProfile,
   getMarchantProfile,
+  getAllSubscribers,
 };

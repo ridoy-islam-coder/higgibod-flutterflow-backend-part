@@ -11,8 +11,8 @@ import checkSubscription from "../../middleware/checkSubscription";
 const router = Router();
 
 
-
-router.post('/create-event',auth(USER_ROLE.ORGANIZER,USER_ROLE.admin),checkSubscription(['pro','free']),upload.fields([ { name: 'coverImage', maxCount: 1 }, { name: 'gallery', maxCount: 10 },]),eventcontroller.createEvent);
+//checkSubscription(['pro','free'])
+router.post('/create-event',auth(USER_ROLE.ORGANIZER,USER_ROLE.admin),upload.fields([ { name: 'coverImage', maxCount: 1 }, { name: 'gallery', maxCount: 10 },]),eventcontroller.createEvent);
 
 //done
 router.get("/getAll",auth(USER_ROLE.USER,USER_ROLE.admin), eventcontroller.getAllEvents);

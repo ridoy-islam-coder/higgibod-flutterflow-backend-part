@@ -467,6 +467,9 @@ const getOrganizerProfile = async (
 
 
 
+
+
+
 const getMarchantProfile = async (
   marchantId: string,
   currentUserId?: string
@@ -554,6 +557,63 @@ const getMarchantProfile = async (
 
 
 
+
+
+export type TSubscriberQuery = {
+  page?: string;
+  limit?: string;
+  search?: string;
+};
+ 
+const getAllSubscribers = async (query: TSubscriberQuery) => {
+  const {
+    page = '1',
+    limit = '10',
+    search = '',
+  } = query;
+ 
+  const pageNum = Math.max(1, parseInt(page));
+  const limitNum = Math.max(1, Math.min(100, parseInt(limit)));
+  const skip = (pageNum - 1) * limitNum;
+ 
+  // Only subscribeToEmails: true users আসবে
+  const filter: Record<string, unknown> = {
+    isDeleted: false,
+    subscribeToEmails: true,
+  };
+ 
+  // Search by name or email
+  if (search.trim()) {
+    filter.$or = [
+      { fullName: { $regex: search.trim(), $options: 'i' } },
+      { email: { $regex: search.trim(), $options: 'i' } },
+    ];
+  }
+ 
+  const [users, total] = await Promise.all([
+    User.find(filter)
+      .select('_id fullName email subscribeToEmails isActive createdAt image')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean(),
+ 
+    User.countDocuments(filter),
+  ]);
+ 
+  return {
+    users,
+    meta: {
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+    },
+  };
+};
+
+
+
 export const userServices = {
   getme,
   updateProfile,
@@ -570,4 +630,5 @@ export const userServices = {
   blockUser,
   unblockUser,
   getMarchantProfile,
+  getAllSubscribers,
 };
