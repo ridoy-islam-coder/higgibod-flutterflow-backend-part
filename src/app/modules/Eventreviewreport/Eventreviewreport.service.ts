@@ -44,100 +44,172 @@ const reportEventReview = async (
 };
 
 
-
 const getAllEventReviewReports = async (
   page: number = 1,
   limit: number = 10,
   search?: string,
 ) => {
+
   const skip = (page - 1) * limit;
- 
-  // Base filter — always pending
-  const filter: any = { status: 'pending' };
- 
-  // Search logic — only when search provided
+
+  // ── Base Filter ─────────────────────────────────────
+  const filter: any = {
+    status: 'pending',
+  };
+
+  // ── Search Filter ───────────────────────────────────
   if (search && search.trim() !== '') {
+
     const [events, users] = await Promise.all([
+
       Event.find({
-        title: { $regex: search.trim(), $options: 'i' },
+        title: {
+          $regex: search.trim(),
+          $options: 'i',
+        },
       }).select('_id'),
- 
+
       User.find({
-        fullName: { $regex: search.trim(), $options: 'i' },
+        fullName: {
+          $regex: search.trim(),
+          $options: 'i',
+        },
       }).select('_id'),
+
     ]);
- 
+
     filter.$or = [
-      { event: { $in: events.map((e) => e._id) } },
-      { reportedBy: { $in: users.map((u) => u._id) } },
+      {
+        event: {
+          $in: events.map((e) => e._id),
+        },
+      },
+      {
+        reportedBy: {
+          $in: users.map((u) => u._id),
+        },
+      },
     ];
   }
- 
+
+  // ── Fetch Reports ───────────────────────────────────
   const [total, reports] = await Promise.all([
+
     EventReviewReport.countDocuments(filter),
- 
+
     EventReviewReport.find(filter)
-      .populate('event', 'title coverImage date location time price')
-      .populate('reportedBy', 'fullName image email')
+
+      .populate(
+        'event',
+        'title coverImage date location time price',
+      )
+
+      .populate(
+        'reportedBy',
+        'fullName image email',
+      )
+
       .sort({ createdAt: -1 })
+
       .skip(skip)
+
       .limit(limit)
+
       .lean(),
+
   ]);
- 
+
+  // ── Attach Review ───────────────────────────────────
   const reportsWithReview = await Promise.all(
+
     reports.map(async (report: any) => {
-      // event null হলে — deleted event, skip
+
+      // event deleted
       if (!report.event) {
-        return { ...report, review: null };
+        return null;
       }
- 
-      // review id না থাকলে skip
+
+      // reported user deleted
+      if (!report.reportedBy) {
+        return null;
+      }
+
+      // review id missing
       if (!report.review) {
-        return { ...report, review: null };
+        return null;
       }
- 
-      const eventDoc = await Event.findById(report.event._id).select('reviews');
- 
-      const review = eventDoc?.reviews?.find(
-        (r: any) => r._id.toString() === report.review.toString(),
+
+      // fetch event reviews
+      const eventDoc = await Event.findById(
+        report.event._id,
+      ).select('reviews');
+
+      if (!eventDoc) {
+        return null;
+      }
+
+      // find review
+      const review = eventDoc.reviews?.find(
+        (r: any) =>
+          r._id.toString() === report.review.toString(),
       );
- 
-      // review না পেলে null
+
+      // review deleted
       if (!review) {
-        return { ...report, review: null };
+        return null;
       }
- 
+
+      // review user
       let reviewUser = null;
+
       if ((review as any).user) {
-        reviewUser = await User.findById((review as any).user).select(
-          'fullName email image',
-        );
+
+        reviewUser = await User.findById(
+          (review as any).user,
+        ).select('fullName email image');
       }
- 
+
       return {
+
         ...report,
+
         review: {
+
           _id: (review as any)._id,
+
           rating: (review as any).rating,
+
           comment: (review as any).comment,
+
           isAnonymous: (review as any).isAnonymous,
+
           images: (review as any).images,
+
           createdAt: (review as any).createdAt,
+
           updatedAt: (review as any).updatedAt,
+
           user: reviewUser,
         },
       };
     }),
   );
- 
+
+  // ── Remove Null Reports ─────────────────────────────
+  const cleanedReports = reportsWithReview.filter(
+    (report: any) => report !== null,
+  );
+
+  // ── Return ──────────────────────────────────────────
   return {
-    reports: reportsWithReview,
+
+    reports: cleanedReports,
+
     meta: {
-      total,
+      total: cleanedReports.length,
       page,
       limit,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(cleanedReports.length / limit),
     },
   };
 };

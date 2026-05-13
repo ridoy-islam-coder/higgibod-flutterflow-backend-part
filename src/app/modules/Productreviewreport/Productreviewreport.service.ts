@@ -76,51 +76,233 @@ const buildReviewWithUser = async (report: any, productDoc: any) => {
 
 
 // ── 2. Get All Reports (Admin) with search ────────────────────────────────────
+// const getAllProductReviewReports = async (
+//   page: number = 1,
+//   limit: number = 10,
+//   search?: string
+// ) => {
+//   const skip = (page - 1) * limit;
+ 
+//   const filter: any = { status: "pending" };
+ 
+//   if (search && search.trim() !== "") {
+//     const products = await Product.find({
+//       name: { $regex: search.trim(), $options: "i" },
+//     }).select("_id");
+//     const users = await User.find({
+//       fullName: { $regex: search.trim(), $options: "i" },
+//     }).select("_id");
+ 
+//     filter.$or = [
+//       { product: { $in: products.map((p) => p._id) } },
+//       { reportedBy: { $in: users.map((u) => u._id) } },
+//     ];
+//   }
+ 
+//   const total = await ProductReviewReport.countDocuments(filter);
+ 
+//   const reports = await ProductReviewReport.find(filter)
+//     .populate("product", "name images price")
+//     .populate("reportedBy", "fullName image email")
+//     .sort({ createdAt: -1 })
+//     .skip(skip)
+//     .limit(limit)
+//     .lean();
+ 
+//   const reportsWithReview = await Promise.all(
+//     reports.map(async (report: any) => {
+//       const productDoc = await Product.findById(report.product._id).select("reviews");
+//       return buildReviewWithUser(report, productDoc);
+//     })
+//   );
+ 
+//   return {
+//     reports: reportsWithReview,
+//     pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+//   };
+// };
+
+
+
+
+
+
+
 const getAllProductReviewReports = async (
   page: number = 1,
   limit: number = 10,
   search?: string
 ) => {
+
   const skip = (page - 1) * limit;
- 
-  const filter: any = { status: "pending" };
- 
+
+  // ── Base Filter ───────────────────────────────────
+  const filter: any = {
+    status: "pending",
+  };
+
+  // ── Search ────────────────────────────────────────
   if (search && search.trim() !== "") {
-    const products = await Product.find({
-      name: { $regex: search.trim(), $options: "i" },
-    }).select("_id");
-    const users = await User.find({
-      fullName: { $regex: search.trim(), $options: "i" },
-    }).select("_id");
- 
+
+    const [products, users] = await Promise.all([
+
+      Product.find({
+        name: {
+          $regex: search.trim(),
+          $options: "i",
+        },
+      }).select("_id"),
+
+      User.find({
+        fullName: {
+          $regex: search.trim(),
+          $options: "i",
+        },
+      }).select("_id"),
+
+    ]);
+
     filter.$or = [
-      { product: { $in: products.map((p) => p._id) } },
-      { reportedBy: { $in: users.map((u) => u._id) } },
+
+      {
+        product: {
+          $in: products.map((p) => p._id),
+        },
+      },
+
+      {
+        reportedBy: {
+          $in: users.map((u) => u._id),
+        },
+      },
     ];
   }
- 
-  const total = await ProductReviewReport.countDocuments(filter);
- 
-  const reports = await ProductReviewReport.find(filter)
-    .populate("product", "name images price")
-    .populate("reportedBy", "fullName image email")
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limit)
-    .lean();
- 
+
+  // ── Fetch Reports ─────────────────────────────────
+  const [total, reports] = await Promise.all([
+
+    ProductReviewReport.countDocuments(filter),
+
+    ProductReviewReport.find(filter)
+
+      .populate(
+        "product",
+        "name images price",
+      )
+
+      .populate(
+        "reportedBy",
+        "fullName image email",
+      )
+
+      .sort({ createdAt: -1 })
+
+      .skip(skip)
+
+      .limit(limit)
+
+      .lean(),
+
+  ]);
+
+  // ── Build Review ──────────────────────────────────
   const reportsWithReview = await Promise.all(
+
     reports.map(async (report: any) => {
-      const productDoc = await Product.findById(report.product._id).select("reviews");
-      return buildReviewWithUser(report, productDoc);
-    })
+
+      // product deleted
+      if (!report.product) {
+        return null;
+      }
+
+      // reporter deleted
+      if (!report.reportedBy) {
+        return null;
+      }
+
+      // review missing
+      if (!report.review) {
+        return null;
+      }
+
+      // fetch product reviews
+      const productDoc = await Product.findById(
+        report.product._id,
+      ).select("reviews");
+
+      // product not found
+      if (!productDoc) {
+        return null;
+      }
+
+      // find review
+      const review = productDoc.reviews?.find(
+        (r: any) =>
+          r._id.toString() === report.review.toString(),
+      );
+
+      // review deleted
+      if (!review) {
+        return null;
+      }
+
+      // review user
+      let reviewUser = null;
+
+      if ((review as any).user) {
+
+        reviewUser = await User.findById(
+          (review as any).user,
+        ).select("fullName email image");
+      }
+
+      return {
+
+        ...report,
+
+        review: {
+
+          _id: (review as any)._id,
+
+          rating: (review as any).rating,
+
+          comment: (review as any).comment,
+
+          isAnonymous: (review as any).isAnonymous,
+
+          images: (review as any).images,
+
+          createdAt: (review as any).createdAt,
+
+          updatedAt: (review as any).updatedAt,
+
+          user: reviewUser,
+        },
+      };
+    }),
   );
- 
+
+  // ── Remove Invalid Reports ─────────────────────────
+  const cleanedReports = reportsWithReview.filter(
+    (report: any) => report !== null,
+  );
+
+  // ── Return ─────────────────────────────────────────
   return {
-    reports: reportsWithReview,
-    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+
+    reports: cleanedReports,
+
+    pagination: {
+      total: cleanedReports.length,
+      page,
+      limit,
+      totalPages: Math.ceil(cleanedReports.length / limit),
+    },
   };
 };
+
+
+
 
 
 // ── 3. Delete Review (Admin) ──────────────────────────────────────────────────
