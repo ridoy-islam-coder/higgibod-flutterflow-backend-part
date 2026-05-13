@@ -22,7 +22,7 @@ router.delete("/delete/:id",auth(USER_ROLE.USER,USER_ROLE.admin), categoryContro
 
 //newapi
 
-router.get("/getAllCategories", auth(USER_ROLE.USER,USER_ROLE.admin), categoryController.getAllCategories);
+router.get("/getAllCategories", auth(USER_ROLE.USER,USER_ROLE.admin,USER_ROLE.ORGANIZER), categoryController.getAllCategories);
 
 router.get("/details/:id",auth(USER_ROLE.USER,USER_ROLE.admin), categoryController.getCategoryByIdnew);
 

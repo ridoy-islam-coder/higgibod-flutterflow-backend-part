@@ -805,7 +805,6 @@ const getDashboardStats = async (userId: string) => {
 
 
 
-
 // ── All Events (upcoming / past / search) ─────────────────────────────────────
 const getAllMyEvents = async (userId: string, query: any) => {
   const { type, search } = query;
@@ -833,7 +832,7 @@ const getAllMyEvents = async (userId: string, query: any) => {
   const events = await Event.find(filter)
     .populate("category", "name")
     .sort({ date: type === "past" ? -1 : 1 }) // past: newest first, upcoming: soonest first
-    .select("title date time location coverImage price attendees category");
+    .select("title date time location coverImage price isHighlighted eventType isPinned isFeatured isTopEvent category");
  
   return events;
 };

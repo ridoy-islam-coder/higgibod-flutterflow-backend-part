@@ -21,10 +21,10 @@ router.get("/getPast", auth(USER_ROLE.USER,USER_ROLE.admin), eventcontroller.get
 //done
 router.get("/getevent-details/:id", auth(USER_ROLE.USER,USER_ROLE.ORGANIZER,USER_ROLE.admin), eventcontroller.getEventDetails);
 //done
-router.put("/update-event/:id", auth(USER_ROLE.USER,USER_ROLE.admin), upload.fields([{ name: 'coverImage', maxCount: 1 },{ name: 'gallery', maxCount: 10 },]), eventcontroller.updateEvent);
-router.delete("/delete-event/:id", auth(USER_ROLE.USER,USER_ROLE.admin), eventcontroller.deleteEvent);
+router.put("/update-event/:id", auth(USER_ROLE.ORGANIZER), upload.fields([{ name: 'coverImage', maxCount: 1 },{ name: 'gallery', maxCount: 10 },]), eventcontroller.updateEvent);
+router.delete("/delete-event/:id", auth(USER_ROLE.ORGANIZER,USER_ROLE.admin), eventcontroller.deleteEvent);
 
-router.post("/attend-event/:id", auth(USER_ROLE.USER,USER_ROLE.admin), eventcontroller.attendEvent);
+router.post("/attend-event/:id", auth(USER_ROLE.USER,USER_ROLE.ORGANIZER), eventcontroller.attendEvent);
 
 // router.post("/add-review/:id", auth(USER_ROLE.USER,), eventcontroller.addReview);
 
@@ -116,10 +116,10 @@ router.get("/get-reviews/:id", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventc
 
 
 // ── Visibility / Featured (public — token লাগবে না) ──────────────────────────
-router.get("/featured", eventcontroller.getFeaturedEvents);
-router.get("/top", eventcontroller.getTopEvents);
-router.get("/highlighted", eventcontroller.getHighlightedEvents);
-router.get("/pinned", eventcontroller.getPinnedEvents);
+router.get("/featured", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER),eventcontroller.getFeaturedEvents);
+router.get("/top",auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcontroller.getTopEvents);
+router.get("/highlighted", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcontroller.getHighlightedEvents);
+router.get("/pinned", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcontroller.getPinnedEvents);
 
 
 
