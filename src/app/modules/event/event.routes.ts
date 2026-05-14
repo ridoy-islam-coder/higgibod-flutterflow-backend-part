@@ -122,6 +122,6 @@ router.get("/highlighted", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcontr
 router.get("/pinned", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcontroller.getPinnedEvents);
 
 
-
+router.get("/upcoming-events/:hostId",auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER),eventcontroller.getUpcomingEventsByHostcontroller);
 
 export const eventRoutes = router;

@@ -1482,6 +1482,44 @@ const getEventReviews = async (
 
 
 
+
+
+const getUpcomingEventsByHost = async (
+  hostId: string,
+  page = 1,
+  limit = 10
+) => {
+  const skip = (page - 1) * limit;
+
+  const query = {
+    host: hostId,
+    isDeleted: false,
+    isPast: false,
+  };
+
+  const total = await Event.countDocuments(query);
+
+  const events = await Event.find(query)
+    .populate("host", "fullName email image")
+    .populate("category", "name")
+    .sort({ date: 1 })
+    .skip(skip)
+    .limit(limit);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage: Math.ceil(total / limit),
+    },
+    data: events,
+  };
+};
+
+
+
+
 export const eventServices = {
 createEventService,
 getAllEventsService,
@@ -1510,4 +1548,5 @@ addReviewService,
   getPinnedEvents,
   getHomeEvents,
   getEventReviews,
+  getUpcomingEventsByHost,
 };
