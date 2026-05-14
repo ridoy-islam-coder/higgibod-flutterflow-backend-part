@@ -8,6 +8,7 @@ export interface IContact {
   message: string;
   status: ContactStatus;
   ipAddress?: string | null;
+    user: Types.ObjectId;
   createdAt?: Date;
   updatedAt?: Date;
 }

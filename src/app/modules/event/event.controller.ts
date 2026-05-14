@@ -412,11 +412,34 @@ export const getNearbyEventsController = catchAsync(
 
 
 
-// ── 3. Dashboard Stats ────────────────────────────────────────────────────────
-const getDashboardStats = catchAsync(async (req, res) => {
-  const userId = req.user?._id;
-  const result = await eventServices.getDashboardStats(userId);
+// // ── 3. Dashboard Stats ────────────────────────────────────────────────────────
+// const getDashboardStats = catchAsync(async (req, res) => {
+//   const userId = req.user?._id;
+//   const result = await eventServices.getDashboardStats(userId);
  
+//   sendResponse(res, {
+//     statusCode: httpStatus.OK,
+//     success: true,
+//     message: "Dashboard stats fetched successfully",
+//     data: result,
+//   });
+// });
+
+
+const getDashboardStats = catchAsync(async (req, res) => {
+
+  const userId = req.user?._id;
+
+  const year = req.query.year
+    ? Number(req.query.year)
+    : undefined;
+
+  const result =
+    await eventServices.getDashboardStats(
+      userId,
+      year
+    );
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -424,7 +447,6 @@ const getDashboardStats = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
 
 
 
@@ -453,22 +475,29 @@ const getAllMyEvents = catchAsync(async (req, res) => {
 
 
 
-
-
-
-// ── 5. Recent Payments ────────────────────────────────────────────────────────
 const getRecentPayments = catchAsync(async (req, res) => {
   const userId = req.user?._id;
-  const result = await eventServices.getRecentPayments(userId);
- 
+
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+
+  const searchTerm = req.query.searchTerm as string;
+
+  const result = await eventServices.getRecentPayments(
+    userId,
+    page,
+    limit,
+    searchTerm
+  );
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
     message: "Recent payments fetched successfully",
-    data: result,
+    data: result.data,
+    meta: result.meta,
   });
 });
-
 
 
 

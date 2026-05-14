@@ -4,6 +4,7 @@ import { IContactDocument } from "./contact.interface";
 
 const contactSchema = new Schema<IContactDocument>(
   {
+
     phoneNumber: {
       type: String,
       required: [true, "Phone number is required"],
@@ -38,6 +39,11 @@ const contactSchema = new Schema<IContactDocument>(
       type: String,
       default: null,
     },
+      user: {
+          type: Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
   },
   {
     timestamps: true,

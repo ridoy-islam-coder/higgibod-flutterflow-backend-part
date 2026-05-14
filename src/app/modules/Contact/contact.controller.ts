@@ -13,8 +13,8 @@ const create = catchAsync(async (req: Request, res: Response) => {
     (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
     req.socket.remoteAddress ||
     "unknown";
-
-  const result = await ContactService.createContact(req.body, ipAddress);
+  const userId = req.user?._id;
+  const result = await ContactService.createContact(req.body, ipAddress, userId);
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,

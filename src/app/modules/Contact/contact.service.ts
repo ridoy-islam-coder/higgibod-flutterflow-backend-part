@@ -4,7 +4,8 @@ import { Contact } from "./contact.model";
 // Create new contact
 const createContact = async (
   dto: CreateContactDto,
-  ipAddress?: string
+  ipAddress?: string,
+  userId?: string
 ): Promise<IContactDocument> => {
   const contact = await Contact.create({
     phoneNumber: dto.phoneNumber,
@@ -12,6 +13,7 @@ const createContact = async (
     message: dto.message,
     ipAddress: ipAddress || null,
     status: "pending",
+    user: userId,
   });
 
   return contact;

@@ -738,37 +738,62 @@ const getMyTicketnew = async (
 
 // ── 3. Dashboard Stats ────────────────────────────────────────────────────────
 // Total events, total attendees, monthly earning
+// ── Dashboard Stats Service ────────────────────────────────────────────────
+// Total events, total attendees, total earnings, monthly earnings
 
-const getDashboardStats = async (userId: string) => {
-  const now = new Date();
-  const currentYear = now.getFullYear();
+const getDashboardStats = async (
+  userId: string,
+  year?: number
+) => {
 
-  const hostId = new Types.ObjectId(userId); // ✅ ObjectId convert
+  const selectedYear = year || new Date().getFullYear();
 
+  const hostId = new Types.ObjectId(userId);
+
+  // ── Total Events ─────────────────────────────
   const totalEvent = await Event.countDocuments({
     host: hostId,
     isDeleted: false,
+    date: {
+      $gte: new Date(`${selectedYear}-01-01`),
+      $lte: new Date(`${selectedYear}-12-31`),
+    },
   });
 
+  // ── Total Attendees ──────────────────────────
   const attendeesResult = await Event.aggregate([
-    { $match: { host: hostId, isDeleted: { $ne: true } } },
+    {
+      $match: {
+        host: hostId,
+        isDeleted: { $ne: true },
+        date: {
+          $gte: new Date(`${selectedYear}-01-01`),
+          $lte: new Date(`${selectedYear}-12-31`),
+        },
+      },
+    },
     {
       $group: {
         _id: null,
-        totalAttendees: { $sum: { $size: "$attendees" } },
+        totalAttendees: {
+          $sum: { $size: "$attendees" },
+        },
       },
     },
   ]);
-  const totalAttendees = attendeesResult[0]?.totalAttendees || 0;
 
+  const totalAttendees =
+    attendeesResult[0]?.totalAttendees || 0;
+
+  // ── Monthly Earnings ─────────────────────────
   const monthlyEarning = await Event.aggregate([
     {
       $match: {
         host: hostId,
         isDeleted: { $ne: true },
         date: {
-          $gte: new Date(`${currentYear}-01-01`),
-          $lte: new Date(`${currentYear}-12-31`),
+          $gte: new Date(`${selectedYear}-01-01`),
+          $lte: new Date(`${selectedYear}-12-31`),
         },
       },
     },
@@ -776,7 +801,12 @@ const getDashboardStats = async (userId: string) => {
       $group: {
         _id: { $month: "$date" },
         earning: {
-          $sum: { $multiply: ["$price", { $size: "$attendees" }] },
+          $sum: {
+            $multiply: [
+              "$price",
+              { $size: "$attendees" },
+            ],
+          },
         },
       },
     },
@@ -790,68 +820,215 @@ const getDashboardStats = async (userId: string) => {
     },
   ]);
 
+  // ── Fill Missing Months ──────────────────────
   const months = Array.from({ length: 12 }, (_, i) => {
-    const found = monthlyEarning.find((m) => m.month === i + 1);
-    return { month: i + 1, earning: found?.earning || 0 };
+    const found = monthlyEarning.find(
+      (m) => m.month === i + 1
+    );
+
+    return {
+      month: i + 1,
+      earning: found?.earning || 0,
+    };
   });
 
+  // ── Total Earnings ───────────────────────────
+  const totalEarning = months.reduce(
+    (sum, item) => sum + item.earning,
+    0
+  );
+
   return {
+    year: selectedYear,
     totalEvent,
     totalAttendees,
+    totalEarning,
     monthlyEarning: months,
   };
 };
 
 
 
-// ── All Events (upcoming / past / search) ─────────────────────────────────────
-const getAllMyEvents = async (userId: string, query: any) => {
-  const { type, search } = query;
-  const now = new Date();
+// ── Dashboard Stats Controller ─────────────────────────────────────────────
+
+
+// // ── All Events (upcoming / past / search) ─────────────────────────────────────
+// const getAllMyEvents = async (userId: string, query: any) => {
+//   await updatePastEvents(); // ✅ event list এর আগে update করুন
+//   const { type, search } = query;
+//   const now = new Date();
  
+//   const filter: any = {
+//     host: userId,
+//     isDeleted: false,
+//   };
+ 
+//   // upcoming or past filter
+//   if (type === "upcoming") {
+//     filter.date = { $gte: now };
+//     filter.isPast = false;
+//   } else if (type === "past") {
+//     filter.date = { $lt: now };
+//      filter.isPast = true;
+//   }
+ 
+//   // search by title (case-insensitive)
+//   if (search && search.trim() !== "") {
+//     filter.title = { $regex: search.trim(), $options: "i" };
+//   }
+ 
+//   const events = await Event.find(filter)
+//     .populate("category", "name")
+//     .sort({ date: type === "past" ? -1 : 1 }) // past: newest first, upcoming: soonest first
+//     .select("title date time description location coverImage gallery price isHighlighted eventType isPinned isFeatured isTopEvent category");
+ 
+//   return events;
+// };
+
+
+// ── All Events (upcoming / past / search / date filter) ─────────────────────
+
+const getAllMyEvents = async (userId: string, query: any) => {
+
+  await updatePastEvents();
+
+  const {
+    type,
+    search,
+    date,
+    startDate,
+    endDate,
+  } = query;
+
+  const now = new Date();
+
   const filter: any = {
     host: userId,
     isDeleted: false,
   };
- 
-  // upcoming or past filter
+
+  // ── Upcoming / Past Filter ───────────────────
   if (type === "upcoming") {
     filter.date = { $gte: now };
     filter.isPast = false;
-  } else if (type === "past") {
+  }
+
+  else if (type === "past") {
     filter.date = { $lt: now };
-    // filter.isPast = true;
+    filter.isPast = true;
   }
- 
-  // search by title (case-insensitive)
+
+  // ── Search By Title ──────────────────────────
   if (search && search.trim() !== "") {
-    filter.title = { $regex: search.trim(), $options: "i" };
+    filter.title = {
+      $regex: search.trim(),
+      $options: "i",
+    };
   }
- 
+
+  // ── Exact Date Filter ────────────────────────
+  // Example:
+  // ?date=2026-05-14
+
+  if (date) {
+
+    const selectedDate = new Date(date);
+
+    const nextDate = new Date(selectedDate);
+
+    nextDate.setDate(nextDate.getDate() + 1);
+
+    filter.date = {
+      $gte: selectedDate,
+      $lt: nextDate,
+    };
+  }
+
+  // ── Date Range Filter ───────────────────────
+  // Example:
+  // ?startDate=2026-01-01&endDate=2026-01-31
+
+  if (startDate && endDate) {
+
+    filter.date = {
+      $gte: new Date(startDate),
+      $lte: new Date(endDate),
+    };
+  }
+
+  // ── Fetch Events ─────────────────────────────
   const events = await Event.find(filter)
+
     .populate("category", "name")
-    .sort({ date: type === "past" ? -1 : 1 }) // past: newest first, upcoming: soonest first
-    .select("title date time description location coverImage gallery price isHighlighted eventType isPinned isFeatured isTopEvent category");
- 
+
+    .sort({
+      date: type === "past" ? -1 : 1,
+    })
+
+    .select(
+      `
+      title
+      date
+      time
+      description
+      location
+      coverImage
+      gallery
+      price
+      isHighlighted
+      eventType
+      isPinned
+      isFeatured
+      isTopEvent
+      category
+      `
+    );
+
   return events;
 };
 
 
 
-// ── 5. Recent Payments ────────────────────────────────────────────────────────
-// Events with attendees = ticket sold = payment received
-const getRecentPayments = async (userId: string) => {
-  const events = await Event.find({
+
+
+
+
+
+
+const getRecentPayments = async (
+  userId: string,
+  page = 1,
+  limit = 10,
+  searchTerm?: string
+) => {
+  const skip = (page - 1) * limit;
+
+  const query: any = {
     host: userId,
     isDeleted: false,
-    "attendees.0": { $exists: true }, // has at least 1 attendee
-  })
+    "attendees.0": { $exists: true },
+  };
+
+  // Event title filter
+  if (searchTerm) {
+    query.title = {
+      $regex: searchTerm,
+      $options: "i",
+    };
+  }
+
+  // Total count
+  const total = await Event.countDocuments(query);
+
+  // Fetch events
+  const events = await Event.find(query)
     .populate("attendees", "fullName email image")
     .sort({ updatedAt: -1 })
-    .limit(10)
+    .skip(skip)
+    .limit(limit)
     .select("title price attendees updatedAt");
- 
-  // Flatten into payment list format
+
+  // Flatten payments
   const payments = events.flatMap((event) =>
     (event.attendees as any[]).map((attendee) => ({
       eventTitle: event.title,
@@ -860,11 +1037,17 @@ const getRecentPayments = async (userId: string) => {
       paidAt: event.updatedAt,
     }))
   );
- 
-  return payments;
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage: Math.ceil(total / limit),
+    },
+    data: payments,
+  };
 };
-
-
 
 
 
