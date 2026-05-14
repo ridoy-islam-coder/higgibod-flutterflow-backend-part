@@ -1,11 +1,8 @@
 import mongoose, { Schema } from "mongoose";
-import { ContactStatus, IContactDocument } from "./contact.interface";
+import { IContactDocument } from "./contact.interface";
 
 
-// ========================================
-// Contact Schema
-// ========================================
-const ContactSchema = new Schema<IContactDocument>(
+const contactSchema = new Schema<IContactDocument>(
   {
     phoneNumber: {
       type: String,
@@ -16,7 +13,6 @@ const ContactSchema = new Schema<IContactDocument>(
         "Invalid phone number format",
       ],
     },
-
     alternatePhone: {
       type: String,
       trim: true,
@@ -26,7 +22,6 @@ const ContactSchema = new Schema<IContactDocument>(
         "Invalid alternate phone number format",
       ],
     },
-
     message: {
       type: String,
       required: [true, "Message is required"],
@@ -34,13 +29,11 @@ const ContactSchema = new Schema<IContactDocument>(
       minlength: [10, "Message must be at least 10 characters"],
       maxlength: [1000, "Message cannot exceed 1000 characters"],
     },
-
     status: {
       type: String,
-      enum: ["pending", "read", "replied"] as ContactStatus[],
-      default: "pending" as ContactStatus,
+      enum: ["pending", "read", "replied"],
+      default: "pending",
     },
-
     ipAddress: {
       type: String,
       default: null,
@@ -52,16 +45,7 @@ const ContactSchema = new Schema<IContactDocument>(
   }
 );
 
-// ========================================
-// Indexes
-// ========================================
-ContactSchema.index({ createdAt: -1 });
-ContactSchema.index({ status: 1 });
-ContactSchema.index({ phoneNumber: 1 });
+contactSchema.index({ createdAt: -1 });
+contactSchema.index({ status: 1 });
 
-// ========================================
-// Export Model
-// ========================================
-const ContactModel = mongoose.model<IContactDocument>("Contact", ContactSchema);
-
-export default ContactModel;
+export const Contact = mongoose.model<IContactDocument>("Contact", contactSchema);
