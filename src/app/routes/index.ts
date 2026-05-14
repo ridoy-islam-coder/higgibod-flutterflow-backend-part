@@ -22,6 +22,7 @@ import { ProductReviewReportRoutes } from '../modules/Productreviewreport/Produc
 import { FollowRoutes } from '../modules/Follow/follow.routes';
 import { NotificationRoutes } from '../modules/Dashboard/notifications/notifications.routes';
 import { SettingsRoutes } from '../modules/Settings/Settings.routes';
+import { ContactRoutes } from '../modules/Contact/contact.routes';
 // import { PromoCodeRoutes } from '../modules/PromoCode/promocode.routes';
 
 
@@ -125,7 +126,12 @@ const moduleRoutes = [
   {
    path: '/Settings',
     route: SettingsRoutes,
+  },
+   {
+   path: '/contact',
+    route: ContactRoutes,
   } 
+  
   
 
   

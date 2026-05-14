@@ -8,7 +8,7 @@ const createContact = async (
 ): Promise<IContactDocument> => {
   const contact = await Contact.create({
     phoneNumber: dto.phoneNumber,
-    alternatePhone: dto.alternatePhone || null,
+    email: dto.email || null,
     message: dto.message,
     ipAddress: ipAddress || null,
     status: "pending",

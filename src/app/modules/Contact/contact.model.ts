@@ -13,13 +13,13 @@ const contactSchema = new Schema<IContactDocument>(
         "Invalid phone number format",
       ],
     },
-    alternatePhone: {
+    email: {
       type: String,
       trim: true,
-      default: null,
+     required: [true, "Email is required"],
       match: [
-        /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/,
-        "Invalid alternate phone number format",
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+        "Invalid email format",
       ],
     },
     message: {

@@ -4,7 +4,7 @@ export type ContactStatus = "pending" | "read" | "replied";
 
 export interface IContact {
   phoneNumber: string;
-  alternatePhone?: string | null;
+  email?: string | null;
   message: string;
   status: ContactStatus;
   ipAddress?: string | null;
@@ -18,7 +18,7 @@ export interface IContactDocument extends IContact, Document {
 
 export interface CreateContactDto {
   phoneNumber: string;
-  alternatePhone?: string;
+  email?: string;
   message: string;
 }
 
