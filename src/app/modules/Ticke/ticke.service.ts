@@ -342,6 +342,10 @@ const buyTicket = async (
     throw new Error("Quantity must be between 1 and 10");
   }
 
+  console.log("Buying ticket for user:", userId, "event:", eventId, "quantity:", quantity);
+
+
+  
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
 

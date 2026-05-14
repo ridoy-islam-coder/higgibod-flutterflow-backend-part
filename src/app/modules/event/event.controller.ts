@@ -492,14 +492,14 @@ const getEventAttendees = catchAsync(async (req, res) => {
   const event = await Event.findById(id)
     .populate({
       path: "attendees",
-      select: "name email profileImage",
+      select: "fullName email image",
       options: {
         skip,
         limit,
       },
     })
     .select("attendees title");
- 
+
   if (!event) throw new AppError(httpStatus.NOT_FOUND, "Event not found");
  
   // total attendees count (pagination এর জন্য)

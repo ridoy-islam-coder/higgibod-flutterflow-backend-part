@@ -7,7 +7,7 @@ import { Ticket } from "../Ticke/ticke.model";
 import { Review } from "../profilereview/profilereview.model";
 import { Follow } from "../Follow/follow.model";
 import httpStatus  from 'http-status';
-import mongoose from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { Product } from "../product/product.model";
 import { updatePastEvents } from "../../utils/updatePastEvents";
 import { isPast } from "date-fns/isPast";
@@ -738,19 +738,20 @@ const getMyTicketnew = async (
 
 // ── 3. Dashboard Stats ────────────────────────────────────────────────────────
 // Total events, total attendees, monthly earning
+
 const getDashboardStats = async (userId: string) => {
   const now = new Date();
   const currentYear = now.getFullYear();
- 
-  // Total events
+
+  const hostId = new Types.ObjectId(userId); // ✅ ObjectId convert
+
   const totalEvent = await Event.countDocuments({
-    host: userId,
+    host: hostId,
     isDeleted: false,
   });
- 
-  // Total attendees (sum of all attendees arrays)
+
   const attendeesResult = await Event.aggregate([
-    { $match: { host: userId, isDeleted: { $ne: true } } },
+    { $match: { host: hostId, isDeleted: { $ne: true } } },
     {
       $group: {
         _id: null,
@@ -759,12 +760,11 @@ const getDashboardStats = async (userId: string) => {
     },
   ]);
   const totalAttendees = attendeesResult[0]?.totalAttendees || 0;
- 
-  // Monthly earning (current year) — price × attendees count per month
+
   const monthlyEarning = await Event.aggregate([
     {
       $match: {
-        host: userId,
+        host: hostId,
         isDeleted: { $ne: true },
         date: {
           $gte: new Date(`${currentYear}-01-01`),
@@ -789,13 +789,12 @@ const getDashboardStats = async (userId: string) => {
       },
     },
   ]);
- 
-  // Fill all 12 months (0 earning months also show)
+
   const months = Array.from({ length: 12 }, (_, i) => {
     const found = monthlyEarning.find((m) => m.month === i + 1);
     return { month: i + 1, earning: found?.earning || 0 };
   });
- 
+
   return {
     totalEvent,
     totalAttendees,
@@ -832,7 +831,7 @@ const getAllMyEvents = async (userId: string, query: any) => {
   const events = await Event.find(filter)
     .populate("category", "name")
     .sort({ date: type === "past" ? -1 : 1 }) // past: newest first, upcoming: soonest first
-    .select("title date time location coverImage price isHighlighted eventType isPinned isFeatured isTopEvent category");
+    .select("title date time description location coverImage gallery price isHighlighted eventType isPinned isFeatured isTopEvent category");
  
   return events;
 };
@@ -847,7 +846,7 @@ const getRecentPayments = async (userId: string) => {
     isDeleted: false,
     "attendees.0": { $exists: true }, // has at least 1 attendee
   })
-    .populate("attendees", "name email profileImage")
+    .populate("attendees", "fullName email image")
     .sort({ updatedAt: -1 })
     .limit(10)
     .select("title price attendees updatedAt");
