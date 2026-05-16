@@ -90,7 +90,7 @@ const eventSchema = new Schema<IEvent>(
     eventType: {
       type: String,
       enum: ["Free Event", "Paid Event"],
-      default: "Free Event",
+      default: "Paid Event",
     },
 
 

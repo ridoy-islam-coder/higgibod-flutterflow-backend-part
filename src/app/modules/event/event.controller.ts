@@ -150,6 +150,33 @@ export const addReview = catchAsync(async (req, res) => {
 
 
 
+// const searchEvents = catchAsync(async (req, res) => {
+//   const result = await eventServices.searchEvents({
+//     q: req.query.q as string,
+//     category: req.query.category as string,
+//     country: req.query.country as string,
+//     eventType: req.query.eventType as string,
+//     minPrice: req.query.minPrice ? Number(req.query.minPrice) : undefined,
+//     maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
+//     date: req.query.date as string,
+//     organizer: req.query.organizer as string,
+//     page: req.query.page ? Number(req.query.page) : 1,
+//     limit: req.query.limit ? Number(req.query.limit) : 10,
+//   });
+ 
+//   sendResponse(res, {
+//     statusCode: 200,
+//     success: true,
+//     message: "Events fetched successfully",
+//     data: result,
+//   });
+// });
+ 
+
+
+
+
+
 const searchEvents = catchAsync(async (req, res) => {
   const result = await eventServices.searchEvents({
     q: req.query.q as string,
@@ -159,19 +186,31 @@ const searchEvents = catchAsync(async (req, res) => {
     minPrice: req.query.minPrice ? Number(req.query.minPrice) : undefined,
     maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
     date: req.query.date as string,
+    startDate: req.query.startDate as string, // ✅ নতুন
+    endDate: req.query.endDate as string,     // ✅ নতুন
     organizer: req.query.organizer as string,
     page: req.query.page ? Number(req.query.page) : 1,
     limit: req.query.limit ? Number(req.query.limit) : 10,
   });
- 
+
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Events fetched successfully",
+    message: 'Events fetched successfully',
     data: result,
   });
 });
- 
+
+
+
+
+
+
+
+
+
+
+
 // const getFeaturedEvents = catchAsync(async (req, res) => {
 //   const result = await eventServices.getFeaturedEvents();
 //   sendResponse(res, {

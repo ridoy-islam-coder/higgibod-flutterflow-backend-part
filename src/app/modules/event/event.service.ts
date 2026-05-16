@@ -354,6 +354,150 @@ export const addReviewService = async (req: any) => {
 
 
 
+// const searchEvents = async (query: {
+//   q?: string;
+//   category?: string;
+//   country?: string;
+//   eventType?: string;
+//   minPrice?: number;
+//   maxPrice?: number;
+//   date?: string;
+//   organizer?: string;
+//   page?: number;
+//   limit?: number;
+// }) => {
+//   const {
+//     q,
+//     category,
+//     country,
+//     eventType,
+//     minPrice,
+//     maxPrice,
+//     date,
+//     organizer,
+//     page = 1,
+//     limit = 10,
+//   } = query;
+
+//   // ✅ Base filter
+//   const filter: Record<string, any> = {
+//     isDeleted: false,
+//     isPast: false,
+//   };
+
+//   // ✅ Keyword search
+//   if (q?.trim()) {
+//     filter.$or = [
+//       {
+//         title: {
+//           $regex: q.trim(),
+//           $options: "i",
+//         },
+//       },
+//       {
+//         description: {
+//           $regex: q.trim(),
+//           $options: "i",
+//         },
+//       },
+//     ];
+//   }
+
+//   // ✅ Category filter
+//   if (category) {
+//     filter.category = category;
+//   }
+
+//   // ✅ Country filter
+//   if (country) {
+//     filter.location = {
+//       $regex: country,
+//       $options: "i",
+//     };
+//   }
+
+//   // ✅ Event type filter
+//   if (eventType) {
+//     filter.eventType = eventType;
+//   }
+
+//   // ✅ Organizer filter
+//   if (organizer) {
+//     filter.host = organizer;
+//   }
+
+//   // ✅ Price filter
+//   if (minPrice !== undefined || maxPrice !== undefined) {
+//     filter.price = {};
+
+//     if (minPrice !== undefined) {
+//       filter.price.$gte = minPrice;
+//     }
+
+//     if (maxPrice !== undefined) {
+//       filter.price.$lte = maxPrice;
+//     }
+//   }
+
+//   // ✅ Date filter
+//   if (date) {
+//     const targetDate = new Date(date);
+
+//     const nextDay = new Date(targetDate);
+//     nextDay.setDate(nextDay.getDate() + 1);
+
+//     filter.date = {
+//       $gte: targetDate,
+//       $lt: nextDay,
+//     };
+//   }
+
+//   // ✅ Pagination
+//   const skip = (page - 1) * limit;
+
+//   // ✅ Total count
+//   const total = await Event.countDocuments({
+//     ...filter,
+//   });
+
+//   // ✅ Fetch events
+//   const events = await Event.find({
+//     ...filter,
+//   })
+//     .select(
+//       "title description date time location attendees gallery price coverImage"
+//     )
+//     .populate("host", "image email fullName")
+//     .populate("attendees", "image email fullName")
+//     .sort({ date: 1 })
+//     .skip(skip)
+//     .limit(limit);
+
+//   console.log("Search Filter:", filter);
+//   console.log("Total Events:", total);
+
+//   return {
+//     events,
+//     pagination: {
+//       total,
+//       page,
+//       limit,
+//       totalPages: Math.ceil(total / limit),
+//     },
+//   };
+// };
+
+
+
+
+
+
+
+
+
+
+
+
 const searchEvents = async (query: {
   q?: string;
   category?: string;
@@ -362,6 +506,8 @@ const searchEvents = async (query: {
   minPrice?: number;
   maxPrice?: number;
   date?: string;
+  startDate?: string; // ✅ নতুন
+  endDate?: string;   // ✅ নতুন
   organizer?: string;
   page?: number;
   limit?: number;
@@ -374,107 +520,78 @@ const searchEvents = async (query: {
     minPrice,
     maxPrice,
     date,
+    startDate, // ✅ নতুন
+    endDate,   // ✅ নতুন
     organizer,
     page = 1,
     limit = 10,
   } = query;
 
-  // ✅ Base filter
   const filter: Record<string, any> = {
     isDeleted: false,
     isPast: false,
   };
 
-  // ✅ Keyword search
   if (q?.trim()) {
     filter.$or = [
-      {
-        title: {
-          $regex: q.trim(),
-          $options: "i",
-        },
-      },
-      {
-        description: {
-          $regex: q.trim(),
-          $options: "i",
-        },
-      },
+      { title: { $regex: q.trim(), $options: 'i' } },
+      { description: { $regex: q.trim(), $options: 'i' } },
     ];
   }
 
-  // ✅ Category filter
-  if (category) {
-    filter.category = category;
-  }
+  if (category) filter.category = category;
 
-  // ✅ Country filter
   if (country) {
-    filter.location = {
-      $regex: country,
-      $options: "i",
-    };
+    filter.location = { $regex: country, $options: 'i' };
   }
 
-  // ✅ Event type filter
-  if (eventType) {
-    filter.eventType = eventType;
-  }
+  if (eventType) filter.eventType = eventType;
 
-  // ✅ Organizer filter
-  if (organizer) {
-    filter.host = organizer;
-  }
+  if (organizer) filter.host = organizer;
 
-  // ✅ Price filter
   if (minPrice !== undefined || maxPrice !== undefined) {
     filter.price = {};
-
-    if (minPrice !== undefined) {
-      filter.price.$gte = minPrice;
-    }
-
-    if (maxPrice !== undefined) {
-      filter.price.$lte = maxPrice;
-    }
+    if (minPrice !== undefined) filter.price.$gte = minPrice;
+    if (maxPrice !== undefined) filter.price.$lte = maxPrice;
   }
 
-  // ✅ Date filter
+  // ✅ single date filter (আগের মতোই)
   if (date) {
     const targetDate = new Date(date);
-
     const nextDay = new Date(targetDate);
     nextDay.setDate(nextDay.getDate() + 1);
-
     filter.date = {
       $gte: targetDate,
       $lt: nextDay,
     };
   }
 
-  // ✅ Pagination
+  // ✅ startDate & endDate range filter
+  // date filter থাকলে এটা skip হবে, conflict এড়াতে
+  if (!date && (startDate || endDate)) {
+    filter.date = {};
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0); // দিনের শুরু
+      filter.date.$gte = start;
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // দিনের শেষ
+      filter.date.$lte = end;
+    }
+  }
+
   const skip = (page - 1) * limit;
+  const total = await Event.countDocuments({ ...filter });
 
-  // ✅ Total count
-  const total = await Event.countDocuments({
-    ...filter,
-  });
-
-  // ✅ Fetch events
-  const events = await Event.find({
-    ...filter,
-  })
-    .select(
-      "title description date time location attendees gallery price coverImage"
-    )
-    .populate("host", "image email fullName")
-    .populate("attendees", "image email fullName")
+  const events = await Event.find({ ...filter })
+    .select('title description date time location attendees gallery price coverImage')
+    .populate('host', 'image email fullName')
+    .populate('attendees', 'image email fullName')
     .sort({ date: 1 })
     .skip(skip)
     .limit(limit);
-
-  console.log("Search Filter:", filter);
-  console.log("Total Events:", total);
 
   return {
     events,
@@ -486,6 +603,23 @@ const searchEvents = async (query: {
     },
   };
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
  
 // const getFeaturedEvents = async () => {
 //   // Featured = upcoming events with most attendees
