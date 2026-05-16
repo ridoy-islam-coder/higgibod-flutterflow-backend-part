@@ -729,6 +729,27 @@ const getUpcomingEventsByHostcontroller = catchAsync(async (req, res) => {
 });
 
 
+
+
+const getEventReviewsold = catchAsync(async (req, res) => {
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+
+  const result = await eventServices.getEventReviewsnew(
+    req.params.eventId as string,
+    page,
+    limit
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Event reviews fetched successfully",
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
 export const eventcontroller = {
 createEvent,
 getAllEvents,
@@ -759,5 +780,6 @@ addReview,
   getHomeEvents,
    getEventReviews,
     getUpcomingEventsByHostcontroller,
+    getEventReviewsold,
 
 };

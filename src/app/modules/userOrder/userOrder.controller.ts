@@ -8,19 +8,51 @@ import { generateCancelHTML, generateSuccessHTML } from "../../utils/orderPage.h
 import config from "../../config";
 import { Order } from "./userOrder.model";
 import  httpStatus from 'http-status';
+import { uploadToS3 } from "../../utils/fileHelper";
 const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 
 
+// const createOrder = catchAsync(async (req: Request, res: Response) => {
+//   const result = await orderService.createOrder(req.user._id, req.body);
+//   sendResponse(res, {
+//     statusCode: 201,
+//     success: true,
+//     message: "Order created successfully",
+//     data: result,
+//   });
+// });
+
 const createOrder = catchAsync(async (req: Request, res: Response) => {
-  const result = await orderService.createOrder(req.user._id, req.body);
+  let fileUrl = '';
+
+  // ✅ file আসলে S3-তে upload করো
+  if (req.file) {
+    const uploaded = await uploadToS3(req.file, 'orders/shipping');
+    fileUrl = uploaded.url;
+  }
+
+  // ✅ FormData থেকে shippingAddress parse করো
+  const shippingAddress = req.body.shippingAddress
+    ? JSON.parse(req.body.shippingAddress)
+    : {};
+
+  const body = {
+    cartId: req.body.cartId,
+    shippingAddress: {
+      ...shippingAddress,
+      file: fileUrl, // ✅ S3 URL inject
+    },
+  };
+
+  const result = await orderService.createOrder(req.user._id, body);
+
   sendResponse(res, {
     statusCode: 201,
     success: true,
-    message: "Order created successfully",
+    message: 'Order created successfully',
     data: result,
   });
 });
-
 
 
 

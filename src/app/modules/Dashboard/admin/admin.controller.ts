@@ -126,6 +126,7 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
     ...(image && { image }),
   });
 
+  console.log("Updated profile:", result); // Debug log
   sendResponse(res, {
     statusCode: 200,
     success: true,

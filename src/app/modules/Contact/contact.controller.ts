@@ -91,6 +91,28 @@ const remove = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+
+
+
+
+
+const sendSupportMessage = catchAsync(async (req: Request, res: Response) => {
+  const result = await ContactService.sendMessageToAdmin(req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Message sent successfully",
+    data: result,
+  });
+});
+
+
+
+
+
+
 export const ContactController = {
   create,
   getAll,
@@ -98,4 +120,5 @@ export const ContactController = {
   getOne,
   updateStatus,
   remove,
+  sendSupportMessage,
 };

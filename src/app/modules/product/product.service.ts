@@ -1224,6 +1224,47 @@ const updateOrderStatus = async (
   return existingOrder;
 };
 
+
+
+
+
+const getReviewsByProduct = async (
+  productId: string,
+  page = 1,
+  limit = 10
+) => {
+  const skip = (page - 1) * limit;
+
+  const product = await Product.findById(productId)
+    .populate("reviews.user", "fullName image");
+
+  if (!product) {
+    throw new Error("Product not found");
+  }
+
+  // ✅ SAFE FIX (TS error resolve)
+  const reviews = product.reviews ?? [];
+
+  const sorted = [...reviews].sort((a: any, b: any) => {
+    return (
+      new Date(b.createdAt ?? 0).getTime() -
+      new Date(a.createdAt ?? 0).getTime()
+    );
+  });
+
+  const paginated = sorted.slice(skip, skip + limit);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total: reviews.length,
+      totalPage: Math.ceil(reviews.length / limit),
+    },
+    data: paginated,
+  };
+};
+
 export const productServices = {
     getAllProductsService,
     getProductDetailsService,
@@ -1238,7 +1279,7 @@ export const productServices = {
   getProductCategories,
   getDashboardSummaryService,
   getMonthlyEarningsService,
-
+getReviewsByProduct,
   getProductDashboard,
   getEarningOverview,
   getMyOrders,

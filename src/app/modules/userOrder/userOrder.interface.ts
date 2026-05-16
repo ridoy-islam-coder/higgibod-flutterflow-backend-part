@@ -15,8 +15,11 @@ export interface IShippingAddress {
   address: string;
   city: string;
   country: string;
-  postalCode?: string;
+  state?: string;
+  file?: string;
+  apartment?: string;
 }
+
 
 export interface IOrder {
   user: Types.ObjectId;

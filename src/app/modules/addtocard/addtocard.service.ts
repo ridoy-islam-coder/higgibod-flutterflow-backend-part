@@ -1,13 +1,69 @@
 import { Cart } from "./addtotocard.model";
 
+// const getCart = async (userId: string) => {
+//   const cart = await Cart.findOne({ user: userId }).populate(
+//     "items.product",
+//     "name price images discountPrice shippingCost"
+//   );
+//   return cart || { user: userId, items: [] };
+// };
+ 
+
+
+
+
 const getCart = async (userId: string) => {
   const cart = await Cart.findOne({ user: userId }).populate(
-    "items.product",
-    "name price images discount"
+    'items.product',
+    'name price images discountPrice shippingCost'
   );
-  return cart || { user: userId, items: [] };
+
+  if (!cart || cart.items.length === 0) {
+    return {
+      user: userId,
+      items: [],
+      subtotal: 0,
+      shippingFee: 0,
+      total: 0,
+    };
+  }
+
+  let subtotal = 0;
+  let shippingFee = 0;
+
+  for (const item of cart.items as any[]) {
+    const product = item.product;
+    if (!product) continue;
+
+    // ✅ discountPrice > 0 হলে discountPrice, নাহলে original price
+    const unitPrice =
+      product.discountPrice > 0 ? product.discountPrice : product.price;
+
+    subtotal += unitPrice * item.quantity;
+    shippingFee += product.shippingCost || 0;
+  }
+
+  const total = subtotal + shippingFee;
+
+  return {
+    ...cart.toObject(),
+    subtotal,      // $45
+    shippingFee,   // $80
+    total,         // $125
+  };
 };
- 
+
+
+
+
+
+
+
+
+
+
+
+
 const addToCart = async (
   userId: string,
   productId: string,

@@ -124,4 +124,11 @@ router.get("/pinned", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcontroller
 
 router.get("/upcoming-events/:hostId",auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER),eventcontroller.getUpcomingEventsByHostcontroller);
 
+
+
+
+//new review route
+router.get("/get-reviewsnew/:id", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcontroller.getEventReviewsold);
+
+
 export const eventRoutes = router;

@@ -159,7 +159,7 @@ const UserSchema = new Schema<TUser, UserModel>(
    coverImage: {       
       type: imageSchema,
       // required: false,
-      default: "", // 👈 এটা add koro
+      default:null, // 👈 এটা add koro
     },
 
 

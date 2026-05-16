@@ -17,13 +17,13 @@ const createReview = async (
   },
   file?: Express.Multer.File,
 ) => {
-  const alreadyReviewed = await Review.findOne({
-    reviewer: reviewerId,
-    organizer: payload.organizer,
-  });
-  if (alreadyReviewed) {
-    throw new AppError(httpStatus.CONFLICT, 'You have already reviewed this organizer');
-  }
+  // const alreadyReviewed = await Review.findOne({
+  //   reviewer: reviewerId,
+  //   organizer: payload.organizer,
+  // });
+  // if (alreadyReviewed) {
+  //   throw new AppError(httpStatus.CONFLICT, 'You have already reviewed this organizer');
+  // }
 
   let imageData = {};
   if (file) {
@@ -121,11 +121,11 @@ const getAllReports = async (page = 1, limit = 10) => {
     .populate({
       path: 'review',
       populate: [
-        { path: 'reviewer', select: 'fullName image' },
-        { path: 'organizer', select: 'fullName image' },
+        { path: 'reviewer', select: 'fullName image email' },
+        { path: 'organizer', select: 'fullName image email' },
       ],
     })
-    .populate('reportedBy', 'fullName image')
+    .populate('reportedBy', 'fullName image email')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -264,6 +264,40 @@ const getMyReviews = async (organizerId: string) => {
 
 
 
+// ─── Get Reviews By User ───────────────────────────────────────────────────────
+const getReviewsByUser = async (
+  userId: string,
+  page = 1,
+  limit = 10
+) => {
+  const skip = (page - 1) * limit;
+
+  const query = {
+    organizer: new mongoose.Types.ObjectId(userId),
+  };
+
+  const reviews = await Review.find(query)
+    .populate('organizer', 'fullName image')
+    .populate('reviewer', 'fullName image')
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const total = await Review.countDocuments(query);
+
+  return {
+    data: reviews,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPage: Math.ceil(total / limit),
+    },
+    
+  };
+};
+
+
 export const reviewServices = {
   createReview,
   getOrganizerReviews,
@@ -275,4 +309,5 @@ export const reviewServices = {
   replyToReview,
   updateReply,
   deleteReply,
+  getReviewsByUser,
 };

@@ -88,8 +88,11 @@ router.post(
  
 // ── Admin ─────────────────────────────────────────────────────────────────────
 router.get('/admin/reports', auth(USER_ROLE.admin), reviewController.getAllReports);
-router.delete('/admin/reports/:reportId/remove', auth(USER_ROLE.admin), reviewController.removeReview);
+router.delete('/admin/remove/:reportId', auth(USER_ROLE.admin), reviewController.removeReview);
 router.patch('/admin/reports/:reportId/dismiss', auth(USER_ROLE.admin), reviewController.dismissReport);
+
+
+router.get('/get-reviews/:userId',auth(USER_ROLE.USER,USER_ROLE.ORGANIZER,USER_ROLE.KAATEDJ,USER_ROLE.MARCHANT), reviewController.getReviewsByUser);
 
 
 export const reviewRoutes = router;

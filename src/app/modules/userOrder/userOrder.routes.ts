@@ -7,6 +7,7 @@ import { Router } from "express";
 import { USER_ROLE } from "../user/user.constant";
 import auth from "../../middleware/auth.middleware";
 import { orderController } from "./userOrder.controller";
+import upload from "../../middleware/fileUpload";
 
  
 const router = Router();
@@ -20,7 +21,7 @@ const router = Router();
 // );
  
 // POST /orders — cart theke order create + stripe payment intent
-router.post("/create-orders", auth(USER_ROLE.USER), orderController.createOrder);
+router.post("/create-orders", auth(USER_ROLE.USER),  upload.single('file'), orderController.createOrder);
  
 // GET /orders — order history
 router.get("/order-history", auth(USER_ROLE.USER,USER_ROLE.ORGANIZER), orderController.getOrderHistory);

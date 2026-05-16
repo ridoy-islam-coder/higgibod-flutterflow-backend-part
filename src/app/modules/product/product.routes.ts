@@ -126,4 +126,10 @@ router.patch(
 );
 
 
+
+router.get("/getproduct-reviews/:productId", productController.getReviewsByProduct);
+
+
+
+
 export const productsRoutes = router;

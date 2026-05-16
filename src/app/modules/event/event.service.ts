@@ -1384,6 +1384,8 @@ const getHomeEvents = async (
 //   };
 // };
 
+
+
 const getEventReviews = async (
   id: string,
   type: string,
@@ -1484,6 +1486,71 @@ const getEventReviews = async (
 
 
 
+
+const getEventReviewsnew = async (
+  eventId: string,
+  page = 1,
+  limit = 10
+) => {
+  // 1️⃣ validate id
+  if (!mongoose.Types.ObjectId.isValid(eventId)) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid Event ID");
+  }
+
+  // 2️⃣ find event
+  const event = await Event.findById(eventId).populate({
+    path: "reviews.user",
+    select: "fullName email image",
+  });
+
+  if (!event) {
+    throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+  }
+
+  // 3️⃣ safe reviews array
+  const reviews = event.reviews ?? [];
+
+  // 4️⃣ sort (newest first)
+  const sorted = [...reviews].sort((a: any, b: any) => {
+    return (
+      new Date(b.createdAt ?? 0).getTime() -
+      new Date(a.createdAt ?? 0).getTime()
+    );
+  });
+
+  // 5️⃣ pagination
+  const skip = (page - 1) * limit;
+  const paginated = sorted.slice(skip, skip + limit);
+
+  // 6️⃣ final clean data
+  const data = paginated.map((review: any) => ({
+    _id: review._id,
+    rating: review.rating,
+    comment: review.comment,
+    images: review.images,
+    isAnonymous: review.isAnonymous,
+    isDeleted: review.isDeleted,
+    reply: review.reply || null,
+    createdAt: review.createdAt,
+    updatedAt: review.updatedAt,
+
+    // user safe check
+    user: review.isAnonymous ? null : review.user,
+  }));
+
+  return {
+    data,
+    meta: {
+      page,
+      limit,
+      total: reviews.length,
+      totalPage: Math.ceil(reviews.length / limit),
+    },
+  };
+};
+
+
+
 const getUpcomingEventsByHost = async (
   hostId: string,
   page = 1,
@@ -1549,4 +1616,5 @@ addReviewService,
   getHomeEvents,
   getEventReviews,
   getUpcomingEventsByHost,
+  getEventReviewsnew,
 };

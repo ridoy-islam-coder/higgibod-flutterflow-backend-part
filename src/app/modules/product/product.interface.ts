@@ -11,6 +11,7 @@ export interface IReview {
   rating: number;
   comment: string;
   images?: IImageFile[];
+   reviews: IReview[]; 
   isAnonymous?: boolean;
   createdAt?: Date;
   updatedAt?: Date;

@@ -168,6 +168,38 @@ const getMyReviews = catchAsync(async (req: Request, res: Response) => {
 });
 
 
+
+
+
+
+
+
+
+// ─── Get Reviews By User ───────────────────────────────────────────────────────
+// ─── Get Reviews By User ───────────────────────────────────────────────────────
+const getReviewsByUser = catchAsync(async (req: Request, res: Response) => {
+
+  const page = Number(req.query.page) || 1;
+  const limit = Number(req.query.limit) || 10;
+
+  const result = await reviewServices.getReviewsByUser(
+    req.params.userId as string,
+    page,
+    limit
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Reviews fetched successfully',
+    meta: result.meta,
+    data: result.data,
+  });
+});
+
+
+
+
 export const reviewController = {
   createReview,
   getOrganizerReviews,
@@ -179,4 +211,5 @@ export const reviewController = {
   updateReply,
   deleteReply,
   getMyReviews,
+  getReviewsByUser  
 };

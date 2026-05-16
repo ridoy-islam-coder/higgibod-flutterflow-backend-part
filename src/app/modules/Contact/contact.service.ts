@@ -1,3 +1,5 @@
+import { sendEmail } from "../../utils/mailSender";
+import { Admin } from "../Dashboard/admin/admin.model";
 import { ContactQueryParams, ContactStats, CreateContactDto, IContactDocument, PaginationMeta, UpdateContactStatusDto } from "./contact.interface";
 import { Contact } from "./contact.model";
 
@@ -93,6 +95,50 @@ const getStats = async (): Promise<ContactStats> => {
   return { total, pending, read, replied };
 };
 
+
+
+
+
+
+
+const sendMessageToAdmin = async (payload: any) => {
+  const { name, phoneNumber, message } = payload;
+const admin = await Admin.findOne({ role: "ADMIN" }).select("email");
+const adminEmail = admin?.email;
+console.log("Admin email:", adminEmail);
+
+
+
+if (!adminEmail) {
+  throw new Error("Admin email not found");
+}
+
+
+  const emailBody = `
+New Support Message:
+
+Name: ${name}
+Phone Number: ${phoneNumber}
+
+Message:
+${message}
+  `;
+
+  await sendEmail(
+    adminEmail,
+    "New User Message",
+    emailBody
+  );
+
+  return {
+    message: "Message sent successfully to admin",
+  };
+};
+
+
+
+
+
 export const ContactService = {
   createContact,
   getAllContacts,
@@ -100,4 +146,5 @@ export const ContactService = {
   updateStatus,
   deleteContact,
   getStats,
+  sendMessageToAdmin,
 };

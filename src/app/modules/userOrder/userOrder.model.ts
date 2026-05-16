@@ -19,10 +19,13 @@ const orderSchema = new Schema<IOrder>(
     shippingAddress: {
       fullName: { type: String, },//required: true 
       phone: { type: String, default: "" },
+      apartment: { type: String, default: "" },
       address: { type: String, },// required: true },
       city: { type: String,  },//required: true
       country: { type: String,  },// required: true },
-      postalCode: { type: String, default: "" },
+      state: { type: String, default: "" },
+      file: { type: String, default: "" },
+     
     },
     subtotal: { type: Number, required: true },
     shippingCost: { type: Number, default: 0 },
