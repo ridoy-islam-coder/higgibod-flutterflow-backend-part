@@ -1271,18 +1271,23 @@ const getReviewsByProduct = async (
 
 
 
-
 const getProductsByHost = async (
   hostId: string,
   page: number = 1,
   limit: number = 10,
+  categoryId?: string, // ✅ নতুন
 ) => {
   const skip = (page - 1) * limit;
 
-  const filter = {
+  const filter: any = {
     host: hostId,
     isDeleted: false,
   };
+
+  // ✅ categoryId দিলে filter করবে, না দিলে সব আসবে
+  if (categoryId && categoryId.trim() !== "") {
+    filter.category = categoryId;
+  }
 
   const total = await Product.countDocuments(filter);
 
@@ -1303,9 +1308,6 @@ const getProductsByHost = async (
     },
   };
 };
-
-
-
 
 
 

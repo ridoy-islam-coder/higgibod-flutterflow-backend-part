@@ -1725,13 +1725,19 @@ const getEventsByHost = async (
   hostId: string,
   page: number = 1,
   limit: number = 10,
+  categoryId?: string, // ✅ নতুন
 ) => {
   const skip = (page - 1) * limit;
 
-  const filter = {
-    host: hostId,
+  const filter: any = {
+    host: new Types.ObjectId(hostId),
     isDeleted: false,
   };
+
+  // ✅ categoryId দিলে filter করবে, না দিলে সব আসবে
+  if (categoryId && categoryId.trim() !== "") {
+    filter.category = new Types.ObjectId(categoryId);
+  }
 
   const total = await Event.countDocuments(filter);
 
@@ -1753,7 +1759,6 @@ const getEventsByHost = async (
     },
   };
 };
-
 
 
 
