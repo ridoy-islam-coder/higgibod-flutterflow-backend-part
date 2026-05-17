@@ -576,12 +576,12 @@ const getOrganizerProfile = async (
   return {
     user: {
       ...user.toObject(),
-      eventCount,       // 14 Event
-      followingCount,   // 89 Following
-      followersCount,   // Followers
-      totalReviews,     // 123 Review
-      avgRating,        // ⭐ rating
-      isFollowing,      // Follow button
+      eventCount,       
+      followingCount,   
+      followersCount,  
+      totalReviews,     
+      avgRating,       
+      isFollowing,      
     },
     upcomingEvents,
     reviews,
@@ -673,7 +673,7 @@ const getMarchantProfile = async (
       totalReviews,
       avgRating,
       isFollowing,
-      socialLinks: socialLinks || null,  // ← social links
+      socialLinks: socialLinks || null, 
     },
     products,
     reviews,

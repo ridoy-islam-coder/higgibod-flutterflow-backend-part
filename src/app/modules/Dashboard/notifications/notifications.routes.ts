@@ -16,7 +16,7 @@ router.post(
 // GET /api/v1/notifications/history — Admin notification history দেখবে
 router.get(
   "/history",
-   auth(USER_ROLE.admin),
+  //  auth(USER_ROLE.admin),
   NotificationController.getNotificationHistory
 );
  

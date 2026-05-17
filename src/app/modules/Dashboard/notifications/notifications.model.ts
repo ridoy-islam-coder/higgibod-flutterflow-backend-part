@@ -12,7 +12,7 @@ const notificationSchema = new Schema<INotification>(
     },
     sentBy: {
       type: Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Admin",
       required: true,
     },
     sentCount: { type: Number, default: 0 },

@@ -1265,6 +1265,52 @@ const getReviewsByProduct = async (
   };
 };
 
+
+
+
+
+
+
+
+const getProductsByHost = async (
+  hostId: string,
+  page: number = 1,
+  limit: number = 10,
+) => {
+  const skip = (page - 1) * limit;
+
+  const filter = {
+    host: hostId,
+    isDeleted: false,
+  };
+
+  const total = await Product.countDocuments(filter);
+
+  const products = await Product.find(filter)
+    .populate("category", "name")
+    .populate("host", "fullName email image")
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  return {
+    products,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+
+
+
+
+
+
+
 export const productServices = {
     getAllProductsService,
     getProductDetailsService,
@@ -1289,5 +1335,6 @@ getReviewsByProduct,
   getManageOrders,
   getOrderDetails,
   updateManageOrderStatus,
+  getProductsByHost,
   
 };

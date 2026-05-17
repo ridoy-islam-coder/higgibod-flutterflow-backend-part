@@ -61,7 +61,8 @@ const getOrderHistory = catchAsync(async (req: Request, res: Response) => {
   const result = await orderService.getOrderHistory(
     req.user._id,
     req.query.page ? Number(req.query.page) : 1,
-    req.query.limit ? Number(req.query.limit) : 10
+    req.query.limit ? Number(req.query.limit) : 10,
+    req.query.orderStatus as string, // ✅ নতুন
   );
   sendResponse(res, {
     statusCode: 200,
@@ -70,7 +71,6 @@ const getOrderHistory = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-
 
 const getOrderDetails = catchAsync(async (req: Request, res: Response) => {
   const result = await orderService.getOrderDetails(

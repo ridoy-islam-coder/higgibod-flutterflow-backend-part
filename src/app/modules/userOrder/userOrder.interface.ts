@@ -33,6 +33,7 @@ export interface IOrder {
   orderStatus: "processing" | "shipped" | "delivered" | "cancelled";
   stripePaymentIntentId: string;
   isDeleted: boolean;
+  oderid:string,
   createdAt?: Date;
   updatedAt?: Date;
 }

@@ -24,10 +24,10 @@ const router = Router();
 router.post("/create-orders", auth(USER_ROLE.USER),  orderController.createOrder);
  
 // GET /orders — order history
-router.get("/order-history", auth(USER_ROLE.USER,USER_ROLE.ORGANIZER), orderController.getOrderHistory);
+router.get("/order-history", auth(USER_ROLE.USER), orderController.getOrderHistory);
  
 // GET /orders/:id — single order details
-router.get("/order-details/:id", auth(USER_ROLE.USER,USER_ROLE.ORGANIZER), orderController.getOrderDetails);
+router.get("/order-details/:id", auth(USER_ROLE.USER), orderController.getOrderDetails);
 
  // ✅ Success & Cancel pages — auth ছাড়া (browser redirect)
 router.get("/success", orderController.orderSuccessPage);

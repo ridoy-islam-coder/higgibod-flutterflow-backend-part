@@ -129,7 +129,7 @@ router.patch(
 
 router.get("/getproduct-reviews/:productId", productController.getReviewsByProduct);
 
-
+router.get("/host/:hostId",auth(USER_ROLE.MARCHANT,USER_ROLE.USER), productController.getProductsByHost);
 
 
 export const productsRoutes = router;

@@ -14,22 +14,39 @@ import  httpStatus  from 'http-status';
 const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 
 
- 
-// ─── 3. Get Order History ──────────────────────────────────────────────────
-const getOrderHistory = async (
+ const getOrderHistory = async (
   userId: string,
   page = 1,
-  limit = 10
+  limit = 10,
+  orderStatus?: string, // ✅ নতুন
 ) => {
   const skip = (page - 1) * limit;
-  const total = await Order.countDocuments({ user: userId, isDeleted: false });
- 
-  const orders = await Order.find({ user: userId })
+
+  const filter: any = {
+    user: userId,
+    isDeleted: false,
+  };
+
+  // ✅ orderStatus দিলে filter করবে, না দিলে সব আসবে
+  if (orderStatus && orderStatus.trim() !== "") {
+    const validStatuses = ["processing", "shipped", "delivered", "cancelled"];
+    if (!validStatuses.includes(orderStatus)) {
+      throw new AppError(
+        400,
+        `Invalid orderStatus. Must be one of: ${validStatuses.join(", ")}`
+      );
+    }
+    filter.orderStatus = orderStatus;
+  }
+
+  const total = await Order.countDocuments(filter);
+
+  const orders = await Order.find(filter)
     .populate("items.product", "name images price")
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
- 
+
   return {
     orders,
     pagination: {
@@ -150,11 +167,32 @@ export const createOrder = async (userId: string, body: any) => {
 
   const total = subtotal + totalShipping;
 
+ // ✅ helper function
+const generateOrderId = async (): Promise<string> => {
+  let unique = false;
+  let oderid = "";
+
+  while (!unique) {
+    const random = Math.floor(10000 + Math.random() * 90000);
+    oderid = `#${random}`;
+    const existing = await Order.findOne({ oderid });
+    if (!existing) {
+      unique = true;
+    }
+  }
+  return oderid;
+};
+
+ // ✅ আগে oderid generate করুন
+  const oderid = await generateOrderId();
+
+
   const pendingOrder = await Order.create({
     user: userId,
     items: orderItemsSnapshot,
     shippingAddress,
     subtotal,
+    oderid,
     shippingCost: totalShipping,
     total,
     paymentStatus: "paid",
@@ -317,12 +355,12 @@ const getMyProductOrders = async (
       myProductIdStrings.includes(item.product._id.toString()),
     );
 
-    const orderId = order._id.toString();
-    const orderNumber = '#' + orderId.substring(19, 24).toUpperCase();
+    // const orderId = order._id.toString();
+    // const orderNumber = '#' + orderId.substring(19, 24).toUpperCase();
 
     return {
       orderId: order._id,
-      orderNumber,
+      orderNumber:order.oderid,
       orderStatus: order.orderStatus,
       paymentStatus: order.paymentStatus,
       customer: order.user,

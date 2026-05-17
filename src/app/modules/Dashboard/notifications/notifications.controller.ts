@@ -10,13 +10,15 @@ const sendCustomNotification = catchAsync(async (req: Request, res: Response) =>
   const adminId = req.user._id;
   const { title, description, targetRole } = req.body;
 
+
+
   const result = await NotificationService.sendCustomNotification(
     adminId,
     title,
     description,
     targetRole
   );
-
+  console.log("this a admin id ",result )
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -24,6 +26,8 @@ const sendCustomNotification = catchAsync(async (req: Request, res: Response) =>
     data: result,
   });
 });
+
+
 
 // GET /api/v1/notifications/history?page=1&limit=10
 const getNotificationHistory = catchAsync(async (req: Request, res: Response) => {

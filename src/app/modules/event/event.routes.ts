@@ -131,4 +131,8 @@ router.get("/upcoming-events/:hostId",auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER),
 router.get("/get-reviewsnew/:id", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcontroller.getEventReviewsold);
 
 
+
+router.get("/host/:hostId",auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcontroller.getEventsByHost);
+
+
 export const eventRoutes = router;

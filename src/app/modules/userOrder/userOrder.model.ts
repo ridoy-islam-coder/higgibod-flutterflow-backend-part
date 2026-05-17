@@ -2,6 +2,7 @@
 // order.model.ts
 import { model, Schema } from "mongoose";
 import { IOrder } from "./userOrder.interface";
+import { string } from "zod";
 
 
 const orderItemSchema = new Schema({
@@ -27,6 +28,9 @@ const orderSchema = new Schema<IOrder>(
       postcode: { type: String, default: "" },
      
     },
+
+      oderid: { type: String },
+   
     subtotal: { type: Number, required: true },
     shippingCost: { type: Number, default: 0 },
     tax: { type: Number, default: 0 },
@@ -52,6 +56,8 @@ orderSchema.pre("find", function (next) {
   this.find({ isDeleted: { $ne: true } });
   next();
 });
+
+
 
 orderSchema.pre("findOne", function (next) {
   this.find({ isDeleted: { $ne: true } });
