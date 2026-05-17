@@ -20,8 +20,8 @@ const router = Router();
 //   orderController.stripeWebhook
 // );
  
-// POST /orders — cart theke order create + stripe payment intent
-router.post("/create-orders", auth(USER_ROLE.USER),  upload.single('file'), orderController.createOrder);
+// POST /orders — cart theke order create + stripe payment intent   upload.single('file'),
+router.post("/create-orders", auth(USER_ROLE.USER),  orderController.createOrder);
  
 // GET /orders — order history
 router.get("/order-history", auth(USER_ROLE.USER,USER_ROLE.ORGANIZER), orderController.getOrderHistory);

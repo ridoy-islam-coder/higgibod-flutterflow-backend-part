@@ -31,20 +31,21 @@ const addToCart = catchAsync(async (req: Request, res: Response) => {
   });
 });
  
- 
-const updateCartItem = catchAsync(async (req: Request, res: Response) => {
+ const updateCartItem = catchAsync(async (req: Request, res: Response) => {
   const { productId, quantity, color, size } = req.body;
+
   const result = await cartService.updateCartItem(
     req.user._id,
     productId,
     quantity,
-    color,
-    size
+    color,  
+    size,   
   );
+
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Cart updated",
+    message: 'Cart updated',
     data: result,
   });
 });

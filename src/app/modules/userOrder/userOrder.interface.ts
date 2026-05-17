@@ -16,7 +16,7 @@ export interface IShippingAddress {
   city: string;
   country: string;
   state?: string;
-  file?: string;
+  postcode?: string;
   apartment?: string;
 }
 

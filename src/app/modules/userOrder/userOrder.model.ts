@@ -24,7 +24,7 @@ const orderSchema = new Schema<IOrder>(
       city: { type: String,  },//required: true
       country: { type: String,  },// required: true },
       state: { type: String, default: "" },
-      file: { type: String, default: "" },
+      postcode: { type: String, default: "" },
      
     },
     subtotal: { type: Number, required: true },

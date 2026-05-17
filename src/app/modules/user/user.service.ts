@@ -10,6 +10,7 @@ import { Follow } from "../Follow/follow.model";
 import { Event } from "../event/event.model";
 import { Product } from "../product/product.model";
 import SocialLink from "../sociallink/soscial.model";
+import { Personalization } from "../Personalizationuser/Personalization.model";
 
 
 
@@ -268,47 +269,162 @@ const unblockUser = async (id: string) => {
 // ?role=MARCHANT → MARCHANT রা আসবে
 // ?role=KAATEDJ → KAATEDJ রা আসবে
 
-// ── Get Users by Role with Search + Followers + Rating ────────────────────────
+// // ── Get Users by Role with Search + Followers + Rating ────────────────────────
+// const getUsersByRole = async (
+//   role: string = "ORGANIZER",
+//   search?: string,
+//   page: number = 1,
+//   limit: number = 10,
+//   currentUserId?: string
+// ) => {
+//   const skip = (page - 1) * limit;
+ 
+//   const filter: any = {
+//     role,
+//     isDeleted: false,
+    
+//   };
+ 
+//   if (search && search.trim() !== "") {
+//     filter.$or = [
+//       { fullName: { $regex: search.trim(), $options: "i" } },
+//       { email: { $regex: search.trim(), $options: "i" } },
+//     ];
+//   }
+ 
+//   const total = await User.countDocuments(filter);
+
+//   const users = await User.find(filter)
+//     .sort({ createdAt: -1 })
+//     .skip(skip)
+//     .limit(limit)
+//     .select(
+//       "fullName email image  coverImage isActive country phoneNumber role accountType isVerified createdAt"
+//     );
+ 
+//   const usersWithStats = await Promise.all(
+//     users.map(async (user: any) => {
+//       // ── Followers count ───────────────────────────────────
+//       const followersCount = await Follow.countDocuments({
+//         following: user._id,
+//       });
+ 
+//       // ── Average rating ────────────────────────────────────
+//       const ratingResult = await Review.aggregate([
+//         {
+//           $match: {
+//             organizer: user._id,
+//             isDeleted: { $ne: true },
+//           },
+//         },
+//         {
+//           $group: {
+//             _id: null,
+//             avgRating: { $avg: "$rating" },
+//             totalReviews: { $sum: 1 },
+//           },
+//         },
+//       ]);
+
+//       const avgRating = ratingResult[0]?.avgRating
+//         ? parseFloat(ratingResult[0].avgRating.toFixed(1))
+//         : 0;
+//       const totalReviews = ratingResult[0]?.totalReviews || 0;
+ 
+//       // ── Current user এই profile follow করেছে কিনা ─────────
+//       const isFollowing = currentUserId
+//         ? !!(await Follow.findOne({
+//             follower: currentUserId,
+//             following: user._id,
+//           }))
+//         : false;
+ 
+//       // ── Current user এই profile review করেছে কিনা ─────────
+//       const hasReviewed = currentUserId
+//         ? !!(await Review.findOne({
+//             organizer: user._id,
+//             reviewer: currentUserId,
+//             isDeleted: { $ne: true },
+//           }))
+//         : false;
+ 
+//       return {
+//         ...user.toObject(),
+//         followersCount,
+//         avgRating,
+//         totalReviews,
+//         isFollowing,  // ← follow করেছে কিনা
+//         hasReviewed,  // ← review করেছে কিনা
+//       };
+//     })
+//   );
+
+
+//   return {
+//     users: usersWithStats,
+//     pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+//   };
+// };
+
+
 const getUsersByRole = async (
   role: string = "ORGANIZER",
   search?: string,
   page: number = 1,
   limit: number = 10,
-  currentUserId?: string
+  currentUserId?: string,
+  country?: string,
+  planningEventTypes?: string, // ✅ নতুন — শুধু ORGANIZER এর জন্য
 ) => {
   const skip = (page - 1) * limit;
- 
+
   const filter: any = {
     role,
     isDeleted: false,
-    
   };
- 
+
   if (search && search.trim() !== "") {
     filter.$or = [
       { fullName: { $regex: search.trim(), $options: "i" } },
       { email: { $regex: search.trim(), $options: "i" } },
     ];
   }
- 
-  const total = await User.countDocuments(filter);
 
+  if (country && country.trim() !== "") {
+    filter.country = { $regex: country.trim(), $options: "i" };
+  }
+
+  // ✅ ORGANIZER — planningEventTypes দিয়ে Personalization থেকে filter
+  if (role === "ORGANIZER" && planningEventTypes && planningEventTypes.trim() !== "") {
+    const typesArray = planningEventTypes
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    const matchedPersonalizations = await Personalization.find({
+      planningEventTypes: { $in: typesArray },
+    }).select("user");
+
+    const matchedUserIds = matchedPersonalizations.map((p: any) => p.user);
+
+    filter._id = { $in: matchedUserIds };
+  }
+
+  const total = await User.countDocuments(filter);
   const users = await User.find(filter)
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
     .select(
-      "fullName email image  coverImage isActive country phoneNumber role accountType isVerified createdAt"
+      "fullName email image coverImage isActive country phoneNumber role accountType isVerified createdAt"
     );
- 
+
   const usersWithStats = await Promise.all(
     users.map(async (user: any) => {
-      // ── Followers count ───────────────────────────────────
       const followersCount = await Follow.countDocuments({
         following: user._id,
       });
- 
-      // ── Average rating ────────────────────────────────────
+
       const ratingResult = await Review.aggregate([
         {
           $match: {
@@ -329,16 +445,14 @@ const getUsersByRole = async (
         ? parseFloat(ratingResult[0].avgRating.toFixed(1))
         : 0;
       const totalReviews = ratingResult[0]?.totalReviews || 0;
- 
-      // ── Current user এই profile follow করেছে কিনা ─────────
+
       const isFollowing = currentUserId
         ? !!(await Follow.findOne({
             follower: currentUserId,
             following: user._id,
           }))
         : false;
- 
-      // ── Current user এই profile review করেছে কিনা ─────────
+
       const hasReviewed = currentUserId
         ? !!(await Review.findOne({
             organizer: user._id,
@@ -346,24 +460,36 @@ const getUsersByRole = async (
             isDeleted: { $ne: true },
           }))
         : false;
- 
+
       return {
         ...user.toObject(),
         followersCount,
         avgRating,
         totalReviews,
-        isFollowing,  // ← follow করেছে কিনা
-        hasReviewed,  // ← review করেছে কিনা
+        isFollowing,
+        hasReviewed,
       };
     })
   );
 
-
   return {
     users: usersWithStats,
-    pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
   };
 };
+
+
+
+
+
+
+
+
 
 
 
@@ -375,7 +501,7 @@ const getOrganizerProfile = async (
 ) => {
   // ── User data ─────────────────────────────────────────────
   const user = await User.findById(organizerId).select(
-    "fullName email image coverImage country phoneNumber role bio socialLinks isVerified createdAt"
+    "fullName email image coverImage about country phoneNumber role bio socialLinks isVerified createdAt"
   );
   if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found");
  
@@ -475,7 +601,7 @@ const getMarchantProfile = async (
   currentUserId?: string
 ) => {
   const user = await User.findById(marchantId).select(
-    "fullName email image coverImage country phoneNumber role bio isVerified createdAt"
+    "fullName email image coverImage country phoneNumber  about role bio isVerified createdAt"
   );
   if (!user) throw new AppError(httpStatus.NOT_FOUND, "User not found");
  

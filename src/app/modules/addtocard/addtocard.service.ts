@@ -95,8 +95,7 @@ const addToCart = async (
   await cart.save();
   return cart.populate("items.product", "name price images discount");
 };
- 
-const updateCartItem = async (
+ const updateCartItem = async (
   userId: string,
   productId: string,
   quantity: number,
@@ -104,35 +103,36 @@ const updateCartItem = async (
   size?: string
 ) => {
   const cart = await Cart.findOne({ user: userId });
-  if (!cart) throw new Error("Cart not found");
- 
-  const item = cart.items.find(
-    (i: any) =>
-      i.product.toString() === productId &&
-      i.color === (color || "") &&
-      i.size === (size || "")
-  );
- 
-  if (!item) throw new Error("Item not found in cart");
- 
+  if (!cart) throw new Error('Cart not found');
+
+  // ✅ productId must match
+  // ✅ color দিলে match করবে, না দিলে ignore
+  // ✅ size দিলে match করবে, না দিলে ignore
+  const item = cart.items.find((i: any) => {
+    const productMatch = i.product.toString() === productId;
+    const colorMatch = color ? i.color === color : true;
+    const sizeMatch = size ? i.size === size : true;
+    return productMatch && colorMatch && sizeMatch;
+  });
+
+  if (!item) throw new Error('Item not found in cart');
+
   if (quantity <= 0) {
-    // Remove item
-    cart.items = cart.items.filter(
-      (i: any) =>
-        !(
-          i.product.toString() === productId &&
-          i.color === (color || "") &&
-          i.size === (size || "")
-        )
-    );
+    cart.items = cart.items.filter((i: any) => {
+      const productMatch = i.product.toString() === productId;
+      const colorMatch = color ? i.color === color : true;
+      const sizeMatch = size ? i.size === size : true;
+      return !(productMatch && colorMatch && sizeMatch);
+    });
   } else {
     item.quantity = quantity;
   }
- 
+
   await cart.save();
-  return cart.populate("items.product", "name price images discount");
+  return cart.populate('items.product', 'name price images discount');
 };
- 
+
+
 const removeFromCart = async (userId: string, productId: string) => {
   const cart = await Cart.findOne({ user: userId });
   if (!cart) throw new Error("Cart not found");

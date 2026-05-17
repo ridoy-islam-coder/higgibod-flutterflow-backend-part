@@ -153,7 +153,7 @@ const personalizationSchema = new Schema<IPersonalization>(
           "Speed Skating",
           "Inline Hockey",
           "Other",
-          "Street Skating",
+        "Street Skating",
         "Roller Derby",
         "Park Skating",
         "Artistic Skating",
