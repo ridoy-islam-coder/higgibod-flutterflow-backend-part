@@ -5,7 +5,7 @@ import httpStatus from "http-status";
 import { SettingsService } from "./Settings.service";
 
 
-const validRoles = ["MARCHANT", "KAATEDJ", "ORGANIZER"];
+const validRoles = ["MARCHANT", "KAATEDJ", "ORGANIZER","USER"];
 const validTypes = ["privacy_policy", "terms_conditions", "about_us", "mission_statement"];
 
 // GET /api/v1/settings?role=MARCHANT

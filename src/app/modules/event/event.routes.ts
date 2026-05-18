@@ -134,5 +134,7 @@ router.get("/get-reviewsnew/:id", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eve
 
 router.get("/host/:hostId",auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER), eventcontroller.getEventsByHost);
 
+router.post("/reply",auth(USER_ROLE.ORGANIZER),eventcontroller.addReplyToReview);
+
 
 export const eventRoutes = router;

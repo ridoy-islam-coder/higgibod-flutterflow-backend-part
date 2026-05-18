@@ -2,6 +2,17 @@
 import { model, Schema,  } from "mongoose";
 import { IEvent, IReview } from "./event.interface";
 
+
+
+const replySchema = new Schema(
+  {
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    reply: { type: String, required: true },
+  },
+  { timestamps: true }
+);
+
+
 const reviewSchema = new Schema<IReview>(
   {
     user: {
@@ -29,6 +40,8 @@ const reviewSchema = new Schema<IReview>(
       type: Boolean,
       default: false,
     },
+
+    replies: [replySchema], 
   },
   { timestamps: true }
 );
@@ -89,8 +102,8 @@ const eventSchema = new Schema<IEvent>(
     // Event type
     eventType: {
       type: String,
-      enum: ["Free Event", "Paid Event"],
-      default: "Paid Event",
+      // enum: ["Free Event", "Paid Event"],
+      // default: "Paid Event",
     },
 
 

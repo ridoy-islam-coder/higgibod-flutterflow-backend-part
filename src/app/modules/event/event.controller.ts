@@ -769,13 +769,16 @@ const getUpcomingEventsByHostcontroller = catchAsync(async (req, res) => {
 
 
 
+// ───────────────── Controller ─────────────────
 
 const getEventReviewsold = catchAsync(async (req, res) => {
+
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
 
+  // ✅ correct service name
   const result = await eventServices.getEventReviewsnew(
-    req.params.eventId as string,
+    req.params.id as string,
     page,
     limit
   );
@@ -784,10 +787,16 @@ const getEventReviewsold = catchAsync(async (req, res) => {
     statusCode: httpStatus.OK,
     success: true,
     message: "Event reviews fetched successfully",
-    meta: result.meta,
+
+    // ✅ correct
     data: result.data,
+
+    // ✅ correct meta format
+    meta: result.meta,
   });
 });
+
+
 
 
 const getEventsByHost = catchAsync(async (req, res) => {
@@ -806,7 +815,25 @@ const getEventsByHost = catchAsync(async (req, res) => {
   });
 });
 
+// ── Add Reply ─────────────────────────────────────────────────────────────
+const addReplyToReview = catchAsync(async (req, res) => {
+ 
+  const { reply,eventId, reviewId  } = req.body;
 
+  const result = await eventServices.addReplyToReview(
+    req.user._id,
+    eventId as string,
+    reviewId as string,
+    reply,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Reply added successfully",
+    data: result,
+  });
+});
 export const eventcontroller = {
 createEvent,
 getAllEvents,
@@ -839,5 +866,6 @@ addReview,
     getUpcomingEventsByHostcontroller,
     getEventReviewsold,
     getEventsByHost,
+    addReplyToReview,
 
 };

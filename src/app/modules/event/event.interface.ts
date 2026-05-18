@@ -1,25 +1,26 @@
-import { Types } from "mongoose";
+// import { Types } from "mongoose";
 
-export interface IReviewImage {
-  id: string;
-  url: string;
-}
+// export interface IReviewImage {
+//   id: string;
+//   url: string;
+// }
 
-export interface IReview {
-  _id?: Types.ObjectId;
-  user: Types.ObjectId;
-  rating: number;
-  comment: string;
-  images?: IReviewImage[];   // ✅ image support added
-  isAnonymous?: boolean;     // ✅ anonymous posting support
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+// export interface IReview {
+//   _id?: Types.ObjectId;
+//   user: Types.ObjectId;
+//   rating: number;
+//   comment: string;
+//   images?: IReviewImage[];   // ✅ image support added
+//   isAnonymous?: boolean;     // ✅ anonymous posting support
+//   createdAt?: Date;
+//   updatedAt?: Date;
+// }
 
-export interface ILocation {
-  type: "Point";
-  coordinates: [longitude: number, latitude: number]; // [lng, lat]
-}
+// export interface ILocation {
+//   type: "Point";
+//   coordinates: [longitude: number, latitude: number]; // [lng, lat]
+// }
+
 
 
 // export interface IEvent {
@@ -38,10 +39,53 @@ export interface ILocation {
 //   reviews?: IReview[];
 //   isPast?: boolean;
 //   isDeleted?: boolean;
+ 
+//   // ── Visibility Options (Figma) ────────────────────────────
+//   isFeatured?: boolean;     // Feature Placement
+//   isPinned?: boolean;       // Pin Event
+//   isHighlighted?: boolean;  // Highlight Event
+//   isTopEvent?: boolean;     // Top Event
+ 
+//   // ── Event Type ────────────────────────────────────────────
+//   eventType?: "Free Event" | "Paid Event";
+ 
 //   createdAt?: Date;
 //   updatedAt?: Date;
 // }
 
+
+import { Types } from "mongoose";
+
+export interface IReviewImage {
+  id: string;
+  url: string;
+}
+
+// ✅ নতুন — Reply interface
+export interface IReply {
+  _id?: Types.ObjectId;
+  user: Types.ObjectId;
+  reply: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface IReview {
+  _id?: Types.ObjectId;
+  user: Types.ObjectId;
+  rating: number;
+  comment: string;
+  images?: IReviewImage[];
+  isAnonymous?: boolean;
+  replies?: IReply[]; // ✅ নতুন
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
+export interface ILocation {
+  type: "Point";
+  coordinates: [longitude: number, latitude: number];
+}
 
 export interface IEvent {
   _id?: Types.ObjectId;
@@ -59,16 +103,16 @@ export interface IEvent {
   reviews?: IReview[];
   isPast?: boolean;
   isDeleted?: boolean;
- 
-  // ── Visibility Options (Figma) ────────────────────────────
-  isFeatured?: boolean;     // Feature Placement
-  isPinned?: boolean;       // Pin Event
-  isHighlighted?: boolean;  // Highlight Event
-  isTopEvent?: boolean;     // Top Event
- 
+
+  // ── Visibility Options ────────────────────────────────────
+  isFeatured?: boolean;
+  isPinned?: boolean;
+  isHighlighted?: boolean;
+  isTopEvent?: boolean;
+
   // ── Event Type ────────────────────────────────────────────
-  eventType?: "Free Event" | "Paid Event";
- 
+  eventType?: string
+
   createdAt?: Date;
   updatedAt?: Date;
 }

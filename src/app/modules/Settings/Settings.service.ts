@@ -11,7 +11,7 @@ const getSettings = async (role: string, type?: string) => {
     return settings || { role, type, content: "" };
   }
 
-  // type না দিলে ওই role এর সব settings আনো
+
   const types = ["privacy_policy", "terms_conditions", "about_us", "mission_statement"];
   const allSettings = await Settings.find({ role });
 

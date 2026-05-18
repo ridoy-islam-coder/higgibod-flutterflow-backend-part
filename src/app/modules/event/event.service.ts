@@ -1621,67 +1621,79 @@ const getEventReviews = async (
 
 
 
+
 const getEventReviewsnew = async (
   eventId: string,
-  page = 1,
-  limit = 10
+  page: number = 1,
+  limit: number = 10
 ) => {
-  // 1️⃣ validate id
+
+  // ✅ Check Event ID
   if (!mongoose.Types.ObjectId.isValid(eventId)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid Event ID");
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      "Invalid Event ID"
+    );
   }
 
-  // 2️⃣ find event
-  const event = await Event.findById(eventId).populate({
-    path: "reviews.user",
-    select: "fullName email image",
-  });
+  // ✅ Find Event
+  const event = await Event.findById(eventId)
+    .select("reviews")
+    .populate([
+      {
+        path: "reviews.user",
+        select: "fullName email image",
+      },
+      {
+        path: "reviews.replies.user",
+        select: "fullName email image",
+      },
+    ]);
 
+  // ✅ Event Not Found
   if (!event) {
-    throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+    throw new AppError(
+      httpStatus.NOT_FOUND,
+      "Event not found"
+    );
   }
 
-  // 3️⃣ safe reviews array
-  const reviews = event.reviews ?? [];
+  // ✅ Reviews Array
+  const reviews = event.reviews || [];
 
-  // 4️⃣ sort (newest first)
-  const sorted = [...reviews].sort((a: any, b: any) => {
+  // ✅ Sort Latest Reviews First
+  const sortedReviews = [...reviews].sort((a: any, b: any) => {
     return (
-      new Date(b.createdAt ?? 0).getTime() -
-      new Date(a.createdAt ?? 0).getTime()
+      new Date(b.createdAt || 0).getTime() -
+      new Date(a.createdAt || 0).getTime()
     );
   });
 
-  // 5️⃣ pagination
+  // ✅ Pagination
+  const total = sortedReviews.length;
+
+  const totalPage = Math.ceil(total / limit);
+
   const skip = (page - 1) * limit;
-  const paginated = sorted.slice(skip, skip + limit);
 
-  // 6️⃣ final clean data
-  const data = paginated.map((review: any) => ({
-    _id: review._id,
-    rating: review.rating,
-    comment: review.comment,
-    images: review.images,
-    isAnonymous: review.isAnonymous,
-    isDeleted: review.isDeleted,
-    reply: review.reply || null,
-    createdAt: review.createdAt,
-    updatedAt: review.updatedAt,
+  const paginatedReviews = sortedReviews.slice(
+    skip,
+    skip + limit
+  );
 
-    // user safe check
-    user: review.isAnonymous ? null : review.user,
-  }));
-
+  // ✅ Return
   return {
-    data,
+    data: paginatedReviews,
+
     meta: {
       page,
       limit,
-      total: reviews.length,
-      totalPage: Math.ceil(reviews.length / limit),
+      total,
+      totalPage,
     },
   };
 };
+
 
 
 
@@ -1732,6 +1744,7 @@ const getEventsByHost = async (
   const filter: any = {
     host: new Types.ObjectId(hostId),
     isDeleted: false,
+    isPast:false,
   };
 
   // ✅ categoryId দিলে filter করবে, না দিলে সব আসবে
@@ -1763,7 +1776,50 @@ const getEventsByHost = async (
 
 
 
+// ── Add Reply to Review ───────────────────────────────────────────────────
+const addReplyToReview = async (
+  userId: string,
+  eventId: string,
+  reviewId: string,
+  reply: string,
+) => {
 
+  const event = await Event.findById(eventId);
+  if (!event) throw new AppError(httpStatus.NOT_FOUND, "Event not found");
+
+
+  const review = event.reviews?.find(
+    (r: any) => r._id.toString() === reviewId
+  );
+  if (!review) throw new AppError(httpStatus.NOT_FOUND, "Review not found");
+
+
+  // if (event.host.toString() !== userId.toString()) {
+  //   throw new AppError(httpStatus.FORBIDDEN, "Only event host can reply");
+  // }
+
+ 
+  const alreadyReplied = review.replies?.find(
+    (r: any) => r.user.toString() === userId.toString()
+  );
+  if (alreadyReplied) {
+    throw new AppError(httpStatus.CONFLICT, "You have already replied to this review");
+  }
+
+
+  review.replies = review.replies || [];
+ review.replies.push({
+  user: new Types.ObjectId(userId), // ✅ string → ObjectId
+  reply,
+});
+
+  await event.save();
+
+
+  await event.populate("reviews.replies.user", "fullName email image");
+
+  return review;
+};
 
 
 
@@ -1798,5 +1854,6 @@ addReviewService,
   getEventReviews,
   getUpcomingEventsByHost,
   getEventReviewsnew,
-  getEventsByHost
+  getEventsByHost,
+  addReplyToReview
 };

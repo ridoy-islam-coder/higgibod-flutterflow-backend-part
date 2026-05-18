@@ -6,7 +6,7 @@ const settingsSchema = new Schema<ISettings>(
   {
     role: {
       type: String,
-      enum: ["MARCHANT", "KAATEDJ", "ORGANIZER"],
+      enum: ["MARCHANT", "KAATEDJ", "ORGANIZER","USER"],
       required: true,
     },
     type: {

@@ -1,6 +1,6 @@
 import { Types } from "mongoose";
 
-export type TSettingsRole = "MARCHANT" | "KAATEDJ" | "ORGANIZER";
+export type TSettingsRole = "MARCHANT" | "KAATEDJ" | "ORGANIZER" | "USER";
 export type TSettingsType = "privacy_policy" | "terms_conditions" | "about_us" | "mission_statement";
 
 export interface ISettings {
