@@ -4,10 +4,12 @@ import { IEvent, IReview } from "./event.interface";
 
 
 
+
 const replySchema = new Schema(
   {
     user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    reply: { type: String, required: true },
+    comment: { type: String, required: true, trim: true },
+     isRead: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
@@ -92,7 +94,7 @@ const eventSchema = new Schema<IEvent>(
     isPast: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
 
-
+    skiteeventType:{type: String,},
       // ── Visibility Options (Figma) ────────────────────────────
     isHighlighted: { type: Boolean, default: false },  // Highlight Event
     isPinned: { type: Boolean, default: false },        // Pin Event
@@ -102,10 +104,11 @@ const eventSchema = new Schema<IEvent>(
     // Event type
     eventType: {
       type: String,
-      // enum: ["Free Event", "Paid Event"],
-      // default: "Paid Event",
+      enum: ["Free Event", "Paid Event"],
+      default: "Paid Event",
     },
 
+   
 
 
 

@@ -6,16 +6,34 @@ export interface IImageFile {
   url: string;
 }
 
+
+// product.interface.ts
+export interface IReviewReply {
+  user: Types.ObjectId;
+  comment: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+}
+
 export interface IReview {
   user: Types.ObjectId;
   rating: number;
   comment: string;
   images?: IImageFile[];
-   reviews: IReview[]; 
-  isAnonymous?: boolean;
-  createdAt?: Date;
-  updatedAt?: Date;
+  isAnonymous: boolean;
+  replies: IReviewReply[]; // ← এটা add করো
 }
+
+// export interface IReview {
+//   user: Types.ObjectId;
+//   rating: number;
+//   comment: string;
+//   images?: IImageFile[];
+//    reviews: IReview[]; 
+//   isAnonymous?: boolean;
+//   createdAt?: Date;
+//   updatedAt?: Date;
+// }
 
 export interface IProduct extends Document {
   name: string;

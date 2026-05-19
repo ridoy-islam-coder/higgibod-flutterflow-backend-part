@@ -12,6 +12,7 @@ import { Product } from "../product/product.model";
 import { updatePastEvents } from "../../utils/updatePastEvents";
 import { isPast } from "date-fns/isPast";
 import User from "../user/user.model";
+import { IReply } from "./event.interface";
 
 
 
@@ -35,6 +36,7 @@ export const createEventService = async (
     isTopEvent,
     longitude,
     latitude,
+    skiteeventType,
   } = body;
 
   if (!title || !date) {
@@ -69,6 +71,7 @@ export const createEventService = async (
     isPinned: isPinned || false,
     isHighlighted: isHighlighted || false,
     isTopEvent: isTopEvent || false,
+    skiteeventType:skiteeventType ||""
   });
 
   return event;
@@ -241,6 +244,7 @@ export const updateEventService = async (
     isTopEvent,
     longitude,
     latitude,
+    skiteeventType,
   } = req.body;
 
   // ✅ Geo location — নতুন coordinate আসলে update, না আসলে skip
@@ -267,6 +271,7 @@ export const updateEventService = async (
     ...(coverImage && { coverImage }),
     // ✅ নতুন gallery আসলে replace, না আসলে পুরনোটা থাকবে
     ...(gallery && gallery.length > 0 && { gallery }),
+    ...(skiteeventType !== undefined && { skiteeventType }), 
   };
 
   const event = await Event.findByIdAndUpdate(id, { $set: updateData }, { new: true });
@@ -502,7 +507,7 @@ const searchEvents = async (query: {
   q?: string;
   category?: string;
   country?: string;
-  eventType?: string;
+  skiteeventType?: string;
   minPrice?: number;
   maxPrice?: number;
   date?: string;
@@ -516,7 +521,7 @@ const searchEvents = async (query: {
     q,
     category,
     country,
-    eventType,
+    skiteeventType,
     minPrice,
     maxPrice,
     date,
@@ -545,7 +550,7 @@ const searchEvents = async (query: {
     filter.location = { $regex: country, $options: 'i' };
   }
 
-  if (eventType) filter.eventType = eventType;
+  if (skiteeventType) filter.skiteeventType = skiteeventType;
 
   if (organizer) filter.host = organizer;
 
@@ -1115,6 +1120,7 @@ const getAllMyEvents = async (userId: string, query: any) => {
       isFeatured
       isTopEvent
       category
+      skiteeventType
       `
     );
 
@@ -1737,7 +1743,7 @@ const getEventsByHost = async (
   hostId: string,
   page: number = 1,
   limit: number = 10,
-  categoryId?: string, // ✅ নতুন
+  categoryId?: string, 
 ) => {
   const skip = (page - 1) * limit;
 
@@ -1773,55 +1779,55 @@ const getEventsByHost = async (
   };
 };
 
-
-
-
-// ── Add Reply to Review ───────────────────────────────────────────────────
 const addReplyToReview = async (
   userId: string,
   eventId: string,
   reviewId: string,
-  reply: string,
+  comment: string,
 ) => {
-
   const event = await Event.findById(eventId);
-  if (!event) throw new AppError(httpStatus.NOT_FOUND, "Event not found");
-
-
-  const review = event.reviews?.find(
-    (r: any) => r._id.toString() === reviewId
-  );
-  if (!review) throw new AppError(httpStatus.NOT_FOUND, "Review not found");
-
-
-  // if (event.host.toString() !== userId.toString()) {
-  //   throw new AppError(httpStatus.FORBIDDEN, "Only event host can reply");
-  // }
-
- 
-  const alreadyReplied = review.replies?.find(
-    (r: any) => r.user.toString() === userId.toString()
-  );
-  if (alreadyReplied) {
-    throw new AppError(httpStatus.CONFLICT, "You have already replied to this review");
+  if (!event) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Event not found');
   }
 
 
+  // ✅ Host check
+  if (event.host.toString() !== userId.toString()) {
+    throw new AppError(httpStatus.FORBIDDEN, 'Only event host can reply');
+  }
+
+  const review = event.reviews?.find(
+    (r: any) => r._id.toString() === reviewId.toString(),
+  );
+
+
+
+
+  if (!review) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Review not found');
+  }
+
+  const alreadyReplied = review.replies?.find(
+    (r: any) => r.user.toString() === userId.toString(),
+  );
+  if (alreadyReplied) {
+    throw new AppError(
+      httpStatus.CONFLICT,
+      'You have already replied to this review',
+    );
+  }
+
   review.replies = review.replies || [];
- review.replies.push({
-  user: new Types.ObjectId(userId), // ✅ string → ObjectId
-  reply,
-});
+review.replies.push({
+  user: new Types.ObjectId(userId.toString()),
+  comment: comment.trim(), // ✅ reply → comment
+  isRead: false,
+} as any);
 
   await event.save();
-
-
-  await event.populate("reviews.replies.user", "fullName email image");
-
+  await event.populate('reviews.replies.user', 'fullName email image');
   return review;
 };
-
-
 
 
 export const eventServices = {

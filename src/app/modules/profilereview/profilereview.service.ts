@@ -2,7 +2,7 @@ import httpStatus from 'http-status';
 import AppError from '../../error/AppError';
 import { Report, Review } from './profilereview.model';
 import { deleteFromS3, uploadToS3 } from '../../utils/fileHelper';
-import { TReportReason } from './profilereview.interface';
+import { IReport } from './profilereview.interface';
 import mongoose from 'mongoose';
 
 
@@ -98,7 +98,7 @@ const getOrganizerReviews = async (
 const reportReview = async (
   reportedBy: string,
   reviewId: string,
-  reason: TReportReason,
+  reason: IReport,
 ) => {
   const review = await Review.findById(reviewId);
   if (!review) throw new AppError(httpStatus.NOT_FOUND, 'Review not found');
@@ -177,35 +177,35 @@ const dismissReport = async (reportId: string) => {
 
 
 
-// ── Reply to review ───────────────────────────────────────────────────────────
-const replyToReview = async (
-  organizerId: string,
-  reviewId: string,
-  comment: string
-) => {
-  const review = await Review.findById(reviewId);
+// // ── Reply to review ───────────────────────────────────────────────────────────
+// const replyToReview = async (
+//   organizerId: string,
+//   reviewId: string,
+//   comment: string
+// ) => {
+//   const review = await Review.findById(reviewId);
  
-  if (!review) throw new AppError(httpStatus.NOT_FOUND, 'Review not found');
+//   if (!review) throw new AppError(httpStatus.NOT_FOUND, 'Review not found');
  
-  // শুধু ওই organizer reply দিতে পারবে যার review এটা
-  if (review.organizer.toString() !== organizerId.toString()) {
-    throw new AppError(httpStatus.FORBIDDEN, 'You can only reply to your own reviews');
-  }
+//   // শুধু ওই organizer reply দিতে পারবে যার review এটা
+//   if (review.organizer.toString() !== organizerId.toString()) {
+//     throw new AppError(httpStatus.FORBIDDEN, 'You can only reply to your own reviews');
+//   }
  
-  // already reply আছে কিনা check
-  if (review.reply) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'You have already replied to this review');
-  }
+//   // already reply আছে কিনা check
+//   if (review.reply) {
+//     throw new AppError(httpStatus.BAD_REQUEST, 'You have already replied to this review');
+//   }
  
 
-review.reply = {
-  organizer: new mongoose.Types.ObjectId(organizerId), // ← string → ObjectId
-  comment,
-};
+// review.reply = {
+//   organizer: new mongoose.Types.ObjectId(organizerId), // ← string → ObjectId
+//   comment,
+// };
  
-  await review.save();
-  return review;
-};
+//   await review.save();
+//   return review;
+// };
  
 // ── Update reply ──────────────────────────────────────────────────────────────
 const updateReply = async (
@@ -298,6 +298,51 @@ const getReviewsByUser = async (
 };
 
 
+
+
+
+
+
+
+
+
+// ── 5. Reply to Review ────────────────────────────────────────────
+const replyToReview = async (
+  reviewId: string,
+  organizerId: string,
+  comment: string,
+) => {
+  const review = await Review.findById(reviewId);
+  if (!review) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Review not found');
+  }
+
+  // if (review.organizer.toString() !== organizerId) {
+  //   throw new AppError(
+  //     httpStatus.FORBIDDEN,
+  //     'Only the reviewed organizer can reply to this review',
+  //   );
+  // }
+
+  if (review.reply) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'A reply already exists for this review',
+    );
+  }
+
+  review.reply = { organizer: organizerId, comment, isRead: false } as any;
+  await review.save();
+
+  return review.reply;
+};
+
+
+
+
+
+
+
 export const reviewServices = {
   createReview,
   getOrganizerReviews,
@@ -306,8 +351,9 @@ export const reviewServices = {
   removeReview,
   dismissReport,
   getMyReviews,
-  replyToReview,
+  // replyToReview,
   updateReply,
   deleteReply,
   getReviewsByUser,
+  replyToReview,
 };

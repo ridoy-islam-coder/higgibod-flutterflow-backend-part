@@ -1,6 +1,17 @@
 // product.model.ts
 import { model, Schema } from "mongoose";
-import { IProduct, IReview } from "./product.interface";
+import { IProduct, IReview, IReviewReply } from "./product.interface";
+
+
+
+// ✅ নতুন replySchema add করো reviewSchema এর উপরে
+const replySchema = new Schema<IReviewReply>(
+  {
+    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    comment: { type: String, required: true },
+  },
+  { timestamps: true }
+);
 
 
 const reviewSchema = new Schema<IReview>(
@@ -18,6 +29,7 @@ const reviewSchema = new Schema<IReview>(
       type: Boolean,
       default: false,
     },
+    replies: [replySchema],
   },
   { timestamps: true }
 );

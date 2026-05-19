@@ -131,5 +131,5 @@ router.get("/getproduct-reviews/:productId", productController.getReviewsByProdu
 
 router.get("/host/:hostId",auth(USER_ROLE.MARCHANT,USER_ROLE.USER), productController.getProductsByHost);
 
-
+router.post("/reply", auth(USER_ROLE.MARCHANT), productController.addReviewReply);
 export const productsRoutes = router;

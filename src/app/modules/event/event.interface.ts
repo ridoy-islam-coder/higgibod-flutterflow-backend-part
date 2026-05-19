@@ -65,7 +65,8 @@ export interface IReviewImage {
 export interface IReply {
   _id?: Types.ObjectId;
   user: Types.ObjectId;
-  reply: string;
+  comment: string;
+  isRead:boolean
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -109,9 +110,9 @@ export interface IEvent {
   isPinned?: boolean;
   isHighlighted?: boolean;
   isTopEvent?: boolean;
-
+skiteeventType:string,
   // ── Event Type ────────────────────────────────────────────
-  eventType?: string
+  eventType?: "Free Event" | "Paid Event";
 
   createdAt?: Date;
   updatedAt?: Date;

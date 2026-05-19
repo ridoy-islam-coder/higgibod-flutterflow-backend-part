@@ -1228,31 +1228,82 @@ const updateOrderStatus = async (
 
 
 
+// const getReviewsByProduct = async (
+//   productId: string,
+//   page = 1,
+//   limit = 10
+// ) => {
+//   const skip = (page - 1) * limit;
+
+//   const product = await Product.findById(productId)
+//     .populate("reviews.user", "fullName image");
+
+//   if (!product) {
+//     throw new Error("Product not found");
+//   }
+
+//   // ✅ SAFE FIX (TS error resolve)
+//   const reviews = product.reviews ?? [];
+
+//   const sorted = [...reviews].sort((a: any, b: any) => {
+//     return (
+//       new Date(b.createdAt ?? 0).getTime() -
+//       new Date(a.createdAt ?? 0).getTime()
+//     );
+//   });
+
+//   const paginated = sorted.slice(skip, skip + limit);
+
+//   return {
+//     meta: {
+//       page,
+//       limit,
+//       total: reviews.length,
+//       totalPage: Math.ceil(reviews.length / limit),
+//     },
+//     data: paginated,
+//   };
+// };
+
+// product.service.ts
 const getReviewsByProduct = async (
   productId: string,
   page = 1,
-  limit = 10
+  limit = 10,
 ) => {
   const skip = (page - 1) * limit;
 
-  const product = await Product.findById(productId)
-    .populate("reviews.user", "fullName image");
+  const product = await Product.findById(productId).populate([
+    { path: 'reviews.user', select: 'fullName image' },
+    { path: 'reviews.reply.user', select: 'fullName image', strictPopulate: false },
+  ]);
 
   if (!product) {
-    throw new Error("Product not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Product not found');
   }
 
-  // ✅ SAFE FIX (TS error resolve)
-  const reviews = product.reviews ?? [];
+  const reviews = (product.reviews ?? []) as any[];
 
-  const sorted = [...reviews].sort((a: any, b: any) => {
-    return (
+  // latest আগে sort
+  const sorted = [...reviews].sort(
+    (a, b) =>
       new Date(b.createdAt ?? 0).getTime() -
-      new Date(a.createdAt ?? 0).getTime()
-    );
-  });
+      new Date(a.createdAt ?? 0).getTime(),
+  );
 
   const paginated = sorted.slice(skip, skip + limit);
+
+  // average rating
+  const avgRating =
+    reviews.length > 0
+      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+      : '0.0';
+
+  // rating breakdown
+  const ratingBreakdown = [5, 4, 3, 2, 1].map((star) => ({
+    star,
+    count: reviews.filter((r) => r.rating === star).length,
+  }));
 
   return {
     meta: {
@@ -1260,12 +1311,12 @@ const getReviewsByProduct = async (
       limit,
       total: reviews.length,
       totalPage: Math.ceil(reviews.length / limit),
+      averageRating: avgRating,
+      ratingBreakdown,
     },
     data: paginated,
   };
 };
-
-
 
 
 
@@ -1312,6 +1363,38 @@ const getProductsByHost = async (
 
 
 
+// product.service.ts
+const addReviewReply = async (
+  productId: string,
+  reviewId: string,
+  userId: string,
+  comment: string
+) => {
+  const product = await Product.findOneAndUpdate(
+    {
+      _id: productId,
+      "reviews._id": reviewId,
+    },
+    {
+      $push: {
+        "reviews.$.replies": {
+          user: new Types.ObjectId(userId),
+          comment,
+        },
+      },
+    },
+    { new: true }
+  )
+    .populate("reviews.replies.user", "name email image")
+    .populate("reviews.user", "name email image");
+
+  if (!product) {
+    throw new AppError(httpStatus.NOT_FOUND, "Product or Review not found");
+  }
+
+  return product;
+};
+
 
 export const productServices = {
     getAllProductsService,
@@ -1338,5 +1421,6 @@ getReviewsByProduct,
   getOrderDetails,
   updateManageOrderStatus,
   getProductsByHost,
+  addReviewReply,
   
 };

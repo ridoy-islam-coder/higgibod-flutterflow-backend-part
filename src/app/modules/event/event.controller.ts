@@ -182,7 +182,7 @@ const searchEvents = catchAsync(async (req, res) => {
     q: req.query.q as string,
     category: req.query.category as string,
     country: req.query.country as string,
-    eventType: req.query.eventType as string,
+    skiteeventType: req.query.skiteeventType as string,
     minPrice: req.query.minPrice ? Number(req.query.minPrice) : undefined,
     maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
     date: req.query.date as string,
@@ -815,25 +815,31 @@ const getEventsByHost = catchAsync(async (req, res) => {
   });
 });
 
-// ── Add Reply ─────────────────────────────────────────────────────────────
+
 const addReplyToReview = catchAsync(async (req, res) => {
- 
-  const { reply,eventId, reviewId  } = req.body;
+  const { comment, eventId, reviewId } = req.body;
+  console.log('CONTROLLER DEBUG:', { comment, eventId, reviewId });
+  console.log('USER:', req.user);
+  if (!comment || comment.trim() === '') {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Comment is required');
+  }
 
   const result = await eventServices.addReplyToReview(
-    req.user._id,
+    req.user?.userId, // ✅ _id এর বদলে userId
     eventId as string,
     reviewId as string,
-    reply,
+    comment,
   );
 
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
     success: true,
-    message: "Reply added successfully",
+    message: 'Reply added successfully',
     data: result,
   });
 });
+
+
 export const eventcontroller = {
 createEvent,
 getAllEvents,

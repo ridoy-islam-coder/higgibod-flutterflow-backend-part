@@ -145,7 +145,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
       role: user.role,
     },
     config.jwt.jwt_access_secret as Secret,
-    { expiresIn: '24h' },
+    { expiresIn: '30d'  },
   );
 
   const refreshToken = jwt.sign(
@@ -154,7 +154,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
       role: user.role,
     },
     config.jwt.jwt_refresh_secret as Secret,
-    { expiresIn: '7d' },
+    { expiresIn: '30d'  },
   );
 
   sendResponse(res, {

@@ -87,25 +87,25 @@ const dismissReport = catchAsync(async (req: Request, res: Response) => {
 
 
 
-// ── POST /:reviewId/reply — reply দাও ────────────────────────────────────────
-const replyToReview = catchAsync(async (req: Request, res: Response) => {
-  const organizerId = req.user._id;
-  const { reviewId } = req.params;
-  const { comment } = req.body;
+// // ── POST /:reviewId/reply — reply দাও ────────────────────────────────────────
+// const replyToReview = catchAsync(async (req: Request, res: Response) => {
+//   const organizerId = req.user._id;
+//   const { reviewId } = req.params;
+//   const { comment } = req.body;
  
-  const result = await reviewServices.replyToReview(
-    organizerId,
-    reviewId as string,
-    comment
-  );
+//   const result = await reviewServices.replyToReview(
+//     organizerId,
+//     reviewId as string,
+//     comment
+//   );
  
-  sendResponse(res, {
-    statusCode: httpStatus.CREATED,
-    success: true,
-    message: 'Reply added successfully',
-    data: result,
-  });
-});
+//   sendResponse(res, {
+//     statusCode: httpStatus.CREATED,
+//     success: true,
+//     message: 'Reply added successfully',
+//     data: result,
+//   });
+// });
  
 // ── PATCH /:reviewId/reply — reply update করো ────────────────────────────────
 const updateReply = catchAsync(async (req: Request, res: Response) => {
@@ -197,7 +197,22 @@ const getReviewsByUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
+// ── 5. Reply to Review (organizer) ───────────────────────────────
+const replyToReview = catchAsync(async (req: Request, res: Response) => {
+  const { reviewId,comment } =req.body
+  const organizerId = req.user?.userId;
+  const result = await reviewServices.replyToReview(
+    reviewId as string,
+    organizerId,
+    comment,
+  );
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Reply added successfully',
+    data: result,
+  });
+});
 
 
 export const reviewController = {
@@ -207,9 +222,10 @@ export const reviewController = {
   getAllReports,
   removeReview,
   dismissReport,
-  replyToReview,
+  // replyToReview,
   updateReply,
   deleteReply,
   getMyReviews,
-  getReviewsByUser  
+  getReviewsByUser,
+  replyToReview
 };
