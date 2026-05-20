@@ -1265,7 +1265,59 @@ const updateOrderStatus = async (
 //   };
 // };
 
-// product.service.ts
+// // product.service.ts
+// const getReviewsByProduct = async (
+//   productId: string,
+//   page = 1,
+//   limit = 10,
+// ) => {
+//   const skip = (page - 1) * limit;
+
+//   const product = await Product.findById(productId).populate([
+//     { path: 'reviews.user', select: 'fullName image' },
+//     { path: 'reviews.reply.user', select: 'fullName image', strictPopulate: false },
+//   ]);
+
+//   if (!product) {
+//     throw new AppError(httpStatus.NOT_FOUND, 'Product not found');
+//   }
+
+//   const reviews = (product.reviews ?? []) as any[];
+
+//   // latest আগে sort
+//   const sorted = [...reviews].sort(
+//     (a, b) =>
+//       new Date(b.createdAt ?? 0).getTime() -
+//       new Date(a.createdAt ?? 0).getTime(),
+//   );
+
+//   const paginated = sorted.slice(skip, skip + limit);
+
+//   // average rating
+//   const avgRating =
+//     reviews.length > 0
+//       ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+//       : '0.0';
+
+//   // rating breakdown
+//   const ratingBreakdown = [5, 4, 3, 2, 1].map((star) => ({
+//     star,
+//     count: reviews.filter((r) => r.rating === star).length,
+//   }));
+
+//   return {
+//     meta: {
+//       page,
+//       limit,
+//       total: reviews.length,
+//       totalPage: Math.ceil(reviews.length / limit),
+//       averageRating: avgRating,
+//       ratingBreakdown,
+//     },
+//     data: paginated,
+//   };
+// };
+
 const getReviewsByProduct = async (
   productId: string,
   page = 1,
@@ -1273,9 +1325,10 @@ const getReviewsByProduct = async (
 ) => {
   const skip = (page - 1) * limit;
 
+  // মডেলের ফিল্ড নেম 'reviews.replies.user' অনুযায়ী পপুলেট করা হলো
   const product = await Product.findById(productId).populate([
     { path: 'reviews.user', select: 'fullName image' },
-    { path: 'reviews.reply.user', select: 'fullName image', strictPopulate: false },
+    { path: 'reviews.replies.user', select: 'fullName image', strictPopulate: false },
   ]);
 
   if (!product) {
@@ -1284,41 +1337,45 @@ const getReviewsByProduct = async (
 
   const reviews = (product.reviews ?? []) as any[];
 
-  // latest আগে sort
+  // লেটেস্ট রিভিউ আগে দেখানোর জন্য সর্ট
   const sorted = [...reviews].sort(
     (a, b) =>
       new Date(b.createdAt ?? 0).getTime() -
       new Date(a.createdAt ?? 0).getTime(),
   );
 
+  // পেজিনেট করা হলো
   const paginated = sorted.slice(skip, skip + limit);
 
-  // average rating
-  const avgRating =
-    reviews.length > 0
-      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
-      : '0.0';
+  // 🎯 এখানে ম্যাপিং করে 'replies' অ্যারেকে আপনার চাওয়া 'reply' অবজেক্টে রূপান্তর করা হচ্ছে
+  const formattedReviews = paginated.map((review) => {
+    const reviewObj = review.toObject ? review.toObject() : review;
+    
+    // অ্যারের প্রথম রিপ্লাইটি নেওয়া হচ্ছে (যদি থাকে)
+    const firstReply = reviewObj.replies && reviewObj.replies.length > 0 
+      ? reviewObj.replies[0] 
+      : null;
 
-  // rating breakdown
-  const ratingBreakdown = [5, 4, 3, 2, 1].map((star) => ({
-    star,
-    count: reviews.filter((r) => r.rating === star).length,
-  }));
+    // পুরানো 'replies' বাদ দিয়ে নতুন 'reply' অবজেক্ট যোগ করা হচ্ছে
+    delete reviewObj.replies;
+
+    return {
+      ...reviewObj,
+      reply: firstReply, // রেসপন্সে এখন সরাসরি অবজেক্ট হিসেবে আসবে
+    };
+  });
 
   return {
+    data: formattedReviews,
     meta: {
       page,
       limit,
       total: reviews.length,
       totalPage: Math.ceil(reviews.length / limit),
-      averageRating: avgRating,
-      ratingBreakdown,
     },
-    data: paginated,
+    
   };
 };
-
-
 
 
 

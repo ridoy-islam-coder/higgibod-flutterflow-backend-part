@@ -81,8 +81,8 @@ router.delete(
  
 // ── Report ────────────────────────────────────────────────────────────────────
 router.post(
-  '/report/:reviewId',
-  auth(USER_ROLE.ORGANIZER),
+  '/report',
+  auth(USER_ROLE.ORGANIZER,USER_ROLE.MARCHANT),
   reviewController.reportReview,
 );
  

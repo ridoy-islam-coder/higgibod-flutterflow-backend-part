@@ -19,11 +19,9 @@ const EventReviewReportSchema = new Schema(
     reason: {
       type: String,
       enum: [
-        "Spam",
-        "Inappropriate content",
-        "Fake review",
-        "Hate speech",
-        "Other",
+       'Just to let you know this might be a problem',
+        'Disrespectful and harmful behavior',
+        "Violating platform's harassment policy",
       ],
       required: true,
     },

@@ -39,10 +39,13 @@ const getOrganizerReviews = catchAsync(async (req: Request, res: Response) => {
 });
 
 const reportReview = catchAsync(async (req: Request, res: Response) => {
+
+   const { reason,reviewId } = req.body;
+  
   const result = await reviewServices.reportReview(
     req.user._id,
-    req.params.reviewId  as string,
-    req.body.reason,
+    reviewId  as string,
+    reason,
   );
   sendResponse(res, {
     statusCode: httpStatus.CREATED,
