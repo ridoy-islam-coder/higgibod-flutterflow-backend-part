@@ -1628,79 +1628,143 @@ const getEventReviews = async (
 
 
 
+// const getEventReviewsnew = async (
+//   eventId: string,
+//   page: number = 1,
+//   limit: number = 10
+// ) => {
+
+//   // ✅ Check Event ID
+//   if (!mongoose.Types.ObjectId.isValid(eventId)) {
+//     throw new AppError(
+//       httpStatus.BAD_REQUEST,
+//       "Invalid Event ID"
+//     );
+//   }
+
+//   // ✅ Find Event
+//   const event = await Event.findById(eventId)
+//     .select("reviews")
+//     .populate([
+//       {
+//         path: "reviews.user",
+//         select: "fullName email image",
+//       },
+//       {
+//         path: "reviews.replies.user",
+//         select: "fullName email image",
+//       },
+//     ]);
+
+//   // ✅ Event Not Found
+//   if (!event) {
+//     throw new AppError(
+//       httpStatus.NOT_FOUND,
+//       "Event not found"
+//     );
+//   }
+
+//   // ✅ Reviews Array
+//   const reviews = event.reviews || [];
+
+//   // ✅ Sort Latest Reviews First
+//   const sortedReviews = [...reviews].sort((a: any, b: any) => {
+//     return (
+//       new Date(b.createdAt || 0).getTime() -
+//       new Date(a.createdAt || 0).getTime()
+//     );
+//   });
+
+//   // ✅ Pagination
+//   const total = sortedReviews.length;
+
+//   const totalPage = Math.ceil(total / limit);
+
+//   const skip = (page - 1) * limit;
+
+//   const paginatedReviews = sortedReviews.slice(
+//     skip,
+//     skip + limit
+//   );
+
+//   // ✅ Return
+//   return {
+//     data: paginatedReviews,
+
+//     meta: {
+//       page,
+//       limit,
+//       total,
+//       totalPage,
+//     },
+//   };
+// };
+
 const getEventReviewsnew = async (
   eventId: string,
   page: number = 1,
   limit: number = 10
 ) => {
-
-  // ✅ Check Event ID
+  // ✅ Validate Event ID
   if (!mongoose.Types.ObjectId.isValid(eventId)) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      "Invalid Event ID"
-    );
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid Event ID");
   }
 
-  // ✅ Find Event
+  // ✅ Event খোঁজো + reviews populate করো
   const event = await Event.findById(eventId)
     .select("reviews")
     .populate([
       {
-        path: "reviews.user",
+        path: "reviews.user",         // reviewer এর info
         select: "fullName email image",
       },
       {
-        path: "reviews.replies.user",
+        path: "reviews.replies.user", // reply দেওয়া user এর info
         select: "fullName email image",
       },
     ]);
 
-  // ✅ Event Not Found
+  // ✅ Event না পেলে error
   if (!event) {
-    throw new AppError(
-      httpStatus.NOT_FOUND,
-      "Event not found"
-    );
+    throw new AppError(httpStatus.NOT_FOUND, "Event not found");
   }
+const reviews = event.reviews || [];
 
-  // ✅ Reviews Array
-  const reviews = event.reviews || [];
-
-  // ✅ Sort Latest Reviews First
-  const sortedReviews = [...reviews].sort((a: any, b: any) => {
-    return (
-      new Date(b.createdAt || 0).getTime() -
-      new Date(a.createdAt || 0).getTime()
-    );
-  });
-
-  // ✅ Pagination
-  const total = sortedReviews.length;
-
-  const totalPage = Math.ceil(total / limit);
-
-  const skip = (page - 1) * limit;
-
-  const paginatedReviews = sortedReviews.slice(
-    skip,
-    skip + limit
+// ✅ Latest আগে sort
+const sortedReviews = [...reviews].sort((a: any, b: any) => {
+  return (
+    new Date(b.createdAt || 0).getTime() -
+    new Date(a.createdAt || 0).getTime()
   );
+});
 
-  // ✅ Return
+// ✅ Pagination
+const total = sortedReviews.length;
+const totalPage = Math.ceil(total / limit);
+const skip = (page - 1) * limit;
+const paginatedReviews = sortedReviews.slice(skip, skip + limit);
+
+// ✅ replies array → single reply object (latest টা নাও)
+const formattedReviews = paginatedReviews.map((review: any) => {
+  const reviewObj = review.toObject(); // Mongoose doc → plain object
+
+  const latestReply =
+    reviewObj.replies && reviewObj.replies.length > 0
+      ? reviewObj.replies[reviewObj.replies.length - 1] // last reply
+      : null;
+
   return {
-    data: paginatedReviews,
-
-    meta: {
-      page,
-      limit,
-      total,
-      totalPage,
-    },
+    ...reviewObj,
+    reply: latestReply, // single object
+    replies: undefined, // replies array সরিয়ে দাও
   };
+});
+
+return {
+  data: formattedReviews,
+  meta: { page, limit, total, totalPage },
 };
-
-
+};
 
 
 const getUpcomingEventsByHost = async (
