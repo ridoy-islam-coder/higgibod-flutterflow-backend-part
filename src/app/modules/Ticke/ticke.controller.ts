@@ -821,7 +821,19 @@ const paymentCancel = catchAsync(async (req: Request, res: Response) => {
 });
 
 
+const stripeWebhookHandler = catchAsync(async (req: Request, res: Response) => {
+  const signature = req.headers['stripe-signature'] as string;
+  const rawBody = req.body; 
 
+  if (!signature) {
+    return res.status(httpStatus.BAD_REQUEST).send('Missing stripe signature');
+  }
+
+
+  const result = await ticketService.confirmTicketPayment(rawBody, signature);
+
+  res.status(httpStatus.OK).json(result);
+});
 
 
 export const ticketController = {
@@ -837,5 +849,6 @@ export const ticketController = {
   getEarningByEvent,
   downloadImage,
    paymentSuccess,
-  paymentCancel
+  paymentCancel,
+  stripeWebhookHandler,
 };

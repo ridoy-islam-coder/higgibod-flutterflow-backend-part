@@ -22,37 +22,7 @@ const createOrder = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-// const createOrder = catchAsync(async (req: Request, res: Response) => {
-//   let fileUrl = '';
 
-//   // ✅ file আসলে S3-তে upload করো
-//   if (req.file) {
-//     const uploaded = await uploadToS3(req.file, 'orders/shipping');
-//     fileUrl = uploaded.url;
-//   }
-
-//   // ✅ FormData থেকে shippingAddress parse করো
-//   const shippingAddress = req.body.shippingAddress
-//     ? JSON.parse(req.body.shippingAddress)
-//     : {};
-
-//   const body = {
-//     cartId: req.body.cartId,
-//     shippingAddress: {
-//       ...shippingAddress,
-//       file: fileUrl, // ✅ S3 URL inject
-//     },
-//   };
-
-//   const result = await orderService.createOrder(req.user._id, body);
-
-//   sendResponse(res, {
-//     statusCode: 201,
-//     success: true,
-//     message: 'Order created successfully',
-//     data: result,
-//   });
-// });
 
 
 
@@ -155,13 +125,28 @@ const getMyProductOrders = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+
+
+
+const stripeWebhook = catchAsync(async (req: Request, res: Response) => {
+
+  await orderService.handleStripeWebhook(req);
+
+
+  res.status(200).json({ received: true });
+});
+
+
+
 export const orderController = {
   createOrder,
-  // stripeWebhook,
+ 
   getOrderHistory,
   getOrderDetails,
   orderCancelPage,
   orderSuccessPage,
   updateOrderStatus,
   getMyProductOrders,
-};
+  stripeWebhook,
+};      

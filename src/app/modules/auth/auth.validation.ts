@@ -105,7 +105,7 @@ export const registerZodSchema = z.object({
     role: z.enum([
       UserRole.admin,
       UserRole.USER,
-      UserRole.influencer,
+     
     ]),
 
     howDidYouHear: z.string().optional(),

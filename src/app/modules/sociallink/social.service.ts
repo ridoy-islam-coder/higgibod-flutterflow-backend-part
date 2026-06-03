@@ -320,10 +320,10 @@ export const register = async (payload: any) => {
     file, // 👈 image
   } = payload;
 
-  // ✅ Validations
-  if (!termsAccepted) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Accept terms first');
-  }
+  // // ✅ Validations
+  // if (!termsAccepted) {
+  //   throw new AppError(httpStatus.BAD_REQUEST, 'Accept terms first');
+  // }
 
   if (password !== confirmPassword) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Password not match');

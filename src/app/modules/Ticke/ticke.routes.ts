@@ -7,18 +7,18 @@ import { USER_ROLE } from "../user/user.constant";
 
 import { ticketController } from "./ticke.controller";
 import auth from "../../middleware/auth.middleware";
+import express  from 'express';
 
  
 const router = Router();
  
 // ⚠️ Webhook MUST be first — raw body lagbe
 
-// router.post(
-//   "/webhook",
-//   express.raw({ type: "application/json" }),
-//   ticketController.ticketWebhook
-// );
- 
+router.post(
+  '/webhook',
+  express.raw({ type: 'application/json' }), 
+  ticketController.stripeWebhookHandler
+);
 // POST  /tickets/buy/:eventId     — event er ticket kino + clientSecret return
 // body: { quantity: 1, ticketType: "General" | "VIP" | "VVIP" }
 

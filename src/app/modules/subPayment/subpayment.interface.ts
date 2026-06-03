@@ -1,4 +1,47 @@
+// import { Types ,Model} from 'mongoose';
+
+
+
+
+// // ─── Checkout Session Payload ─────────────────────────────────────────────────
+// export type TCreateCheckoutPayload = {
+//   planId: string;
+//   promoCode?: string;
+//   successUrl?: string;
+//   cancelUrl?: string;
+// };
+ 
+// // ─── Subscription Status ──────────────────────────────────────────────────────
+// export type TSubscriptionStatus = 'active' | 'trialing' | 'expired' | 'cancelled' | 'none';
+ 
+ 
+// // ─── Payment Status ───────────────────────────────────────────────────────────
+// export type TPaymentStatus = 'succeeded' | 'failed' | 'pending' | 'refunded';
+ 
+// // ─── Payment History Type ─────────────────────────────────────────────────────
+// export type TPaymentHistory = {
+//   _id?: Types.ObjectId;
+//   user: Types.ObjectId;
+//   plan: Types.ObjectId;
+//   promoCode?: Types.ObjectId | null;
+//   stripeSessionId: string;
+//   stripeSubscriptionId?: string;
+//   stripeInvoiceId?: string;
+//   amount: number;       // cents e.g. 2999 = $29.99
+//   currency: string;
+//   status: TPaymentStatus;
+//   isTrial: boolean;
+//   trialDays?: number;
+//   paidAt?: Date;
+// };
+ 
+// // ─── Model Type ───────────────────────────────────────────────────────────────
+// export type PaymentHistoryModel = Model<TPaymentHistory>;
+ 
+
 import { Types ,Model} from 'mongoose';
+
+import mongoose from "mongoose";
 
 
 
@@ -18,23 +61,58 @@ export type TSubscriptionStatus = 'active' | 'trialing' | 'expired' | 'cancelled
 // ─── Payment Status ───────────────────────────────────────────────────────────
 export type TPaymentStatus = 'succeeded' | 'failed' | 'pending' | 'refunded';
  
-// ─── Payment History Type ─────────────────────────────────────────────────────
+// // ─── Payment History Type ─────────────────────────────────────────────────────
+// export type TPaymentHistory = {
+//   _id?: Types.ObjectId;
+//   user: Types.ObjectId;
+//   plan: Types.ObjectId;
+//   promoCode?: Types.ObjectId | null;
+//   stripeSessionId: string;
+//   stripeSubscriptionId?: string;
+//   stripeInvoiceId?: string;
+//   amount: number;       // cents e.g. 2999 = $29.99
+//   currency: string;
+//   status: TPaymentStatus;
+//   isTrial: boolean;
+//   trialDays?: number;
+//   paidAt?: Date;
+// };
+ 
+// // ─── Model Type ───────────────────────────────────────────────────────────────
+// export type PaymentHistoryModel = Model<TPaymentHistory>;
+ 
+
 export type TPaymentHistory = {
-  _id?: Types.ObjectId;
-  user: Types.ObjectId;
-  plan: Types.ObjectId;
-  promoCode?: Types.ObjectId | null;
-  stripeSessionId: string;
+  user: mongoose.Types.ObjectId;
+  plan?: mongoose.Types.ObjectId;
+  promoCode?: mongoose.Types.ObjectId | null;
+  
+  stripeSessionId?: string;
   stripeSubscriptionId?: string;
   stripeInvoiceId?: string;
-  amount: number;       // cents e.g. 2999 = $29.99
+  
+  // Apple Fields:
+  appleOriginalTransactionId?: string;
+  appleLatestTransactionId?: string;
+  appleReceiptData?: string;
+  
+  // Google Fields:
+  googlePurchaseToken?: string;
+  googleOrderId?: string;
+  
+  // Common Mobile & Tracking:
+  productId?: string;
+  entitlement?: string;
+  store: 'STRIPE' | 'APP_STORE' | 'PLAY_STORE';
+  
+  amount?: number;
   currency: string;
-  status: TPaymentStatus;
+  status: 'pending' | 'succeeded' | 'failed' | 'refunded' | 'active' | 'expired' | 'cancelled' | 'grace_period';
   isTrial: boolean;
-  trialDays?: number;
+  trialDays: number;
   paidAt?: Date;
+  expiredAt?: Date;
+  isDeleted: boolean;
 };
- 
-// ─── Model Type ───────────────────────────────────────────────────────────────
+
 export type PaymentHistoryModel = Model<TPaymentHistory>;
- 

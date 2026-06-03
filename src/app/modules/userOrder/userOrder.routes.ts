@@ -8,17 +8,18 @@ import { USER_ROLE } from "../user/user.constant";
 import auth from "../../middleware/auth.middleware";
 import { orderController } from "./userOrder.controller";
 import upload from "../../middleware/fileUpload";
+import express  from 'express';
 
  
 const router = Router();
  
 
-// ✅ Webhook — auth ছাড়া, raw body
-// router.post(
-//   "/stripe-webhook",
-//   express.raw({ type: "application/json" }),
-//   orderController.stripeWebhook
-// );
+router.post(
+  "/webhook",
+  express.raw({ type: "application/json" }), 
+  orderController.stripeWebhook 
+);
+ 
  
 // POST /orders — cart theke order create + stripe payment intent   upload.single('file'),
 router.post("/create-orders", auth(USER_ROLE.USER),  orderController.createOrder);
