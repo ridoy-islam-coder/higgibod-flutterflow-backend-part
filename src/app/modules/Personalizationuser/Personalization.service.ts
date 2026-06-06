@@ -64,7 +64,7 @@ const updatePersonalizationkk = async (
 
 const getPersonalizationByUser = async (userId: string) => {
   const result = await Personalization.findOne({ user: userId })
-    .populate("user"); // user details আনবে
+    .populate("user"); 
 
   return result;
 };
@@ -167,7 +167,7 @@ const upsertPersonalizationoriginal = async (userId: string, payload: any) => {
 
 export const personalizationService = {
   savePersonalization,
- getPersonalizationByUser,
+  getPersonalizationByUser,
   updatePersonalizationkk,
   updateProfileWithPersonalization,
   upsertPersonalization,

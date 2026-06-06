@@ -19,6 +19,12 @@ export default {
      bcrypt_salt_rounds: process.env.BCRYPT_SALT_ROUNDS,
      socket_port: process.env.SOCKET_PORT,
      allowed_origins: process.env.ALLOWED_ORIGINS,
+      google: {
+          service_account_path: process.env.GOOGLE_SERVICE_ACCOUNT_PATH,
+     },
+     // apple: {
+     //      shared_secret: process.env.APPLE_SHARED_SECRET,
+     // },
      jwt: {
           jwt_access_secret: process.env.JWT_SECRET,
           jwt_access_expires_in: process.env.JWT_EXPIRE_IN,
@@ -30,6 +36,7 @@ export default {
           client_id: process.env.APPLE_CLIENT_ID,
           team_id: process.env.APPLE_TEAM_ID,
           key_id: process.env.APPLE_KEY_ID,
+          shared_secret: process.env.APPLE_SHARED_SECRET,
      },
 
      email: {

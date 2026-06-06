@@ -278,9 +278,9 @@ const getProfile = async (user: JwtPayload) => {
 
   // Social links also fetch koro
   const socialLinks = await SocialLink.findOne({ user: user.id });
-  const Personalizationdata = await Personalization.findOne({ user: user.id });
+  const Personalizationdata = await Personalization.findOne({ user: user.id});
 
-  return { user: result, socialLinks, Personalization: Personalizationdata };
+  return { user: result, socialLinks,  Personalizationdata };
 };
 
 

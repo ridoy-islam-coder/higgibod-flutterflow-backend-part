@@ -113,7 +113,7 @@ const personalizationSchema = new Schema<IPersonalization>(
     skillLevel: {
       type: String,
       enum: ["Beginner", "Intermediate", "Advanced", ""],
-      // default: "",
+      default: "",
     },
 
     // Personalization 5 — Years Skating
@@ -127,14 +127,14 @@ const personalizationSchema = new Schema<IPersonalization>(
         "20+ years",
         "",
       ],
-      // default: "",
+      default: "",
     },
 
     // "Have you organized skating events before?"
     hasOrganizedEvents: {
       type: String,
       enum: ["Yes", "No", ""],
-      // default: "",
+      default: "",
     },
 
     // "What types of events are you planning to list?"
@@ -157,13 +157,15 @@ const personalizationSchema = new Schema<IPersonalization>(
           "Slalom Skating",
           "Quad Skating",
           "Inline Hockey",
-          "Other",
+          "Street Skating",
         // "Street Skating",
         // "Roller Derby",
         // "Park Skating",
         // "Artistic Skating",
         // "Speed Skating"
+       
         ],
+         default: "",
       },
     ],
 
@@ -179,13 +181,14 @@ const personalizationSchema = new Schema<IPersonalization>(
         "Less than 20", "20-49", "50-199", "200-499", 'More than 500',
         "",
       ],
-      // default: "",
+      default: "",
     },
 
     // "Links to previous events or social media"
     previousEventLinks: [
       {
         type: String,
+         default: "",
         trim: true,
       },
     ],
@@ -194,6 +197,7 @@ const personalizationSchema = new Schema<IPersonalization>(
     socialMediaLinks: [
       {
         type: String,
+         default: "",
         trim: true,
       },
     ],
@@ -206,7 +210,7 @@ const personalizationSchema = new Schema<IPersonalization>(
     hasPublicLiabilityInsurance: {
       type: String,
       enum: ["Yes", "No", ""],
-      // default: "",
+      default: "",
     },
 
     // "I will be personally responsible for maintaining safety"
@@ -219,20 +223,20 @@ const personalizationSchema = new Schema<IPersonalization>(
     hasCodeOfConduct: {
       type: String,
       enum: ["Yes", "No", ""],
-      // default: "",
+      default: "",
     },
 
     // "Upload Code of conduct and/or Safety Policy" — file URL (optional)
     codeOfConductFileUrl: {
       type: String,
-      // default: "",
+      default: "",
       trim: true,
     },
 
     // "Code of conduct / review Safety Policy link" — external link (optional)
     codeOfConductLink: {
       type: String,
-      // default: "",
+      default: "",
       trim: true,
     },
 
@@ -245,6 +249,7 @@ const personalizationSchema = new Schema<IPersonalization>(
     // "I agree to the Organizer Terms & Conditions"
     agreedToOrganizerTerms: {
       type: Boolean,
+      // default: "",
       default: false,
     },
 

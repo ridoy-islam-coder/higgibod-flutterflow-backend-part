@@ -11,6 +11,7 @@ import Stripe from 'stripe';
 import PaymentHistory from './subpayment.model';
 import User from '../user/user.model';
 import { Types } from 'mongoose';
+// import { SubscriptionService } from './controller';
  const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 
 // ─── Checkout Session Create ──────────────────────────────────────────────────
@@ -1259,6 +1260,131 @@ const cancelTrial = catchAsync(async (req: Request, res: Response) => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//apply and play subscription verification and webhook handlers
+
+// ===== Apple verify =====
+
+
+// const verifyAppleSubscription = catchAsync(
+//   async (req: Request, res: Response) => {
+//     const userId = req.user._id
+//     const { receiptData } = req.body
+
+//     const result = await SubscriptionService.verifyAndSaveSubscription(
+//       userId,
+//       receiptData,
+//     )
+
+//     sendResponse(res, {
+//       statusCode: httpStatus.OK,
+//       success: true,
+//       message: 'Apple subscription verified successfully',
+//       data: result,
+//     })
+//   },
+// )
+
+// // ===== Play verify =====
+// const verifyPlaySubscription = catchAsync(
+//   async (req: Request, res: Response) => {
+//     const userId = req.user._id
+//     const { productId, purchaseToken } = req.body
+
+//     const result = await SubscriptionService.verifyAndSavePlaySubscription(
+//       userId,
+//       { productId, purchaseToken },
+//     )
+
+//     sendResponse(res, {
+//       statusCode: httpStatus.OK,
+//       success: true,
+//       message: 'Play subscription verified successfully',
+//       data: result,
+//     })
+//   },
+// )
+
+// // ===== Apple webhook =====
+// const handleAppleWebhook = catchAsync(
+//   async (req: Request, res: Response) => {
+//     const result = await SubscriptionService.handleAppleWebhook(req.body)
+
+//     sendResponse(res, {
+//       statusCode: httpStatus.OK,
+//       success: true,
+//       message: 'Apple webhook processed',
+//       data: result,
+//     })
+//   },
+// )
+
+// // ===== Play webhook =====
+// const handlePlayWebhook = catchAsync(
+//   async (req: Request, res: Response) => {
+//     // Google Pub/Sub message decode করতে হবে
+//     const message = req.body?.message
+//     let payload: any
+
+//     if (message?.data) {
+//       // Base64 decode
+//       const decoded = Buffer.from(message.data, 'base64').toString('utf-8')
+//       payload = JSON.parse(decoded)
+//     } else {
+//       payload = req.body
+//     }
+
+//     const result = await SubscriptionService.handlePlayWebhook(payload)
+
+//     sendResponse(res, {
+//       statusCode: httpStatus.OK,
+//       success: true,
+//       message: 'Play webhook processed',
+//       data: result,
+//     })
+//   },
+// )
+
+// // ===== Subscription status =====
+// const getSubscriptionStatus = catchAsync(
+//   async (req: Request, res: Response) => {
+//     const userId = req.user._id
+
+//     const result = await SubscriptionService.getSubscriptionStatus(userId)
+
+//     sendResponse(res, {
+//       statusCode: httpStatus.OK,
+//       success: true,
+//       message: 'Subscription status fetched successfully',
+//       data: result,
+//     })
+//   },
+// )
+
+
+
+
+
+
+
+
+
+
 // ─── Export ───────────────────────────────────────────────────────────────────
 export const PaymentController = {
   createCheckoutSession,
@@ -1270,5 +1396,10 @@ export const PaymentController = {
   paymentCancel,
   getMySubscription,
   cancelTrial,
-
+  //user subscription verification and webhook handlers
+  // verifyAppleSubscription,
+  // verifyPlaySubscription,
+  // handleAppleWebhook,
+  // handlePlayWebhook,
+  // getSubscriptionStatus
 };
