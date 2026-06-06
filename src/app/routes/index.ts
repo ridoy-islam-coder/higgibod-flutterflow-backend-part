@@ -23,6 +23,8 @@ import { FollowRoutes } from '../modules/Follow/follow.routes';
 import { NotificationRoutes } from '../modules/Dashboard/notifications/notifications.routes';
 import { SettingsRoutes } from '../modules/Settings/Settings.routes';
 import { ContactRoutes } from '../modules/Contact/contact.routes';
+import { WithdrawalRoutes } from '../modules/withdrawal/withdrawal.routes';
+
 // import { PromoCodeRoutes } from '../modules/PromoCode/promocode.routes';
 
 
@@ -130,7 +132,13 @@ const moduleRoutes = [
    {
    path: '/contact',
     route: ContactRoutes,
+  },
+  {
+   path: '/withdrawal',
+    route: WithdrawalRoutes,
   } 
+ 
+
   
   
 
