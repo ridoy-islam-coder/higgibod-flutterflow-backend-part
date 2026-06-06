@@ -223,16 +223,14 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
     return res.send(renderErrorPage("Ticket not found"));
   }
 
-  // ✅ Payment status update + attendees add — একসাথে
-  await Promise.all([
-    Ticket.findByIdAndUpdate(ticketId, {
-      paymentStatus: "paid",
-    }),
+ // populate করার আগে id গুলো আলাদা রাখো
+const eventId = ticket.event._id || ticket.event
+const userId = ticket.user._id || ticket.user
 
-    Event.findByIdAndUpdate(ticket.event._id, {
-      $addToSet: { attendees: ticket.user._id },
-    }),
-  ]);
+await Promise.all([
+  Ticket.findByIdAndUpdate(ticketId, { paymentStatus: "paid" }),
+  Event.findByIdAndUpdate(eventId, { $addToSet: { attendees: userId } }),
+])
 
   const event = (ticket as any).event;
   const user = (ticket as any).user;
