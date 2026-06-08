@@ -23,56 +23,153 @@ const otpCache = new Map<string, { payload: TRegister; otp: number; expiresAt: D
 
 
 
-export const register = async (payload: any) => {
-  const {
-   fullName,
-    email,
-    password,
-    country,
-    role,
-    howDidYouHear,
-    subscribeToEmails,
-    termsAccepted,
-  } = payload;
+// export const register = async (payload: any) => {
+//   const {
+//    fullName,
+//     email,
+//     password,
+//     country,
+//     role,
+//     howDidYouHear,
+//     subscribeToEmails,
+//     termsAccepted,
+//   } = payload;
 
-  // ✅ validation
-  if (!email || !password || !fullName ) {
-    throw new Error("Missing required fields");
-  }
+//   // ✅ validation
+//   if (!email || !password || !fullName ) {
+//     throw new Error("Missing required fields");
+//   }
 
-  // ✅ check existing user
-  const existingUser = await User.findOne({ email });
+//   // ✅ check existing user
+//   const existingUser = await User.findOne({ email });
 
-  if (existingUser) {
-    throw new Error("User already exists");
-  }
+//   if (existingUser) {
+//     throw new Error("User already exists");
+//   }
 
 
  
 
-  // ✅ create user
-  const user = await User.create({
-    fullName,
-    email,
-    password,
-    country,
-    role: role,
-    howDidYouHear,
-    subscribeToEmails,
-    termsAccepted,
+//   // ✅ create user
+//   const user = await User.create({
+//     fullName,
+//     email,
+//     password,
+//     country,
+//     role: role,
+//     howDidYouHear,
+//     subscribeToEmails,
+//     termsAccepted,
   
+//   });
+
+
+//   const jwtPayload = {
+//     userId: user?._id.toString(),
+//     role: user?.role,
+//   };
+//   // 🔐 JWT TOKEN GENERATE
+//   const accessToken = createToken(
+//     jwtPayload,
+//     config.jwt.jwt_access_secret as string,
+//     config.jwt.jwt_access_expires_in as string,
+//   );
+
+//   return {
+//     user: {
+//       id: user._id,
+//       email: user.email,
+//       role: user.role,
+//     },
+//     accessToken,
+//   };
+// };
+
+const pendingRegistrations = new Map<string, {
+  payload: any;
+  otp: string;
+  otpExpires: Date;
+}>();
+
+export const register = async (payload: any) => {
+  const { fullName, email, password } = payload;
+
+  if (!email || !password || !fullName) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Missing required fields");
+  }
+
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    throw new AppError(httpStatus.BAD_REQUEST, "User already exists");
+  }
+
+  const currentTime = new Date();
+  const otp = generateOtp();
+  const expiresAt = moment(currentTime).add(10, "minute");
+
+  // ✅ DB তে save করো — কিন্তু isEmailVerified: false
+  const user = await User.create({
+    ...payload,
+    isEmailVerified: false,
+    verification: {
+      otp,
+      expiresAt,
+    },
+  });
+// ✅ OTP email পাঠাও
+  await sendEmail(
+    email,
+    "Verify your FotoTidy account",
+    `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
+        <h2>Welcome to FotoTidy!</h2>
+        <p>Your email verification code is:</p>
+        <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
+        <p>This code will expire in <strong>10 minutes</strong>.</p>
+      </div>
+    `
+  );
+
+  return { email };
+};
+
+export const verifyEmailregister = async (email: string, otp: string) => {
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+  }
+
+  if (user.isEmailVerified) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Email already verified");
+  }
+
+  if (user.verification?.otp !== otp) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid OTP");
+  }
+
+  if (moment().isAfter(moment(user.verification?.expiresAt))) {
+    throw new AppError(httpStatus.BAD_REQUEST, "OTP has expired");
+  }
+
+  // ✅ Verified — verification field clear করো
+  await User.findByIdAndUpdate(user._id, {
+    isEmailVerified: true,
+    verification: {
+      otp: null,
+      expiresAt: null,
+    },
   });
 
-
   const jwtPayload = {
-    userId: user?._id.toString(),
-    role: user?.role,
+    userId: user._id.toString(),
+    role: user.role,
   };
-  // 🔐 JWT TOKEN GENERATE
+
   const accessToken = createToken(
     jwtPayload,
     config.jwt.jwt_access_secret as string,
-    config.jwt.jwt_access_expires_in as string,
+    config.jwt.jwt_access_expires_in as string
   );
 
   return {
@@ -80,12 +177,81 @@ export const register = async (payload: any) => {
       id: user._id,
       email: user.email,
       role: user.role,
+      isEmailVerified: true,
     },
     accessToken,
   };
 };
 
 
+
+
+
+// ✅ OTP verify হলে তখন DB তে save হবে
+export const verifyEmail = async (email: string, code: string) => {
+  const pending = pendingRegistrations.get(email);
+
+  if (!pending) {
+    throw new AppError(httpStatus.BAD_REQUEST, "No pending registration found for this email");
+  }
+
+  if (pending.otp !== code) {
+    throw new AppError(httpStatus.BAD_REQUEST, "Invalid verification code");
+  }
+
+  if (pending.otpExpires < new Date()) {
+    pendingRegistrations.delete(email);
+    throw new AppError(httpStatus.BAD_REQUEST, "Verification code has expired");
+  }
+
+  // ✅ OTP সঠিক — এখন সব data DB তে save করো
+  const {
+    fullName,
+    password,
+    country,
+    role,
+    howDidYouHear,
+    subscribeToEmails,
+    termsAccepted,
+  } = pending.payload;
+
+  const user = await User.create({
+    fullName,
+    email,
+    password,
+    country,
+    role,
+    howDidYouHear,
+    subscribeToEmails,
+    termsAccepted,
+    isEmailVerified: true, // ✅ সরাসরি verified হয়ে save হবে
+  });
+
+  // ✅ Memory থেকে সরিয়ে দাও
+  pendingRegistrations.delete(email);
+
+  // ✅ Token generate করো
+  const jwtPayload = {
+    userId: user._id.toString(),
+    role: user.role,
+  };
+
+  const accessToken = createToken(
+    jwtPayload,
+    config.jwt.jwt_access_secret as string,
+    config.jwt.jwt_access_expires_in as string
+  );
+
+  return {
+    user: {
+      id: user._id,
+      email: user.email,
+      role: user.role,
+      isEmailVerified: user.isEmailVerified,
+    },
+    accessToken,
+  };
+};
 
 
 
@@ -625,4 +791,5 @@ export const authServices = {
   resetPassword,
   refreshToken,
   changeLanguage,
+  verifyEmailregister,
 };

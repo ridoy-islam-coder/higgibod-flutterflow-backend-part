@@ -9,7 +9,7 @@ import jwt, { JwtPayload, Secret  } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import config from '../../config';
 import sendResponse from '../../utils/sendResponse';
-import { authServices,  register, userResetPasswordService, } from './user.service';
+import { authServices,  register, userResetPasswordService, verifyEmailregister, } from './user.service';
 import { UserRole } from '../user/user.interface';
 // import { AuthServices } from './user.service';
 import * as appleSignin from 'apple-signin-auth';
@@ -85,7 +85,16 @@ const userRegistration = catchAsync(async (req: Request, res: Response) => {
 
 
 
-
+const verifyEmailController = catchAsync(async (req: Request, res: Response) => {
+  const { email, code } = req.body;
+  const result = await verifyEmailregister(email, code);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Email verified successfully",
+    data: result,
+  });
+});
 
 
 // const verifyEmailController = catchAsync(async (req: Request, res: Response) => {
@@ -855,5 +864,6 @@ export const authControllers = {
   ornagizerlogin,
   userRegistration,
   appleLogin,
+  verifyEmailController,
   
 };
