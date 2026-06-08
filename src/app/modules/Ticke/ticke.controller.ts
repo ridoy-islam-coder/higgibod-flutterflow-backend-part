@@ -227,10 +227,15 @@ const paymentSuccess = catchAsync(async (req: Request, res: Response) => {
 const eventId = ticket.event._id || ticket.event
 const userId = ticket.user._id || ticket.user
 
-await Promise.all([
+console.log('eventId:', eventId)
+console.log('userId:', userId)
+
+const [t, e] = await Promise.all([
   Ticket.findByIdAndUpdate(ticketId, { paymentStatus: "paid" }),
-  Event.findByIdAndUpdate(eventId, { $addToSet: { attendees: userId } }),
+  Event.findByIdAndUpdate(eventId, { $addToSet: { attendees: userId } }, { new: true }),
 ])
+
+console.log('updated event attendees:', e?.attendees)
 
   const event = (ticket as any).event;
   const user = (ticket as any).user;

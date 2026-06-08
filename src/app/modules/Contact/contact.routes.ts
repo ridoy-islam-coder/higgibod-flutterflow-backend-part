@@ -17,7 +17,7 @@ router.get("/", auth(USER_ROLE.admin), ContactController.getAll);
 router.get("/:id", auth(USER_ROLE.admin), ContactController.getOne);
 router.patch("/:id/status", auth(USER_ROLE.admin), ContactController.updateStatus);
 router.delete("/:id", auth(USER_ROLE.admin), ContactController.remove);
-router.post("/support-message", auth(USER_ROLE.USER), ContactController.sendSupportMessage);
+router.post("/support-message", auth(USER_ROLE.USER ,USER_ROLE.ORGANIZER,USER_ROLE.KAATEDJ,USER_ROLE.MARCHANT), ContactController.sendSupportMessage);
 
 
 export const ContactRoutes = router;

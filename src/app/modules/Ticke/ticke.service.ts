@@ -343,17 +343,6 @@ const buyTicket = async (
   }
 
 
-// const [user, event] = await Promise.all([
-//   User.findById(userId),
-//   Event.findById(eventId),
-// ]);
-
-//   if (!user) throw new Error("User not found");
-//   if (!event) throw new Error("Event not found or not enough tickets available");
-//   if (event.isPast) throw new Error("This event has already passed");
-
-  console.log("Buying ticket for user:", userId, "event:", eventId, "quantity:", quantity);
-
 
   const user = await User.findById(userId);
   if (!user) throw new Error("User not found");
@@ -449,10 +438,15 @@ const buyTicket = async (
 
 
 
-
   await Ticket.findByIdAndUpdate(ticket._id, {
     stripePaymentIntentId: session.id,
   });
+
+
+await Event.findByIdAndUpdate(eventId, {
+      $addToSet: { attendees: userId },
+     });
+
 
   return {
     ticketId: ticket._id,
@@ -481,8 +475,6 @@ const buyTicket = async (
 
 const confirmTicketPayment = async (rawBody: Buffer, signature: string) => {
   let stripeEvent;
-
-
 
   try {
     stripeEvent = stripe.webhooks.constructEvent(

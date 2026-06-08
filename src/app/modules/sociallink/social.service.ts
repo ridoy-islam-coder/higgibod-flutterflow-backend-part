@@ -183,7 +183,7 @@ const updateProfile = async (
     const userUpdateData: Record<string, unknown> = {};
 
     const userFields = [
-      'fullName', 'phoneNumber', 'country',
+      'fullName', 'phoneNumber', 'country', 'djname',
       'language', 'howDidYouHear', 'subscribeToEmails',
     ];
     for (const field of userFields) {
@@ -306,6 +306,7 @@ export const register = async (payload: any) => {
     termsAccepted,
     longitude,
     latitude,
+    djname,
     // 🔥 social fields
     shopName,
     shoptype,
@@ -370,6 +371,7 @@ export const register = async (payload: any) => {
     fullName,
     email,
     password,
+    djname: djname || '',
     role,
     about: about || '',
     image: uploadedImage

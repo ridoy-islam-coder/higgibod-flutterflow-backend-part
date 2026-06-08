@@ -1,7 +1,9 @@
+import AppError from "../../error/AppError";
 import { sendEmail } from "../../utils/mailSender";
 import { Admin } from "../Dashboard/admin/admin.model";
 import { ContactQueryParams, ContactStats, CreateContactDto, IContactDocument, PaginationMeta, UpdateContactStatusDto } from "./contact.interface";
 import { Contact } from "./contact.model";
+import  httpStatus from 'http-status';
 
 // Create new contact
 const createContact = async (
@@ -100,42 +102,95 @@ const getStats = async (): Promise<ContactStats> => {
 
 
 
+const sendMessageToAdmin = async (payload: {
+  email: string
+  phoneNumber: string
+  whatsappNumber: string
+  message: string
+}) => {
+  const { email, phoneNumber, whatsappNumber, message } = payload
 
-const sendMessageToAdmin = async (payload: any) => {
-  const { name, phoneNumber, message } = payload;
-const admin = await Admin.findOne({ role: "ADMIN" }).select("email");
-const adminEmail = admin?.email;
-console.log("Admin email:", adminEmail);
+  // ✅ Admin model থেকে email নাও
+  const admin = await Admin.findOne({ role: { $in: ['admin', 'super_admin'] } })
+  if (!admin) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Admin email not found')
+  }
 
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+          background: #ffffff;
+          border-radius: 10px;
+          overflow: hidden;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .header { background: #F5A623; padding: 24px; text-align: center; }
+        .header h1 { color: #fff; margin: 0; font-size: 22px; }
+        .body { padding: 24px; }
+        .field {
+          background: #f9f9f9;
+          border-radius: 8px;
+          padding: 14px 18px;
+          margin-bottom: 16px;
+        }
+        .label {
+          font-size: 12px;
+          color: #888;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 6px;
+        }
+        .value { font-size: 15px; color: #222; font-weight: 600; }
+        .footer {
+          text-align: center;
+          padding: 16px;
+          font-size: 12px;
+          color: #aaa;
+          border-top: 1px solid #eee;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>📩 New Contact Message</h1>
+        </div>
+        <div class="body">
+          <div class="field">
+            <div class="label">User Email</div>
+            <div class="value">${email}</div>
+          </div>
+          <div class="field">
+            <div class="label">Phone Number</div>
+            <div class="value">${phoneNumber}</div>
+          </div>
+          <div class="field">
+            <div class="label">WhatsApp Number</div>
+            <div class="value">${whatsappNumber}</div>
+          </div>
+          <div class="field">
+            <div class="label">Message</div>
+            <div class="value">${message}</div>
+          </div>
+        </div>
+        <div class="footer">
+          This message was sent from the Contact Us form in the app.
+        </div>
+      </div>
+    </body>
+    </html>
+  `
 
+  await sendEmail(admin.email, 'New Contact Us Message', html)
 
-if (!adminEmail) {
-  throw new Error("Admin email not found");
+  return { success: true, message: 'Message sent successfully' }
 }
-
-
-  const emailBody = `
-New Support Message:
-
-Name: ${name}
-Phone Number: ${phoneNumber}
-
-Message:
-${message}
-  `;
-
-  await sendEmail(
-    adminEmail,
-    "New User Message",
-    emailBody
-  );
-
-  return {
-    message: "Message sent successfully to admin",
-  };
-};
-
-
 
 
 
