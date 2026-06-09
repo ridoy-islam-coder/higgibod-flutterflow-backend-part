@@ -94,9 +94,11 @@ export interface IEvent {
   category?: Types.ObjectId;
   date: Date;
   time?: string;
+  endDate: Date; // ✅ নতুন — End Date
   location?: ILocation;
   description?: string;
   price?: number;
+  currency?: string; // ✅ নতুন — Currency
   coverImage?: { id: string; url: string };
   gallery?: { id: string; url: string }[];
   host: Types.ObjectId;

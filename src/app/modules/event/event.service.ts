@@ -28,8 +28,10 @@ export const createEventService = async (
     category,
     date,
     time,
+    endDate,
     description,
     price,
+    currency,
    isFeatured,
     isPinned,
     isHighlighted,
@@ -60,6 +62,7 @@ export const createEventService = async (
     title,
     category: category || "",
     date,
+    endDate,
     time: time || "",
     location: geoLocation, // 🔥 HERE
     description: description || "",
@@ -71,7 +74,8 @@ export const createEventService = async (
     isPinned: isPinned || false,
     isHighlighted: isHighlighted || false,
     isTopEvent: isTopEvent || false,
-    skiteeventType:skiteeventType ||""
+    skiteeventType:skiteeventType ||"",
+    currency: currency || "USD"
   });
 
   return event;
@@ -236,6 +240,7 @@ export const updateEventService = async (
     category,
     date,
     time,
+    endDate,
     description,
     price,
     isFeatured,
@@ -244,6 +249,7 @@ export const updateEventService = async (
     isTopEvent,
     longitude,
     latitude,
+    currency,
     skiteeventType,
   } = req.body;
 
@@ -272,6 +278,8 @@ export const updateEventService = async (
     // ✅ নতুন gallery আসলে replace, না আসলে পুরনোটা থাকবে
     ...(gallery && gallery.length > 0 && { gallery }),
     ...(skiteeventType !== undefined && { skiteeventType }), 
+    ...(endDate !== undefined && { endDate }), // ✅ নতুন — End Date
+    ...(currency !== undefined && { currency }), // ✅ নতুন — Currency
   };
 
   const event = await Event.findByIdAndUpdate(id, { $set: updateData }, { new: true });
