@@ -41,7 +41,7 @@ const UserSchema = new Schema<TUser, UserModel>(
     email: {
       type: String,
       unique: true,
-       required: true,
+     required: true,
   
     },
     image: imageSchema,
