@@ -13,5 +13,6 @@ router.put('/profile', socialControllers.updateProfile);
 router.patch('/update-profile',auth(USER_ROLE.KAATEDJ,USER_ROLE.MARCHANT,USER_ROLE.ORGANIZER), upload.fields([{ name: 'profileImage', maxCount: 1 },{ name: 'coverImage', maxCount: 1 },]),socialControllers.updateProfile,);
 
 router.get('/profile',auth(USER_ROLE.KAATEDJ,USER_ROLE.MARCHANT,USER_ROLE.ORGANIZER),socialControllers.getProfile,);
+router.post('/verify-email', socialControllers.verifyEmailController);
 
 export const sosaleMediaRoutes = router;

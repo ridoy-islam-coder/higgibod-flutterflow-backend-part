@@ -8,6 +8,9 @@ import { deleteFromS3, deleteManyFromS3, uploadToS3 } from "../../utils/fileHelp
 import mongoose from "mongoose";
 import { JwtPayload } from "jsonwebtoken";
 import { Personalization } from "../Personalizationuser/Personalization.model";
+import { generateOtp } from "../../utils/otpGenerator";
+import moment from "moment";
+import { sendEmail } from "../../utils/mailSender";
 
 // const register = async (payload: {
 //   fullName: string;
@@ -291,159 +294,11 @@ const getProfile = async (user: JwtPayload) => {
 
 
 
-export const register = async (payload: any) => {
-  const {
-    fullName,
-    email,
-    about,
-    password,
-    confirmPassword,
-    role,
-    country,
-    phoneNumber,
-    howDidYouHear,
-    subscribeToEmails,
-    termsAccepted,
-    longitude,
-    latitude,
-    djname,
-    // 🔥 social fields
-    shopName,
-    shoptype,
-    facebook,
-    instagram,
-    linkedin,
-    twitter,
-    youtube,
-    tiktok,
-    website,
-    shoplink,
-    file, // 👈 image
-  } = payload;
-
-  // // ✅ Validations
-  // if (!termsAccepted) {
-  //   throw new AppError(httpStatus.BAD_REQUEST, 'Accept terms first');
-  // }
-
-  if (password !== confirmPassword) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Password not match');
-  }
-
-  if (password.length < 6) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Password too short');
-  }
-
-  // ✅ Duplicate check
-  const existingUser = await User.findOne({ email });
-  if (existingUser) {
-    throw new AppError(httpStatus.CONFLICT, 'Email already exists');
-  }
-
-  if (phoneNumber) {
-    const existingPhone = await User.findOne({ phoneNumber });
-    if (existingPhone) {
-      throw new AppError(httpStatus.CONFLICT, 'Phone already exists');
-    }
-  }
-
-  // ✅ Upload Image
-  let uploadedImage;
-  if (file) {
-    uploadedImage = await uploadToS3(file, 'user');
-  }
-  
- // ✅ Geo location build
-  let geoLocation;
-
-  if (longitude && latitude) {
-    geoLocation = {
-      type: "Point",
-      coordinates: [
-        parseFloat(longitude),
-        parseFloat(latitude),
-      ],
-    };
-  }
-
-  // ✅ Create User
-  const user = await User.create({
-    fullName,
-    email,
-    password,
-    djname: djname || '',
-    role,
-    about: about || '',
-    image: uploadedImage
-      ? {
-          id: uploadedImage.id,
-          url: uploadedImage.url,
-        }
-      : undefined,
-    location: geoLocation,
-    country: country || undefined,
-    phoneNumber: phoneNumber || undefined,
-    howDidYouHear: howDidYouHear || '',
-    subscribeToEmails: subscribeToEmails ?? false,
-    termsAccepted,
-    accountType: 'emailvarifi',
-    isVerified: false,
-    isActive: true,
-    needsPasswordChange: false,
-  });
-
-  // ✅ Create Social Links (if any data exists)
-  const hasSocialData =
-    shopName || shoptype || facebook || instagram ||
-    linkedin || twitter || youtube || tiktok || website || shoplink;
-
-  if (hasSocialData) {
-    await SocialLink.create({
-      user: user._id,
-      shopName: shopName || '',
-      shoptype: shoptype || '',
-      facebook: facebook || '',
-      instagram: instagram || '',
-      linkedin: linkedin || '',
-      twitter: twitter || '',
-      youtube: youtube || '',
-      tiktok: tiktok || '',
-      website: website || '',
-      shoplink: shoplink || '',
-    });
-  }
-
-
-  // ── Generate Token ──────────────────────────────
-  const jwtPayload = {
-    userId: user?._id.toString(),
-    role: user?.role,
-  };
-
-  const accessToken = createToken(
-    jwtPayload,
-    config.jwt.jwt_access_secret as string,
-    config.jwt.jwt_access_expires_in as string,
-  );
-
-  return {
-    user: {
-      _id: user._id,
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-      image: user.image,
-      isVerified: user.isVerified,
-    },
-    accessToken
-  };
-};
-
-
 // export const register = async (payload: any) => {
 //   const {
 //     fullName,
 //     email,
+//     about,
 //     password,
 //     confirmPassword,
 //     role,
@@ -452,6 +307,10 @@ export const register = async (payload: any) => {
 //     howDidYouHear,
 //     subscribeToEmails,
 //     termsAccepted,
+//     longitude,
+//     latitude,
+//     djname,
+//     // 🔥 social fields
 //     shopName,
 //     shoptype,
 //     facebook,
@@ -462,59 +321,81 @@ export const register = async (payload: any) => {
 //     tiktok,
 //     website,
 //     shoplink,
-//     file,
+//     file, // 👈 image
 //   } = payload;
 
-//   // ✅ boolean convert — JSON.parse এ true/false ঠিকমতো আসে
-//   const isTermsAccepted = termsAccepted === true || termsAccepted === "true";
-//   const isSubscribed = subscribeToEmails === true || subscribeToEmails === "true";
+//   // // ✅ Validations
+//   // if (!termsAccepted) {
+//   //   throw new AppError(httpStatus.BAD_REQUEST, 'Accept terms first');
+//   // }
 
-//   if (!isTermsAccepted) {
-//     throw new AppError(httpStatus.BAD_REQUEST, "Accept terms first");
-//   }
 //   if (password !== confirmPassword) {
-//     throw new AppError(httpStatus.BAD_REQUEST, "Password not match");
-//   }
-//   if (password.length < 6) {
-//     throw new AppError(httpStatus.BAD_REQUEST, "Password too short");
+//     throw new AppError(httpStatus.BAD_REQUEST, 'Password not match');
 //   }
 
+//   if (password.length < 6) {
+//     throw new AppError(httpStatus.BAD_REQUEST, 'Password too short');
+//   }
+
+//   // ✅ Duplicate check
 //   const existingUser = await User.findOne({ email });
 //   if (existingUser) {
-//     throw new AppError(httpStatus.CONFLICT, "Email already exists");
+//     throw new AppError(httpStatus.CONFLICT, 'Email already exists');
 //   }
 
 //   if (phoneNumber) {
 //     const existingPhone = await User.findOne({ phoneNumber });
 //     if (existingPhone) {
-//       throw new AppError(httpStatus.CONFLICT, "Phone already exists");
+//       throw new AppError(httpStatus.CONFLICT, 'Phone already exists');
 //     }
 //   }
 
+//   // ✅ Upload Image
 //   let uploadedImage;
 //   if (file) {
-//     uploadedImage = await uploadToS3(file, "user");
+//     uploadedImage = await uploadToS3(file, 'user');
+//   }
+  
+//  // ✅ Geo location build
+//   let geoLocation;
+
+//   if (longitude && latitude) {
+//     geoLocation = {
+//       type: "Point",
+//       coordinates: [
+//         parseFloat(longitude),
+//         parseFloat(latitude),
+//       ],
+//     };
 //   }
 
+//   // ✅ Create User
 //   const user = await User.create({
 //     fullName,
 //     email,
 //     password,
+//     djname: djname || '',
 //     role,
+//     about: about || '',
 //     image: uploadedImage
-//       ? { id: uploadedImage.id, url: uploadedImage.url }
+//       ? {
+//           id: uploadedImage.id,
+//           url: uploadedImage.url,
+//         }
 //       : undefined,
+//     location: geoLocation,
 //     country: country || undefined,
 //     phoneNumber: phoneNumber || undefined,
-//     howDidYouHear: howDidYouHear || "",
-//     subscribeToEmails: isSubscribed,
-//     termsAccepted: isTermsAccepted,
-//     accountType: "emailvarifi",
+//     howDidYouHear: howDidYouHear || '',
+//     subscribeToEmails: subscribeToEmails ?? false,
+//     termsAccepted,
+//     accountType: 'emailvarifi',
 //     isVerified: false,
 //     isActive: true,
 //     needsPasswordChange: false,
 //   });
 
+//   // ✅ Create Social Links (if any data exists)
 //   const hasSocialData =
 //     shopName || shoptype || facebook || instagram ||
 //     linkedin || twitter || youtube || tiktok || website || shoplink;
@@ -522,22 +403,24 @@ export const register = async (payload: any) => {
 //   if (hasSocialData) {
 //     await SocialLink.create({
 //       user: user._id,
-//       shopName: shopName || "",
-//       shoptype: shoptype || "",
-//       facebook: facebook || "",
-//       instagram: instagram || "",
-//       linkedin: linkedin || "",
-//       twitter: twitter || "",
-//       youtube: youtube || "",
-//       tiktok: tiktok || "",
-//       website: website || "",
-//       shoplink: shoplink || "",
+//       shopName: shopName || '',
+//       shoptype: shoptype || '',
+//       facebook: facebook || '',
+//       instagram: instagram || '',
+//       linkedin: linkedin || '',
+//       twitter: twitter || '',
+//       youtube: youtube || '',
+//       tiktok: tiktok || '',
+//       website: website || '',
+//       shoplink: shoplink || '',
 //     });
 //   }
 
+
+//   // ── Generate Token ──────────────────────────────
 //   const jwtPayload = {
-//     userId: user._id.toString(),
-//     role: user.role,
+//     userId: user?._id.toString(),
+//     role: user?.role,
 //   };
 
 //   const accessToken = createToken(
@@ -555,13 +438,234 @@ export const register = async (payload: any) => {
 //       image: user.image,
 //       isVerified: user.isVerified,
 //     },
-//     accessToken,
+//     accessToken
 //   };
 // };
 
+export const register = async (payload: any) => {
+  const {
+    fullName,
+    email,
+    about,
+    password,
+    confirmPassword,
+    role,
+    country,
+    phoneNumber,
+    howDidYouHear,
+    subscribeToEmails,
+    termsAccepted,
+    longitude,
+    latitude,
+    djname,
+    shopName,
+    shoptype,
+    facebook,
+    instagram,
+    linkedin,
+    twitter,
+    youtube,
+    tiktok,
+    website,
+    shoplink,
+    file,
+  } = payload
 
+  if (password !== confirmPassword) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Password not match')
+  }
 
+  if (password.length < 6) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Password too short')
+  }
 
+  // ✅ Existing user check
+  const existingUser = await User.findOne({ email })
+
+  if (existingUser) {
+    // ✅ Already verified — block করো
+    if (existingUser.isVerified) {
+      throw new AppError(httpStatus.CONFLICT, 'Email already exists')
+    }
+
+    // ✅ Not verified — নতুন OTP পাঠাও
+    const otp = generateOtp()
+    const expiresAt = moment().add(10, 'minute').toDate()
+
+    await User.findByIdAndUpdate(existingUser._id, {
+      verification: {
+        otp,
+        expiresAt,
+        status: false,
+      },
+    })
+
+    await sendEmail(
+      email,
+      'Verify your account',
+      `
+        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
+          <h2>Welcome!</h2>
+          <p>Your email verification code is:</p>
+          <h1 style="letter-spacing: 8px; color: #F5A623;">${otp}</h1>
+          <p>This code will expire in <strong>10 minutes</strong>.</p>
+        </div>
+      `,
+    )
+
+    return { email }
+  }
+
+  // ✅ Phone check
+  if (phoneNumber) {
+    const existingPhone = await User.findOne({ phoneNumber })
+    if (existingPhone) {
+      throw new AppError(httpStatus.CONFLICT, 'Phone already exists')
+    }
+  }
+
+  // ✅ Image upload
+  let uploadedImage
+  if (file) {
+    uploadedImage = await uploadToS3(file, 'user')
+  }
+
+  // ✅ Geo location
+  let geoLocation
+  if (longitude && latitude) {
+    geoLocation = {
+      type: 'Point',
+      coordinates: [parseFloat(longitude), parseFloat(latitude)],
+    }
+  }
+
+  // ✅ OTP generate
+  const otp = generateOtp()
+  const expiresAt = moment().add(10, 'minute').toDate()
+
+  // ✅ User create
+  const user = await User.create({
+    fullName,
+    email,
+    password,
+    djname: djname || '',
+    role,
+    about: about || '',
+    image: uploadedImage
+      ? { id: uploadedImage.id, url: uploadedImage.url }
+      : undefined,
+    location: geoLocation,
+    country: country || undefined,
+    phoneNumber: phoneNumber || undefined,
+    howDidYouHear: howDidYouHear || '',
+    subscribeToEmails: subscribeToEmails ?? false,
+    termsAccepted,
+    accountType: 'emailvarifi',
+    isVerified: false,
+    isActive: true,
+    needsPasswordChange: false,
+    verification: {
+      otp,
+      expiresAt,
+      status: false,
+    },
+  })
+
+  // ✅ Social Links
+  const hasSocialData =
+    shopName || shoptype || facebook || instagram ||
+    linkedin || twitter || youtube || tiktok || website || shoplink
+
+  if (hasSocialData) {
+    await SocialLink.create({
+      user: user._id,
+      shopName: shopName || '',
+      shoptype: shoptype || '',
+      facebook: facebook || '',
+      instagram: instagram || '',
+      linkedin: linkedin || '',
+      twitter: twitter || '',
+      youtube: youtube || '',
+      tiktok: tiktok || '',
+      website: website || '',
+      shoplink: shoplink || '',
+    })
+  }
+
+  // ✅ OTP email
+  await sendEmail(
+    email,
+    'Verify your account',
+    `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
+        <h2>Welcome!</h2>
+        <p>Your email verification code is:</p>
+        <h1 style="letter-spacing: 8px; color: #F5A623;">${otp}</h1>
+        <p>This code will expire in <strong>10 minutes</strong>.</p>
+      </div>
+    `,
+  )
+
+  return { email }
+}
+
+export const verifyEmailregister = async (email: string, otp: string) => {
+  const user = await User.findOne({ email })
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found')
+  }
+
+  if (user.isVerified) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Email already verified')
+  }
+
+  // ✅ OTP check
+  if (String(user.verification?.otp) !== String(otp)) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid OTP')
+  }
+
+  // ✅ Expiry check
+  if (moment().isAfter(moment(user.verification?.expiresAt))) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'OTP has expired')
+  }
+
+  // ✅ Verified — verification clear করো
+  await User.findByIdAndUpdate(user._id, {
+    isVerified: true,
+    verification: {
+      otp: null,
+      expiresAt: null,
+      status: true,
+    },
+  })
+
+  // ✅ Social Links নিয়ে নাও
+  const socialLink = await SocialLink.findOne({ user: user._id })
+
+  const jwtPayload = {
+    userId: user._id.toString(),
+    role: user.role,
+  }
+
+  const accessToken = createToken(
+    jwtPayload,
+    config.jwt.jwt_access_secret as string,
+    config.jwt.jwt_access_expires_in as string,
+  )
+
+  return {
+    user: {
+      _id: user._id,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      image: user.image,
+      isVerified: true,
+      socialLink: socialLink || null,
+    },
+    accessToken,
+  }
+}
 
 export const sosalServices = {
   register,

@@ -86,40 +86,74 @@ const otpCache = new Map<string, { payload: TRegister; otp: number; expiresAt: D
 // };
 
 const pendingRegistrations = new Map<string, {
-  payload: any;
-  otp: string;
-  otpExpires: Date;
-}>();
+  payload: any
+  otp: string
+  otpExpires: Date
+}>()
 
 export const register = async (payload: any) => {
-  const { fullName, email, password } = payload;
+  const { fullName, email, password } = payload
 
   if (!email || !password || !fullName) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Missing required fields");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Missing required fields')
   }
 
-  const existingUser = await User.findOne({ email });
+  // ✅ Existing user check
+  const existingUser = await User.findOne({ email })
+
   if (existingUser) {
-    throw new AppError(httpStatus.BAD_REQUEST, "User already exists");
+    // ✅ Already verified — block করো
+    if (existingUser.isEmailVerified) {
+      throw new AppError(httpStatus.BAD_REQUEST, 'User already exists')
+    }
+
+    // ✅ Not verified — নতুন OTP পাঠাও
+    const otp = generateOtp()
+    const expiresAt = moment().add(10, 'minute').toDate()
+
+    await User.findByIdAndUpdate(existingUser._id, {
+      verification: {
+        otp,
+        expiresAt,
+        status: false,
+      },
+    })
+
+    await sendEmail(
+      email,
+      'Verify your FotoTidy account',
+      `
+        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
+          <h2>Welcome to FotoTidy!</h2>
+          <p>Your email verification code is:</p>
+          <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
+          <p>This code will expire in <strong>10 minutes</strong>.</p>
+        </div>
+      `,
+    )
+
+    return { email }
   }
 
-  const currentTime = new Date();
-  const otp = generateOtp();
-  const expiresAt = moment(currentTime).add(10, "minute");
+  // ✅ OTP generate
+  const otp = generateOtp()
+  const expiresAt = moment().add(10, 'minute').toDate()
 
-  // ✅ DB তে save করো — কিন্তু isEmailVerified: false
+  // ✅ User create
   const user = await User.create({
     ...payload,
     isEmailVerified: false,
     verification: {
       otp,
       expiresAt,
+      status: false,
     },
-  });
-// ✅ OTP email পাঠাও
+  })
+
+  // ✅ OTP email পাঠাও
   await sendEmail(
     email,
-    "Verify your FotoTidy account",
+    'Verify your FotoTidy account',
     `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
         <h2>Welcome to FotoTidy!</h2>
@@ -127,50 +161,53 @@ export const register = async (payload: any) => {
         <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
         <p>This code will expire in <strong>10 minutes</strong>.</p>
       </div>
-    `
-  );
+    `,
+  )
 
-  return { email };
-};
+  return { email }
+}
 
+// ===== Verify Email =====
 export const verifyEmailregister = async (email: string, otp: string) => {
-  const user = await User.findOne({ email });
-
+  const user = await User.findOne({ email })
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, "User not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found')
   }
 
   if (user.isEmailVerified) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Email already verified");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Email already verified')
   }
 
-  if (user.verification?.otp !== otp) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid OTP");
+  // ✅ OTP check
+  if (String(user.verification?.otp) !== String(otp)) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid OTP')
   }
 
+  // ✅ Expiry check
   if (moment().isAfter(moment(user.verification?.expiresAt))) {
-    throw new AppError(httpStatus.BAD_REQUEST, "OTP has expired");
+    throw new AppError(httpStatus.BAD_REQUEST, 'OTP has expired')
   }
 
-  // ✅ Verified — verification field clear করো
+  // ✅ Verified — verification clear করো
   await User.findByIdAndUpdate(user._id, {
     isEmailVerified: true,
     verification: {
       otp: null,
       expiresAt: null,
+      status: true,
     },
-  });
+  })
 
   const jwtPayload = {
     userId: user._id.toString(),
     role: user.role,
-  };
+  }
 
   const accessToken = createToken(
     jwtPayload,
     config.jwt.jwt_access_secret as string,
-    config.jwt.jwt_access_expires_in as string
-  );
+    config.jwt.jwt_access_expires_in as string,
+  )
 
   return {
     user: {
@@ -180,9 +217,8 @@ export const verifyEmailregister = async (email: string, otp: string) => {
       isEmailVerified: true,
     },
     accessToken,
-  };
-};
-
+  }
+}
 
 
 
