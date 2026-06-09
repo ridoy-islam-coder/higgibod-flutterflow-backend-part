@@ -3,7 +3,7 @@ import catchAsync from "../../utils/catchAsync";
 
 import  httpStatus  from 'http-status';
 import sendResponse from "../../utils/sendResponse";
-import { sosalServices } from "./social.service";
+import { sosalServices, verifyEmailregister } from "./social.service";
 import AppError from "../../error/AppError";
 
 // Register + Merchant Profile একসাথে
@@ -128,7 +128,18 @@ export const register = catchAsync(async (req: Request, res: Response) => {
 
 
 
+const verifyEmailController = catchAsync(async (req: Request, res: Response) => {
+  const { email, code } = req.body
 
+  const result = await verifyEmailregister(email, code)
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Email verified successfully',
+    data: result,
+  })
+})
 
 
  
@@ -137,5 +148,6 @@ export const socialControllers = {
   updateProfile,
   getProfile,
   // login,
+  verifyEmailController
 };
  
