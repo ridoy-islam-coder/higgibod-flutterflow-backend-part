@@ -84,73 +84,41 @@ const otpCache = new Map<string, { payload: TRegister; otp: number; expiresAt: D
 //     accessToken,
 //   };
 // };
-
+// ✅ ওটিপি ভেরিফাই হওয়ার আগ পর্যন্ত ডাটা সাময়িকভাবে ধরে রাখার মেমোরি ম্যাপ
 const pendingRegistrations = new Map<string, {
-  payload: any
-  otp: string
-  otpExpires: Date
-}>()
+  payload: any;
+  otp: string;
+  otpExpires: Date;
+}>();
 
 export const register = async (payload: any) => {
-  const { fullName, email, password } = payload
+  const { fullName, email, password } = payload;
 
   if (!email || !password || !fullName) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Missing required fields')
+    throw new AppError(httpStatus.BAD_REQUEST, 'Missing required fields');
   }
 
-  // ✅ Existing user check
-  const existingUser = await User.findOne({ email })
+  // 🔥 [FIX]: .find() এর গ্লোবাল প্রি-হুক বাইপাস করতে সরাসরি MongoDB ড্রাইভারে কুয়েরি করা হচ্ছে
+  // ডাটাবেজে এই ইমেইলটি ডিলিট করা থাক বা না থাক (isDeleted true/false যাই হোক), ডাটা থাকলে ওটিপি ব্লক হবে।
+  const existingUser = await User.findOne({ email }).setOptions({ skipFilter: true }); 
+  
+  // যদি উপরেরটা কাজ না করে, তবে মঙ্গুজের কালেকশন লেভেলে সরাসরি চেক করার এই ব্যাকআপ লাইনটি ব্যবহার করুন:
+  // const existingUser = await User.collection.findOne({ email });
 
   if (existingUser) {
-    // ✅ Already verified — block করো
-    if (existingUser.isEmailVerified) {
-      throw new AppError(httpStatus.BAD_REQUEST, 'User already exists')
-    }
-
-    // ✅ Not verified — নতুন OTP পাঠাও
-    const otp = generateOtp()
-    const expiresAt = moment().add(10, 'minute').toDate()
-
-    await User.findByIdAndUpdate(existingUser._id, {
-      verification: {
-        otp,
-        expiresAt,
-        status: false,
-      },
-    })
-
-    await sendEmail(
-      email,
-      'Verify your FotoTidy account',
-      `
-        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
-          <h2>Welcome to FotoTidy!</h2>
-          <p>Your email verification code is:</p>
-          <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
-          <p>This code will expire in <strong>10 minutes</strong>.</p>
-        </div>
-      `,
-    )
-
-    return { email }
+    throw new AppError(httpStatus.BAD_REQUEST, 'This email is already registered in our system.');
   }
 
-  // ✅ OTP generate
-  const otp = generateOtp()
-  const expiresAt = moment().add(10, 'minute').toDate()
+  // বাকি কোড আগের মতোই থাকবে...
+  const otp = String(generateOtp());
+  const expiresAt = moment().add(10, 'minute').toDate();
 
-  // ✅ User create
-  const user = await User.create({
-    ...payload,
-    isEmailVerified: false,
-    verification: {
-      otp,
-      expiresAt,
-      status: false,
-    },
-  })
+  pendingRegistrations.set(email, {
+    payload,
+    otp,
+    otpExpires: expiresAt,
+  });
 
-  // ✅ OTP email পাঠাও
   await sendEmail(
     email,
     'Verify your FotoTidy account',
@@ -162,85 +130,41 @@ export const register = async (payload: any) => {
         <p>This code will expire in <strong>10 minutes</strong>.</p>
       </div>
     `,
-  )
+  );
 
-  return { email }
-}
+  return { 
+    message: "Verification code sent to your email",
+    email 
+  };
+};
 
-// ===== Verify Email =====
-export const verifyEmailregister = async (email: string, otp: string) => {
-  const user = await User.findOne({ email })
-  if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User not found')
-  }
-
-  if (user.isEmailVerified) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Email already verified')
-  }
-
-  // ✅ OTP check
-  if (String(user.verification?.otp) !== String(otp)) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid OTP')
-  }
-
-  // ✅ Expiry check
-  if (moment().isAfter(moment(user.verification?.expiresAt))) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'OTP has expired')
-  }
-
-  // ✅ Verified — verification clear করো
-  await User.findByIdAndUpdate(user._id, {
-    isEmailVerified: true,
-    verification: {
-      otp: null,
-      expiresAt: null,
-      status: true,
-    },
-  })
-
-  const jwtPayload = {
-    userId: user._id.toString(),
-    role: user.role,
-  }
-
-  const accessToken = createToken(
-    jwtPayload,
-    config.jwt.jwt_access_secret as string,
-    config.jwt.jwt_access_expires_in as string,
-  )
-
-  return {
-    user: {
-      id: user._id,
-      email: user.email,
-      role: user.role,
-      isEmailVerified: true,
-    },
-    accessToken,
-  }
-}
-
-
-
-
-// ✅ OTP verify হলে তখন DB তে save হবে
-export const verifyEmail = async (email: string, code: string) => {
+export const verifyEmailregister = async (email: string, code: string) => {
+ 
   const pending = pendingRegistrations.get(email);
 
   if (!pending) {
-    throw new AppError(httpStatus.BAD_REQUEST, "No pending registration found for this email");
+    throw new AppError(httpStatus.BAD_REQUEST, "No pending registration found for this email or code expired");
   }
 
-  if (pending.otp !== code) {
+
+  if (String(pending.otp) !== String(code)) {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid verification code");
   }
 
+  // ✅ ওটিপি সময় শেষ হয়ে গেছে কি না চেক
   if (pending.otpExpires < new Date()) {
-    pendingRegistrations.delete(email);
+    pendingRegistrations.delete(email); // মেমোরি থেকে মুছে দাও
     throw new AppError(httpStatus.BAD_REQUEST, "Verification code has expired");
   }
 
-  // ✅ OTP সঠিক — এখন সব data DB তে save করো
+  // 🚨 সেফটি চেক: শেষ মুহূর্তে আবার দেখে নেওয়া ডাটাবেজে কেউ অলরেডি অ্যাকাউন্ট খুলে ফেলেছে কি না
+  const doubleCheckUser = await User.findOne({ email });
+  if (doubleCheckUser && doubleCheckUser.isVerified) {
+    pendingRegistrations.delete(email);
+    throw new AppError(httpStatus.BAD_REQUEST, "User already exists with this email");
+  }
+
+  // ✅ ওটিপি একদম সঠিক — এখন পেলোড থেকে সব ডাটা নিয়ে DB তে অ্যাকাউন্ট তৈরি হবে
   const {
     fullName,
     password,
@@ -249,6 +173,8 @@ export const verifyEmail = async (email: string, code: string) => {
     howDidYouHear,
     subscribeToEmails,
     termsAccepted,
+    accountType,
+    djname
   } = pending.payload;
 
   const user = await User.create({
@@ -260,13 +186,15 @@ export const verifyEmail = async (email: string, code: string) => {
     howDidYouHear,
     subscribeToEmails,
     termsAccepted,
-    isEmailVerified: true, // ✅ সরাসরি verified হয়ে save হবে
+    accountType: accountType || 'emailvarifi',
+    djname,
+    isVerified: true, // ✅ সরাসরি verified হয়ে ডাটাবেজে ঢুকবে, ডুপ্লিকেটের সুযোগই নেই!
   });
 
-  // ✅ Memory থেকে সরিয়ে দাও
+  // ✅ কাজ শেষ, মেমোরি খালি করার জন্য ম্যাপ থেকে ডাটা ডিলিট
   pendingRegistrations.delete(email);
 
-  // ✅ Token generate করো
+  // ✅ লগইন এর জন্য JWT Token জেনারেট
   const jwtPayload = {
     userId: user._id.toString(),
     role: user.role,
@@ -283,11 +211,133 @@ export const verifyEmail = async (email: string, code: string) => {
       id: user._id,
       email: user.email,
       role: user.role,
-      isEmailVerified: user.isEmailVerified,
+      isVerified: user.isVerified,
     },
     accessToken,
   };
 };
+
+// // ===== Verify Email =====
+// export const verifyEmailregister = async (email: string, otp: string) => {
+//   const user = await User.findOne({ email })
+//   if (!user) {
+//     throw new AppError(httpStatus.NOT_FOUND, 'User not found')
+//   }
+
+//   if (user.isEmailVerified) {
+//     throw new AppError(httpStatus.BAD_REQUEST, 'Email already verified')
+//   }
+
+//   // ✅ OTP check
+//   if (String(user.verification?.otp) !== String(otp)) {
+//     throw new AppError(httpStatus.BAD_REQUEST, 'Invalid OTP')
+//   }
+
+//   // ✅ Expiry check
+//   if (moment().isAfter(moment(user.verification?.expiresAt))) {
+//     throw new AppError(httpStatus.BAD_REQUEST, 'OTP has expired')
+//   }
+
+//   // ✅ Verified — verification clear করো
+//   await User.findByIdAndUpdate(user._id, {
+//     isEmailVerified: true,
+//     verification: {
+//       otp: null,
+//       expiresAt: null,
+//       status: true,
+//     },
+//   })
+
+//   const jwtPayload = {
+//     userId: user._id.toString(),
+//     role: user.role,
+//   }
+
+//   const accessToken = createToken(
+//     jwtPayload,
+//     config.jwt.jwt_access_secret as string,
+//     config.jwt.jwt_access_expires_in as string,
+//   )
+
+//   return {
+//     user: {
+//       id: user._id,
+//       email: user.email,
+//       role: user.role,
+//       isEmailVerified: true,
+//     },
+//     accessToken,
+//   }
+// }
+
+
+
+
+// // ✅ OTP verify হলে তখন DB তে save হবে
+// export const verifyEmail = async (email: string, code: string) => {
+//   const pending = pendingRegistrations.get(email);
+
+//   if (!pending) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "No pending registration found for this email");
+//   }
+
+//   if (pending.otp !== code) {
+//     throw new AppError(httpStatus.BAD_REQUEST, "Invalid verification code");
+//   }
+
+//   if (pending.otpExpires < new Date()) {
+//     pendingRegistrations.delete(email);
+//     throw new AppError(httpStatus.BAD_REQUEST, "Verification code has expired");
+//   }
+
+//   // ✅ OTP সঠিক — এখন সব data DB তে save করো
+//   const {
+//     fullName,
+//     password,
+//     country,
+//     role,
+//     howDidYouHear,
+//     subscribeToEmails,
+//     termsAccepted,
+//   } = pending.payload;
+
+//   const user = await User.create({
+//     fullName,
+//     email,
+//     password,
+//     country,
+//     role,
+//     howDidYouHear,
+//     subscribeToEmails,
+//     termsAccepted,
+//     isEmailVerified: true, // ✅ সরাসরি verified হয়ে save হবে
+//   });
+
+//   // ✅ Memory থেকে সরিয়ে দাও
+//   pendingRegistrations.delete(email);
+
+//   // ✅ Token generate করো
+//   const jwtPayload = {
+//     userId: user._id.toString(),
+//     role: user.role,
+//   };
+
+//   const accessToken = createToken(
+//     jwtPayload,
+//     config.jwt.jwt_access_secret as string,
+//     config.jwt.jwt_access_expires_in as string
+//   );
+
+//   return {
+//     user: {
+//       id: user._id,
+//       email: user.email,
+//       role: user.role,
+//       isEmailVerified: user.isEmailVerified,
+//     },
+//     accessToken,
+//   };
+// };
 
 
 

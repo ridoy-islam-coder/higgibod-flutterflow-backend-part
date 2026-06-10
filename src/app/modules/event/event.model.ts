@@ -48,6 +48,13 @@ const reviewSchema = new Schema<IReview>(
   { timestamps: true }
 );
 
+
+const dayScheduleSchema = new Schema({
+  date: { type: Date, required: true },
+  startTime: { type: String, required: true },
+  endTime: { type: String }
+}, { _id: false });
+
 const eventSchema = new Schema<IEvent>(
   {
     title: { type: String, required: true },
@@ -56,6 +63,8 @@ const eventSchema = new Schema<IEvent>(
       ref: 'Category',
       required: true,
     },
+    daySchedules: [dayScheduleSchema],
+
     date: { type: Date, required: true },
     time: { type: String, default: "" },
     endDate: { type: Date, required: true },
@@ -111,15 +120,6 @@ const eventSchema = new Schema<IEvent>(
       enum: ["Free Event", "Paid Event"],
       default: "Paid Event",
     },
-
-   
-
-
-
-
-
-
-
   },
   {
     timestamps: true,

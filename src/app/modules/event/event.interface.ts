@@ -1,59 +1,3 @@
-// import { Types } from "mongoose";
-
-// export interface IReviewImage {
-//   id: string;
-//   url: string;
-// }
-
-// export interface IReview {
-//   _id?: Types.ObjectId;
-//   user: Types.ObjectId;
-//   rating: number;
-//   comment: string;
-//   images?: IReviewImage[];   // ✅ image support added
-//   isAnonymous?: boolean;     // ✅ anonymous posting support
-//   createdAt?: Date;
-//   updatedAt?: Date;
-// }
-
-// export interface ILocation {
-//   type: "Point";
-//   coordinates: [longitude: number, latitude: number]; // [lng, lat]
-// }
-
-
-
-// export interface IEvent {
-//   _id?: Types.ObjectId;
-//   title: string;
-//   category?: Types.ObjectId;
-//   date: Date;
-//   time?: string;
-//   location?: ILocation;
-//   description?: string;
-//   price?: number;
-//   coverImage?: { id: string; url: string };
-//   gallery?: { id: string; url: string }[];
-//   host: Types.ObjectId;
-//   attendees?: Types.ObjectId[];
-//   reviews?: IReview[];
-//   isPast?: boolean;
-//   isDeleted?: boolean;
- 
-//   // ── Visibility Options (Figma) ────────────────────────────
-//   isFeatured?: boolean;     // Feature Placement
-//   isPinned?: boolean;       // Pin Event
-//   isHighlighted?: boolean;  // Highlight Event
-//   isTopEvent?: boolean;     // Top Event
- 
-//   // ── Event Type ────────────────────────────────────────────
-//   eventType?: "Free Event" | "Paid Event";
- 
-//   createdAt?: Date;
-//   updatedAt?: Date;
-// }
-
-
 import { Types } from "mongoose";
 
 export interface IReviewImage {
@@ -61,16 +5,17 @@ export interface IReviewImage {
   url: string;
 }
 
-// ✅ নতুন — Reply interface
+// ✅ Reply Interface
 export interface IReply {
   _id?: Types.ObjectId;
   user: Types.ObjectId;
   comment: string;
-  isRead:boolean
+  isRead: boolean;
   createdAt?: Date;
   updatedAt?: Date;
 }
 
+// ✅ Review Interface
 export interface IReview {
   _id?: Types.ObjectId;
   user: Types.ObjectId;
@@ -78,27 +23,41 @@ export interface IReview {
   comment: string;
   images?: IReviewImage[];
   isAnonymous?: boolean;
-  replies?: IReply[]; // ✅ নতুন
+  replies?: IReply[];
   createdAt?: Date;
   updatedAt?: Date;
 }
 
+// ✅ Location Interface
 export interface ILocation {
   type: "Point";
-  coordinates: [longitude: number, latitude: number];
+  coordinates: [number, number]; // [longitude, latitude]
 }
 
+// ✅ নতুন — Day Schedule Interface (মডেলের dayScheduleSchema অনুযায়ী)
+export interface IDaySchedule {
+  date: Date;
+  startTime: string;
+  endTime?: string;
+}
+
+// ✅ Main Event Interface
 export interface IEvent {
   _id?: Types.ObjectId;
   title: string;
-  category?: Types.ObjectId;
-  date: Date;
+  category: Types.ObjectId; // মডেল অনুযায়ী required রাখা হয়েছে
+  
+  daySchedules?: IDaySchedule[]; // ✅ মডেলের daySchedules অ্যারে অনুযায়ী যোগ করা হলো
+  
+  date: Date; // Start Date হিসেবে যা মডেলে আছে
   time?: string;
-  endDate: Date; // ✅ নতুন — End Date
+  endDate: Date; // ✅ মাল্টি-ডে ইভেন্টের জন্য End Date
+  
   location?: ILocation;
   description?: string;
   price?: number;
-  currency?: string; // ✅ নতুন — Currency
+  currency?: string; // ✅ গ্লোবাল অ্যাপের কারেন্সি ফিল্ড
+  
   coverImage?: { id: string; url: string };
   gallery?: { id: string; url: string }[];
   host: Types.ObjectId;
@@ -106,13 +65,15 @@ export interface IEvent {
   reviews?: IReview[];
   isPast?: boolean;
   isDeleted?: boolean;
-
+  
+  skiteeventType?: string; // ⚠️ মডেলের বানান অনুযায়ী (skiteeventType) রাখা হলো
+  
   // ── Visibility Options ────────────────────────────────────
-  isFeatured?: boolean;
-  isPinned?: boolean;
   isHighlighted?: boolean;
+  isPinned?: boolean;
+  isFeatured?: boolean;
   isTopEvent?: boolean;
-skiteeventType:string,
+  
   // ── Event Type ────────────────────────────────────────────
   eventType?: "Free Event" | "Paid Event";
 

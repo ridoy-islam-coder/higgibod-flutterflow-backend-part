@@ -26,13 +26,14 @@ export const createEventService = async (
   const {
     title,
     category,
-    date,
-    time,
+    date,         // এটি আপনার ইভেন্টের startDate হিসেবে কাজ করছে
     endDate,
+    time,
+    daySchedules, // 🔥 নতুন: ফ্রন্টএন্ড থেকে পাঠানো প্রতিদিনের আলাদা টাইমিংয়ের অ্যারে
     description,
     price,
     currency,
-   isFeatured,
+    isFeatured,
     isPinned,
     isHighlighted,
     isTopEvent,
@@ -41,13 +42,13 @@ export const createEventService = async (
     skiteeventType,
   } = body;
 
-  if (!title || !date) {
-    throw new AppError(400, 'Title and date are required');
+  // ওটিপি বা ইভেন্ট তৈরির বেসিক ভ্যালিডেশন
+  if (!title || !date || !endDate) {
+    throw new AppError(400, 'Title, start date, and end date are required');
   }
 
   // ✅ Geo location build
   let geoLocation;
-
   if (longitude && latitude) {
     geoLocation = {
       type: "Point",
@@ -58,15 +59,22 @@ export const createEventService = async (
     };
   }
 
+  // ✅ ডাটাবেজে ইভেন্ট তৈরি
   const event = await Event.create({
     title,
-    category: category || "",
-    date,
-    endDate,
+    category: category || undefined, // যদি ক্যাটাগরি বাদ দিতে চান তবে undefined রাখতে পারেন
+    date,       // মডেলের 'date' ফিল্ড (যা মূলত Start Date)
+    endDate,    // মডেলের 'endDate' ফিল্ড
+    
+    // 🔥 এখানে আপনার নতুন daySchedules ফিল্ডটি যুক্ত করা হলো
+    // ফ্রন্টএন্ড থেকে ডাটা আসলে সেটা বসবে, না আসলে ডিফল্ট খালি অ্যারে [] হবে
+    daySchedules: daySchedules || [], 
+
     time: time || "",
-    location: geoLocation, // 🔥 HERE
+    location: geoLocation,
     description: description || "",
     price: price || 0,
+    currency: currency || "USD", // গ্লোবাল কারেন্সি
     coverImage: coverImage || { id: "", url: "" },
     gallery: gallery || [],
     host: user?.id,
@@ -74,13 +82,11 @@ export const createEventService = async (
     isPinned: isPinned || false,
     isHighlighted: isHighlighted || false,
     isTopEvent: isTopEvent || false,
-    skiteeventType:skiteeventType ||"",
-    currency: currency || "USD"
+    skiteeventType: skiteeventType || "",
   });
 
   return event;
 };
-
 
 export const getAllEventsService = async (query: any) => {
   await updatePastEvents(); // ✅ query এর আগে update করুন
@@ -227,7 +233,7 @@ export const getEventDetailsService = async (
 
 
 
-// ── Service ──────────────────────────────────────────────────────────────────
+// ── Service ──────────────────────────────────────────────────────────────────// ── Service ──────────────────────────────────────────────────────────────────
 export const updateEventService = async (
   req: any,
   coverImage?: { id: string; url: string },
@@ -235,12 +241,13 @@ export const updateEventService = async (
 ) => {
   const { id } = req.params;
 
-  const {
+  let {
     title,
     category,
     date,
     time,
     endDate,
+    daySchedules, // 🔥 নতুন যুক্ত করা হলো
     description,
     price,
     isFeatured,
@@ -252,6 +259,15 @@ export const updateEventService = async (
     currency,
     skiteeventType,
   } = req.body;
+
+  // ✅ form-data থেকে daySchedules স্ট্রিং আকারে আসলে সেটাকে JSON Array তে রূপান্তর করা
+  if (daySchedules && typeof daySchedules === 'string') {
+    try {
+      daySchedules = JSON.parse(daySchedules);
+    } catch (error) {
+      throw new AppError(400, 'Invalid format for daySchedules. Must be a valid JSON array.');
+    }
+  }
 
   // ✅ Geo location — নতুন coordinate আসলে update, না আসলে skip
   let geoLocation;
@@ -275,11 +291,12 @@ export const updateEventService = async (
     ...(isTopEvent !== undefined && { isTopEvent: isTopEvent === 'true' || isTopEvent === true }),
     ...(geoLocation && { location: geoLocation }),
     ...(coverImage && { coverImage }),
-    // ✅ নতুন gallery আসলে replace, না আসলে পুরনোটা থাকবে
+ 
     ...(gallery && gallery.length > 0 && { gallery }),
     ...(skiteeventType !== undefined && { skiteeventType }), 
-    ...(endDate !== undefined && { endDate }), // ✅ নতুন — End Date
-    ...(currency !== undefined && { currency }), // ✅ নতুন — Currency
+    ...(endDate !== undefined && { endDate }), 
+    ...(currency !== undefined && { currency }), 
+    ...(daySchedules !== undefined && { daySchedules }), 
   };
 
   const event = await Event.findByIdAndUpdate(id, { $set: updateData }, { new: true });
