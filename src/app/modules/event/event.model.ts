@@ -65,8 +65,8 @@ const eventSchema = new Schema<IEvent>(
     },
     daySchedules: [dayScheduleSchema],
 
-    date: { type: Date, required: true },
-    time: { type: String, default: "" },
+    // date: { type: Date, required: true },
+    // time: { type: String, default: "" },
     endDate: { type: Date, required: true },
 
     location: {
