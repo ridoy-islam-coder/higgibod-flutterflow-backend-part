@@ -84,7 +84,7 @@ const otpCache = new Map<string, { payload: TRegister; otp: number; expiresAt: D
 //     accessToken,
 //   };
 // };
-// ✅ ওটিপি ভেরিফাই হওয়ার আগ পর্যন্ত ডাটা সাময়িকভাবে ধরে রাখার মেমোরি ম্যাপ
+
 const pendingRegistrations = new Map<string, {
   payload: any;
   otp: string;
@@ -98,18 +98,15 @@ export const register = async (payload: any) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'Missing required fields');
   }
 
-  // 🔥 [FIX]: .find() এর গ্লোবাল প্রি-হুক বাইপাস করতে সরাসরি MongoDB ড্রাইভারে কুয়েরি করা হচ্ছে
-  // ডাটাবেজে এই ইমেইলটি ডিলিট করা থাক বা না থাক (isDeleted true/false যাই হোক), ডাটা থাকলে ওটিপি ব্লক হবে।
   const existingUser = await User.findOne({ email }).setOptions({ skipFilter: true }); 
   
-  // যদি উপরেরটা কাজ না করে, তবে মঙ্গুজের কালেকশন লেভেলে সরাসরি চেক করার এই ব্যাকআপ লাইনটি ব্যবহার করুন:
   // const existingUser = await User.collection.findOne({ email });
 
   if (existingUser) {
     throw new AppError(httpStatus.BAD_REQUEST, 'This email is already registered in our system.');
   }
 
-  // বাকি কোড আগের মতোই থাকবে...
+
   const otp = String(generateOtp());
   const expiresAt = moment().add(10, 'minute').toDate();
 
@@ -151,20 +148,18 @@ export const verifyEmailregister = async (email: string, code: string) => {
     throw new AppError(httpStatus.BAD_REQUEST, "Invalid verification code");
   }
 
-  // ✅ ওটিপি সময় শেষ হয়ে গেছে কি না চেক
   if (pending.otpExpires < new Date()) {
-    pendingRegistrations.delete(email); // মেমোরি থেকে মুছে দাও
+    pendingRegistrations.delete(email); 
     throw new AppError(httpStatus.BAD_REQUEST, "Verification code has expired");
   }
 
-  // 🚨 সেফটি চেক: শেষ মুহূর্তে আবার দেখে নেওয়া ডাটাবেজে কেউ অলরেডি অ্যাকাউন্ট খুলে ফেলেছে কি না
   const doubleCheckUser = await User.findOne({ email });
   if (doubleCheckUser && doubleCheckUser.isVerified) {
     pendingRegistrations.delete(email);
     throw new AppError(httpStatus.BAD_REQUEST, "User already exists with this email");
   }
 
-  // ✅ ওটিপি একদম সঠিক — এখন পেলোড থেকে সব ডাটা নিয়ে DB তে অ্যাকাউন্ট তৈরি হবে
+
   const {
     fullName,
     password,
@@ -188,13 +183,13 @@ export const verifyEmailregister = async (email: string, code: string) => {
     termsAccepted,
     accountType: accountType || 'emailvarifi',
     djname,
-    isVerified: true, // ✅ সরাসরি verified হয়ে ডাটাবেজে ঢুকবে, ডুপ্লিকেটের সুযোগই নেই!
+    isVerified: true, 
   });
 
-  // ✅ কাজ শেষ, মেমোরি খালি করার জন্য ম্যাপ থেকে ডাটা ডিলিট
+
   pendingRegistrations.delete(email);
 
-  // ✅ লগইন এর জন্য JWT Token জেনারেট
+
   const jwtPayload = {
     userId: user._id.toString(),
     role: user.role,

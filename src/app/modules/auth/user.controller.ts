@@ -26,51 +26,113 @@ const googleClient = new OAuth2Client('23601987612-ko94q8ki1ui42igekam6f87kamceu
 
 
 
+// export const googleLogin = async (req: Request, res: Response) => {
+//   const { idToken, role } = req.body;
+
+//    if (!idToken) return res.status(400).json({ success: false, message: 'idToken required' });
+//    if (!role) return res.status(400).json({ success: false, message: 'Role required' });
+
+//   try {
+//     const ticket = await googleClient.verifyIdToken({
+//       idToken,
+//       audience: '23601987612-ko94q8ki1ui42igekam6f87kamceuvu4.apps.googleusercontent.com',
+//     });
+
+//     const payload = ticket.getPayload();
+//     console.log('Google payload:', payload);
+//     if (!payload?.email) return res.status(400).json({ success: false, message: 'Invalid Google token' });
+
+//     let user = await User.findOne({ email: payload.email });
+// if (!user) {
+//   user = await User.create({
+//     email: payload.email,
+//     role: role,   // Google login এর সময় role কে dynamic করার জন্য
+//     fullName: payload.name,
+//     isVerified: true,
+//     accountType: 'google',
+//     // gender: 'Male',
+//     // password: '12231',
+//     // countryCode: '+880',
+//     // phoneNumber: '0172287587',
+//     image: {
+//       id: 'google', // যেকোনো default id
+//       url: payload.picture || 'https://i.ibb.co/z5YHLV9/profile.png',
+//     },
+//   });
+// }
+
+//     const accessToken = jwt.sign({ id: user._id, role: user.role }, config.jwt.jwt_access_secret as string, { expiresIn: '24h' });
+//     const refreshToken = jwt.sign({ id: user._id, role: user.role }, config.jwt.jwt_refresh_secret as string, { expiresIn: '7d' });
+
+//     res.json({ success: true, user, accessToken, refreshToken });
+//   } catch (err) {
+//     console.error(err);
+//     res.status(500).json({ success: false, message: 'Google login failed', err });
+//   }
+// };
+
+
+
+
 export const googleLogin = async (req: Request, res: Response) => {
-  const { idToken, role } = req.body;
-
-   if (!idToken) return res.status(400).json({ success: false, message: 'idToken required' });
-   if (!role) return res.status(400).json({ success: false, message: 'Role required' });
-
+  const { idToken, role, fcmToken } = req.body;
+  if (!idToken)
+    return res
+      .status(400)
+      .json({ success: false, message: 'idToken required' });
+  if (!role)
+    return res.status(400).json({ success: false, message: 'Role required' });
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken,
-      audience: '23601987612-ko94q8ki1ui42igekam6f87kamceuvu4.apps.googleusercontent.com',
+      audience:
+        '23601987612-ko94q8ki1ui42igekam6f87kamceuvu4.apps.googleusercontent.com',
     });
-
     const payload = ticket.getPayload();
     console.log('Google payload:', payload);
-    if (!payload?.email) return res.status(400).json({ success: false, message: 'Invalid Google token' });
+    if (!payload?.email)
+      return res
+        .status(400)
+        .json({ success: false, message: 'Invalid Google token' });
 
     let user = await User.findOne({ email: payload.email });
-if (!user) {
-  user = await User.create({
-    email: payload.email,
-    role: role,   // Google login এর সময় role কে dynamic করার জন্য
-    fullName: payload.name,
-    isVerified: true,
-    accountType: 'google',
-    // gender: 'Male',
-    // password: '12231',
-    // countryCode: '+880',
-    // phoneNumber: '0172287587',
-    image: {
-      id: 'google', // যেকোনো default id
-      url: payload.picture || 'https://i.ibb.co/z5YHLV9/profile.png',
-    },
-  });
-}
 
-    const accessToken = jwt.sign({ id: user._id, role: user.role }, config.jwt.jwt_access_secret as string, { expiresIn: '24h' });
-    const refreshToken = jwt.sign({ id: user._id, role: user.role }, config.jwt.jwt_refresh_secret as string, { expiresIn: '7d' });
+    if (!user) {
+      user = await User.create({
+        email: payload.email,
+        role: role,
+        fullName: payload.name,
+        isVerified: true,
+        accountType: 'google',
+        fcmToken: fcmToken || '',
+        image: {
+          id: 'google',
+          url: payload.picture || 'https://i.ibb.co/z5YHLV9/profile.png',
+        },
+      });
+    } else if (fcmToken) {
+      user.fcmToken = fcmToken;
+      await user.save({ validateBeforeSave: false });
+    }
 
+    const accessToken = jwt.sign(
+      { id: user._id, role: user.role },
+      config.jwt.jwt_access_secret as string,
+      { expiresIn: '24h' },
+    );
+    const refreshToken = jwt.sign(
+      { id: user._id, role: user.role },
+      config.jwt.jwt_refresh_secret as string,
+      { expiresIn: '7d' },
+    );
     res.json({ success: true, user, accessToken, refreshToken });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: 'Google login failed', err });
+    res
+      .status(500)
+      .json({ success: false, message: 'Google login failed', err });
   }
 };
-
 
 const userRegistration = catchAsync(async (req: Request, res: Response) => {
   const result = await register(req.body);
@@ -124,7 +186,7 @@ const verifyEmailController = catchAsync(async (req: Request, res: Response) => 
 
 
 const login = catchAsync(async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { email, password, fcmToken } = req.body;
   const user = await User.findOne({ email, isActive: true }).select('+password');
 
   if (!user || !user?.password) {
@@ -136,6 +198,10 @@ const login = catchAsync(async (req: Request, res: Response) => {
     throw new AppError(httpStatus.UNAUTHORIZED, 'Incorrect password');
   }
 
+    if (fcmToken) {
+      user.fcmToken = fcmToken;
+      await user.save({ validateBeforeSave: false });
+    }
 
 //   if (user.role === 'ORGANIZER') {
 //   if (user.adminApproval !== 'approved') {
@@ -372,84 +438,154 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
 
 
 
-export const facebookLogin = catchAsync(
-  async (req: Request, res: Response) => {
-    const { accessToken, role } = req.body;
+// export const facebookLogin = catchAsync(
+//   async (req: Request, res: Response) => {
+//     const { accessToken, role } = req.body;
 
-    if (!accessToken) {
-      throw new AppError(
-        httpStatus.BAD_REQUEST,
-        'Facebook accessToken is required',
-      );
-    }
+//     if (!accessToken) {
+//       throw new AppError(
+//         httpStatus.BAD_REQUEST,
+//         'Facebook accessToken is required',
+//       );
+//     }
 
-      if (!role) {
-        throw new AppError(httpStatus.BAD_REQUEST, 'Role is required');
-      }
+//       if (!role) {
+//         throw new AppError(httpStatus.BAD_REQUEST, 'Role is required');
+//       }
 
-    // 🔹 Get user info from Facebook
-    const fbRes = await axios.get(
-      'https://graph.facebook.com/me',
-      {
-        params: {
-          fields: 'id,name,email',
-          access_token: accessToken,
-        },
-      },
+//     // 🔹 Get user info from Facebook
+//     const fbRes = await axios.get(
+//       'https://graph.facebook.com/me',
+//       {
+//         params: {
+//           fields: 'id,name,email',
+//           access_token: accessToken,
+//         },
+//       },
+//     );
+
+//     console.log('FB DATA:', fbRes.data);
+
+//     const { id, name, email } = fbRes.data;
+
+//     // 🔹 Fallback email (VERY IMPORTANT)
+//     const finalEmail = email || `${id}@facebook.com`;
+
+//     // 🔹 Find or create user
+//     let user = await User.findOne({ email: finalEmail });
+
+//     if (!user) {
+//       user = await User.create({
+//         email: finalEmail,
+//         role: role, // Facebook login এর সময় role কে dynamic করার জন্য
+//         fullName: name,
+//         accountType: 'facebook', // অবশ্যই দিতে হবে
+//         isVerified: true,
+//          image: {
+//          id: 'facebook', // যেকোনো default id
+//          url: fbRes.data.picture?.data?.url || 'https://i.ibb.co/z5YHLV9/profile.png',
+//         },
+//         // role: UserRole.customer,
+//       });
+//     }
+
+//     // 🔹 Generate JWT tokens
+//     const accessTokenJwt = jwt.sign(
+//       { id: user._id, role: user.role },
+//       config.jwt.jwt_access_secret as Secret,
+//       { expiresIn: '24h' },
+//     );
+
+//     const refreshToken = jwt.sign(
+//       { id: user._id, role: user.role },
+//       config.jwt.jwt_refresh_secret as Secret,
+//       { expiresIn: '7d' },
+//     );
+
+//     // 🔹 Send response
+//     sendResponse(res, {
+//       statusCode: httpStatus.OK,
+//       success: true,
+//       message: 'Facebook login successful',
+//       data: {
+//         user,
+//         accessToken: accessTokenJwt,
+//         refreshToken,
+//       },
+//     });
+//   },
+// );
+
+
+
+
+
+export const facebookLogin = catchAsync(async (req: Request, res: Response) => {
+  const { accessToken, role, fcmToken } = req.body;
+  if (!accessToken) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Facebook accessToken is required',
     );
-
-    console.log('FB DATA:', fbRes.data);
-
-    const { id, name, email } = fbRes.data;
-
-    // 🔹 Fallback email (VERY IMPORTANT)
-    const finalEmail = email || `${id}@facebook.com`;
-
-    // 🔹 Find or create user
-    let user = await User.findOne({ email: finalEmail });
-
-    if (!user) {
-      user = await User.create({
-        email: finalEmail,
-        role: role, // Facebook login এর সময় role কে dynamic করার জন্য
-        fullName: name,
-        accountType: 'facebook', // অবশ্যই দিতে হবে
-        isVerified: true,
-         image: {
-         id: 'facebook', // যেকোনো default id
-         url: fbRes.data.picture?.data?.url || 'https://i.ibb.co/z5YHLV9/profile.png',
-        },
-        // role: UserRole.customer,
-      });
-    }
-
-    // 🔹 Generate JWT tokens
-    const accessTokenJwt = jwt.sign(
-      { id: user._id, role: user.role },
-      config.jwt.jwt_access_secret as Secret,
-      { expiresIn: '24h' },
-    );
-
-    const refreshToken = jwt.sign(
-      { id: user._id, role: user.role },
-      config.jwt.jwt_refresh_secret as Secret,
-      { expiresIn: '7d' },
-    );
-
-    // 🔹 Send response
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: 'Facebook login successful',
-      data: {
-        user,
-        accessToken: accessTokenJwt,
-        refreshToken,
+  }
+  if (!role) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Role is required');
+  }
+  // 🔹 Get user info from Facebook
+  const fbRes = await axios.get('https://graph.facebook.com/me', {
+    params: {
+      fields: 'id,name,email',
+      access_token: accessToken,
+    },
+  });
+  console.log('FB DATA:', fbRes.data);
+  const { id, name, email } = fbRes.data;
+  // 🔹 Fallback email (VERY IMPORTANT)
+  const finalEmail = email || `${id}@facebook.com`;
+  // 🔹 Find or create user
+  let user = await User.findOne({ email: finalEmail });
+  if (!user) {
+    user = await User.create({
+      email: finalEmail,
+      role: role,
+      fullName: name,
+      accountType: 'facebook',
+      isVerified: true,
+      fcmToken: fcmToken || '',
+      image: {
+        id: 'facebook',
+        url:
+          fbRes.data.picture?.data?.url ||
+          'https://i.ibb.co/z5YHLV9/profile.png',
       },
     });
-  },
-);
-
+  } else if (fcmToken) {
+    user.fcmToken = fcmToken;
+    await user.save({ validateBeforeSave: false });
+  }
+  // 🔹 Generate JWT tokens
+  const accessTokenJwt = jwt.sign(
+    { id: user._id, role: user.role },
+    config.jwt.jwt_access_secret as Secret,
+    { expiresIn: '24h' },
+  );
+  const refreshToken = jwt.sign(
+    { id: user._id, role: user.role },
+    config.jwt.jwt_refresh_secret as Secret,
+    { expiresIn: '7d' },
+  );
+  // 🔹 Send response
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Facebook login successful',
+    data: {
+      user,
+      accessToken: accessTokenJwt,
+      refreshToken,
+    },
+  });
+});
 
 
 const linkedInLogin = catchAsync(async (req: Request, res: Response) => {

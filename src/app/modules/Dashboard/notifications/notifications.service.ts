@@ -1,5 +1,5 @@
 import User from "../../user/user.model";
-import admin from "./Firebase ";
+import admin from "./Firebase";
 import { Notification } from "./notifications.model";
 
 
