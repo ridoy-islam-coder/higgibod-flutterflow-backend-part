@@ -1,7 +1,6 @@
 // import * as admin from "firebase-admin";
 // import config from "../../../config";
 
- 
 // if (!admin.apps.length) {
 //   admin.initializeApp({
 //     credential: admin.credential.cert({
@@ -11,14 +10,11 @@
 //     }),
 //   });
 // }
- 
+
 // export default admin;
 
-
-import * as admin from "firebase-admin";
-
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const serviceAccount = require("./serviceAccountKey.json");
+import * as admin from 'firebase-admin';
+import serviceAccount from '../../../../../firebase.json';
 
 if (!admin.apps.length) {
   admin.initializeApp({
