@@ -86,7 +86,7 @@ export const googleLogin = async (req: Request, res: Response) => {
     const ticket = await googleClient.verifyIdToken({
       idToken,
       audience:
-        '23601987612-ko94q8ki1ui42igekam6f87kamceuvu4.apps.googleusercontent.com',
+        '418507030837-d2s50n5s0e2c10loq1363681rnukmu9h2.apps.googleusercontent.com',
     });
     const payload = ticket.getPayload();
     console.log('Google payload:', payload);
@@ -600,12 +600,12 @@ const linkedInLogin = catchAsync(async (req: Request, res: Response) => {
   }
 
   try {
-    // 1. Get basic profile
+  
     const profileRes = await axios.get("https://api.linkedin.com/v2/me", {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
-    // 2. Get email
+  
     const emailRes = await axios.get(
       "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))",
       { headers: { Authorization: `Bearer ${accessToken}` } }
