@@ -24,6 +24,7 @@ import { NotificationRoutes } from '../modules/Dashboard/notifications/notificat
 import { SettingsRoutes } from '../modules/Settings/Settings.routes';
 import { ContactRoutes } from '../modules/Contact/contact.routes';
 import { WithdrawalRoutes } from '../modules/withdrawal/withdrawal.routes';
+import { FAQRoutes } from '../modules/FAQ/faq.route';
 
 // import { PromoCodeRoutes } from '../modules/PromoCode/promocode.routes';
 
@@ -49,14 +50,15 @@ const moduleRoutes = [
     path: '/social',
     route: sosaleMediaRoutes,
   },
-    {
+  {
     path: '/event',
     route: eventRoutes,
   },
-   {
+  {
     path: '/products',
     route: productsRoutes,
-  },{
+  },
+  {
     path: '/tickets',
     route: ticketRoutes,
   },
@@ -64,7 +66,7 @@ const moduleRoutes = [
     path: '/products',
     route: productsRoutes,
   },
-    {
+  {
     path: '/order',
     route: orderRoutes,
   },
@@ -76,98 +78,97 @@ const moduleRoutes = [
     path: '/personalization',
     route: personalizationRoutes,
   },
-    {
+  {
     path: '/wishlist',
     route: wishlistRoutes,
   },
-     {
+  {
     path: '/plans',
     route: PlanRoutes,
   },
-   {
+  {
     path: '/subscription',
     route: PaymentRoutes,
   },
-   {
+  {
     path: '/eventWishlist',
     route: eventWishlistRoutes,
   },
-    {
+  {
     path: '/promocode',
     route: PromoCodeRoutes,
   },
-   {
+  {
     path: '/catagore',
     route: catagoreeventRoutes,
   },
- {
+  {
     path: '/same',
     route: ProductCategoryRoutes,
   },
-   {
+  {
     path: '/review',
     route: reviewRoutes,
   },
-  
+
   {
-   path: '/eventreport',
+    path: '/eventreport',
     route: EventReviewReportRoutes,
   },
   {
-   path: '/ProductReport',
+    path: '/ProductReport',
     route: ProductReviewReportRoutes,
-  }, 
+  },
   {
-   path: '/follow',
+    path: '/follow',
     route: FollowRoutes,
   },
-   {
-   path: '/notifications',
+  {
+    path: '/notifications',
     route: NotificationRoutes,
   },
   {
-   path: '/Settings',
+    path: '/Settings',
     route: SettingsRoutes,
   },
-   {
-   path: '/contact',
+  {
+    path: '/contact',
     route: ContactRoutes,
   },
   {
-   path: '/withdrawal',
+    path: '/withdrawal',
     route: WithdrawalRoutes,
-  } 
- 
+  },
+  {
+    path: '/faq',
+    route: FAQRoutes,
+  },
 
-  
-  
-
-  
-
-//   {
-//     path: '/subscription',
-//     route: SubscriptionRoutes,
-//   },
-//   {
-//     path: '/payment',
-//     route: PaymentRoutes,
-//   },
-//   {
-//     path: '/otp',
-//     route: otpRoutes,
-//   },
-//   {
-//     path: '/wallet',
-//     route: walletRoutes,
-//   },
-//   {
-//     path: '/notifications',
-//     route: NotificationRoutes,
-//   },
-//   {
-//     path: '/onboarding',
-//     route: onboardingRoutes,
-//   },
+  //   {
+  //     path: '/subscription',
+  //     route: SubscriptionRoutes,
+  //   },
+  //   {
+  //     path: '/payment',
+  //     route: PaymentRoutes,
+  //   },
+  //   {
+  //     path: '/otp',
+  //     route: otpRoutes,
+  //   },
+  //   {
+  //     path: '/wallet',
+  //     route: walletRoutes,
+  //   },
+  //   {
+  //     path: '/notifications',
+  //     route: NotificationRoutes,
+  //   },
+  //   {
+  //     path: '/onboarding',
+  //     route: onboardingRoutes,
+  //   },
+  ,
 ];
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
 
