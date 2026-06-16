@@ -52,7 +52,6 @@ const UserSchema = new Schema<TUser, UserModel>(
     },
     password: {
       type: String,
-      required: true, // ALWAYS required
       select: false,
 
     },
