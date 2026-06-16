@@ -9,7 +9,7 @@ import app from './app';
 import config from './app/config';
 import { startupLogger } from './app/utils/startupLogger';
 
-const port = Number(config.port) || 5001;
+const port = Number(config.port) || 1212;
 
 const startServer = async () => {
   try {

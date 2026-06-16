@@ -20,11 +20,7 @@ const ProductReviewReportSchema = new Schema<IProductReviewReport>(
     },
     reason: {
       type: String,
-      enum: [  'Just to let you know this might be a problem',
-           'Disrespectful and harmful behavior',
-        "Violating platform's harassment policy",
-      ],
-      required: true,
+     required: true,
     },
     status: {
       type: String,

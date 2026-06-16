@@ -1,11 +1,11 @@
 import { Types } from "mongoose";
 
-export type TProductReportReason =
-  | "Spam"
-  | "Inappropriate content"
-  | "Fake review"
-  | "Hate speech"
-  | "Other";
+// export type TProductReportReason =
+//   | "Spam"
+//   | "Inappropriate content"
+//   | "Fake review"
+//   | "Hate speech"
+//   | "Other";
 
 export type TProductReportStatus = "pending" | "resolved" | "dismissed";
 
@@ -14,7 +14,7 @@ export interface IProductReviewReport {
   product: Types.ObjectId;
   review: Types.ObjectId;
   reportedBy: Types.ObjectId;
-  reason: TProductReportReason;
+  reason: String;
   status: TProductReportStatus;
   createdAt?: Date;
   updatedAt?: Date;
