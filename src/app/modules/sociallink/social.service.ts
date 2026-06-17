@@ -15,6 +15,9 @@ import { Personalization } from '../Personalizationuser/Personalization.model';
 import { generateOtp } from '../../utils/otpGenerator';
 import moment from 'moment';
 import { sendEmail } from '../../utils/mailSender';
+import PendingRegistration from './pending-registration.model';
+
+import jsonwebtoken from 'jsonwebtoken';
 
 // const register = async (payload: {
 //   fullName: string;
@@ -288,160 +291,14 @@ const getProfile = async (user: JwtPayload) => {
   return { user: result, socialLinks, Personalizationdata };
 };
 
-// export const register = async (payload: any) => {
-//   const {
-//     fullName,
-//     email,
-//     about,
-//     password,
-//     confirmPassword,
-//     role,
-//     country,
-//     phoneNumber,
-//     howDidYouHear,
-//     subscribeToEmails,
-//     termsAccepted,
-//     longitude,
-//     latitude,
-//     djname,
-//     // 🔥 social fields
-//     shopName,
-//     shoptype,
-//     facebook,
-//     instagram,
-//     linkedin,
-//     twitter,
-//     youtube,
-//     tiktok,
-//     website,
-//     shoplink,
-//     file, // 👈 image
-//   } = payload;
-
-//   // // ✅ Validations
-//   // if (!termsAccepted) {
-//   //   throw new AppError(httpStatus.BAD_REQUEST, 'Accept terms first');
-//   // }
-
-//   if (password !== confirmPassword) {
-//     throw new AppError(httpStatus.BAD_REQUEST, 'Password not match');
-//   }
-
-//   if (password.length < 6) {
-//     throw new AppError(httpStatus.BAD_REQUEST, 'Password too short');
-//   }
-
-//   // ✅ Duplicate check
-//   const existingUser = await User.findOne({ email });
-//   if (existingUser) {
-//     throw new AppError(httpStatus.CONFLICT, 'Email already exists');
-//   }
-
-//   if (phoneNumber) {
-//     const existingPhone = await User.findOne({ phoneNumber });
-//     if (existingPhone) {
-//       throw new AppError(httpStatus.CONFLICT, 'Phone already exists');
-//     }
-//   }
-
-//   // ✅ Upload Image
-//   let uploadedImage;
-//   if (file) {
-//     uploadedImage = await uploadToS3(file, 'user');
-//   }
-
-//  // ✅ Geo location build
-//   let geoLocation;
-
-//   if (longitude && latitude) {
-//     geoLocation = {
-//       type: "Point",
-//       coordinates: [
-//         parseFloat(longitude),
-//         parseFloat(latitude),
-//       ],
-//     };
-//   }
-
-//   // ✅ Create User
-//   const user = await User.create({
-//     fullName,
-//     email,
-//     password,
-//     djname: djname || '',
-//     role,
-//     about: about || '',
-//     image: uploadedImage
-//       ? {
-//           id: uploadedImage.id,
-//           url: uploadedImage.url,
-//         }
-//       : undefined,
-//     location: geoLocation,
-//     country: country || undefined,
-//     phoneNumber: phoneNumber || undefined,
-//     howDidYouHear: howDidYouHear || '',
-//     subscribeToEmails: subscribeToEmails ?? false,
-//     termsAccepted,
-//     accountType: 'emailvarifi',
-//     isVerified: false,
-//     isActive: true,
-//     needsPasswordChange: false,
-//   });
-
-//   // ✅ Create Social Links (if any data exists)
-//   const hasSocialData =
-//     shopName || shoptype || facebook || instagram ||
-//     linkedin || twitter || youtube || tiktok || website || shoplink;
-
-//   if (hasSocialData) {
-//     await SocialLink.create({
-//       user: user._id,
-//       shopName: shopName || '',
-//       shoptype: shoptype || '',
-//       facebook: facebook || '',
-//       instagram: instagram || '',
-//       linkedin: linkedin || '',
-//       twitter: twitter || '',
-//       youtube: youtube || '',
-//       tiktok: tiktok || '',
-//       website: website || '',
-//       shoplink: shoplink || '',
-//     });
-//   }
-
-//   // ── Generate Token ──────────────────────────────
-//   const jwtPayload = {
-//     userId: user?._id.toString(),
-//     role: user?.role,
-//   };
-
-//   const accessToken = createToken(
-//     jwtPayload,
-//     config.jwt.jwt_access_secret as string,
-//     config.jwt.jwt_access_expires_in as string,
-//   );
-
-//   return {
-//     user: {
-//       _id: user._id,
-//       fullName: user.fullName,
-//       email: user.email,
-//       role: user.role,
-//       image: user.image,
-//       isVerified: user.isVerified,
-//     },
-//     accessToken
-//   };
-// };
 
 export const register = async (payload: any) => {
   const {
     fullName,
-    email,
-    about,
+    email: rawEmail,
     password,
     confirmPassword,
+    about,
     role,
     country,
     phoneNumber,
@@ -464,6 +321,13 @@ export const register = async (payload: any) => {
     file,
   } = payload;
 
+  const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
+
+  // ── ১. বেসিক ভ্যালিডেশন ─────────────────────────
+  if (!email || !password || !fullName) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Missing required fields');
+  }
+
   if (password !== confirmPassword) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Password not match');
   }
@@ -472,58 +336,42 @@ export const register = async (payload: any) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'Password too short');
   }
 
-  // ✅ Existing user check
-  const existingUser = await User.findOne({ email });
-
-  if (existingUser) {
-    // ✅ Already verified — block করো
-    if (existingUser.isVerified) {
-      throw new AppError(httpStatus.CONFLICT, 'Email already exists');
-    }
-
-    // ✅ Not verified — নতুন OTP পাঠাও
-    const otp = generateOtp();
-    const expiresAt = moment().add(10, 'minute').toDate();
-
-    await User.findByIdAndUpdate(existingUser._id, {
-      verification: {
-        otp,
-        expiresAt,
-        status: false,
-      },
-    });
-
-    await sendEmail(
-      email,
-      'Verify your account',
-      `
-        <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
-          <h2>Welcome!</h2>
-          <p>Your email verification code is:</p>
-          <h1 style="letter-spacing: 8px; color: #F5A623;">${otp}</h1>
-          <p>This code will expire in <strong>10 minutes</strong>.</p>
-        </div>
-      `,
+  // ── ২. ডুপ্লিকেট ইমেল চেক ────────────────
+  const existingUser = await User.findOne({ email }).setOptions({
+    skipFilter: true,
+  });
+  if (existingUser && existingUser.isVerified) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'This email is already registered in our system.',
     );
-
-    return { email };
   }
 
-  // ✅ Phone check
-  if (phoneNumber) {
-    const existingPhone = await User.findOne({ phoneNumber });
-    if (existingPhone) {
-      throw new AppError(httpStatus.CONFLICT, 'Phone already exists');
-    }
-  }
+  // ── ③. ডুপ্লিকেট ফোন নাম্বার চেক ─────────────────────────
+  // if (phoneNumber) {
+  //   const existingPhone = await User.findOne({
+  //     phoneNumber,
+  //     isVerified: true,
+  //   }).setOptions({ skipFilter: true });
+  //   if (existingPhone && existingPhone.email !== email) {
+  //     throw new AppError(
+  //       httpStatus.BAD_REQUEST,
+  //       'This phone number is already in use by another verified account.',
+  //     );
+  //   }
+  // }
 
-  // ✅ Image upload
+
+  const otpNumber = Number(generateOtp());
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  // ── ৫. ইমেজ আপলোড লজিক ─────────────────────────
   let uploadedImage;
   if (file) {
     uploadedImage = await uploadToS3(file, 'user');
   }
 
-  // ✅ Geo location
+  // ── 6. জিও লোকেশন ফরম্যাটিং ─────────────────────────
   let geoLocation;
   if (longitude && latitude) {
     geoLocation = {
@@ -532,12 +380,14 @@ export const register = async (payload: any) => {
     };
   }
 
-  // ✅ OTP generate
-  const otp = generateOtp();
-  const expiresAt = moment().add(10, 'minute').toDate();
+  // ── ৭. পুরোনো আন-ভেরিফাইড ডাটা ক্লিন করা ─────────────────
+  if (existingUser) {
+    await User.deleteOne({ email }).setOptions({ skipFilter: true });
+    await SocialLink.deleteOne({ user: existingUser._id });
+  }
 
-  // ✅ User create
-  const user = await User.create({
+
+  const userObj = await User.create({
     fullName,
     email,
     password,
@@ -555,16 +405,16 @@ export const register = async (payload: any) => {
     termsAccepted,
     accountType: 'emailvarifi',
     isVerified: false,
-    isActive: true,
-    needsPasswordChange: false,
+    isActive: false,
+
     verification: {
-      otp,
-      expiresAt,
-      status: false,
+      otp: otpNumber,
+      expiresAt: expiresAt,
+      status: false, 
     },
   });
 
-  // ✅ Social Links
+  // ── ৯. সোশ্যাল ডাটা চ্যাকিং ও সেভ ─────────────────
   const hasSocialData =
     shopName ||
     shoptype ||
@@ -579,7 +429,7 @@ export const register = async (payload: any) => {
 
   if (hasSocialData) {
     await SocialLink.create({
-      user: user._id,
+      user: userObj._id,
       shopName: shopName || '',
       shoptype: shoptype || '',
       facebook: facebook || '',
@@ -593,55 +443,68 @@ export const register = async (payload: any) => {
     });
   }
 
-  // ✅ OTP email
+  // ── ১০. ওটিপি ইমেইল পাঠানো ─────────────────────────
   await sendEmail(
     email,
-    'Verify your account',
-    `
-      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
-        <h2>Welcome!</h2>
-        <p>Your email verification code is:</p>
-        <h1 style="letter-spacing: 8px; color: #F5A623;">${otp}</h1>
-        <p>This code will expire in <strong>10 minutes</strong>.</p>
-      </div>
-    `,
+    'Verify your Skatrium account',
+    getOtpEmailTemplate(fullName, otpNumber),
   );
 
   return { email };
 };
 
-export const verifyEmailregister = async (email: string, otp: string) => {
-  const user = await User.findOne({ email });
+export const verifyEmailregister = async (rawEmail: string, rawOtp: string) => {
+  const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
+  const otp = rawOtp ? String(rawOtp).trim() : '';
+
+  console.log('পোস্টম্যান থেকে আসা ইমেল (Trimmed):', email);
+
+
+  const user = await User.findOne({ email }).setOptions({ skipFilter: true });
+
   if (!user) {
-    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
+    throw new AppError(httpStatus.BAD_REQUEST, 'User not found');
   }
 
-  if (user.isVerified) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Email already verified');
-  }
 
-  // ✅ OTP check
-  if (String(user.verification?.otp) !== String(otp)) {
+  const dbOtp = user.verification?.otp
+    ? String(user.verification.otp).trim()
+    : '';
+  const dbExpiresAt = user.verification?.expiresAt;
+
+
+
+  // ওটিপি ম্যাচিং চেক
+  if (dbOtp !== otp) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Invalid OTP');
   }
 
-  // ✅ Expiry check
-  if (moment().isAfter(moment(user.verification?.expiresAt))) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'OTP has expired');
+  // ওটিপি মেয়াদ চেক
+  if (dbExpiresAt && dbExpiresAt < new Date()) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'OTP has expired. Please signup again.',
+    );
   }
 
-  // ✅ Verified — verification clear করো
-  await User.findByIdAndUpdate(user._id, {
-    isVerified: true,
-    verification: {
-      otp: null,
-      expiresAt: null,
-      status: true,
-    },
-  });
+  user.isVerified = true;
+  user.isActive = true;
 
-  // ✅ Social Links নিয়ে নাও
+  if (user.verification) {
+    user.verification.status = true; 
+  }
+
+  await user.save();
+
+ 
+  await sendEmail(
+    email,
+    "Welcome to Skatrium – You're all set! 🎉",
+    getWelcomeEmailTemplate(user.fullName, email),
+  );
+
   const socialLink = await SocialLink.findOne({ user: user._id });
+
 
   const jwtPayload = {
     userId: user._id.toString(),
@@ -668,6 +531,104 @@ export const verifyEmailregister = async (email: string, otp: string) => {
   };
 };
 
+// ─────────────────────────────────────────────
+// 📧 ইমেইল টেমপ্লেট দুটি (হুবহু অপরিবর্তিত রাখা হলো)
+// ─────────────────────────────────────────────
+
+function getOtpEmailTemplate(fullName: string, otp: string | number): string {
+  return `
+  <!DOCTYPE html>
+  <html>
+  <body style="margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7;padding:40px 0;">
+      <tr>
+        <td align="center">
+          <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            <tr>
+              <td style="background:linear-gradient(135deg,#4F46E5,#7C3AED);padding:36px 40px;text-align:center;">
+                <h1 style="margin:0;color:#ffffff;font-size:26px;letter-spacing:1px;">Skatrium</h1>
+                <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Platform</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:40px;">
+                <h2 style="margin:0 0 12px;color:#1a1a2e;font-size:20px;">Verify Your Email Address</h2>
+                <p style="margin:0 0 28px;color:#555;font-size:15px;line-height:1.6;">
+                  Hi <strong>${fullName}</strong>, thanks for signing up! Use the code below to verify your email address.
+                </p>
+                <div style="background:#f0efff;border:2px dashed #4F46E5;border-radius:10px;padding:24px;text-align:center;margin-bottom:28px;">
+                  <p style="margin:0 0 8px;color:#666;font-size:13px;text-transform:uppercase;letter-spacing:1px;">Your Verification Code</p>
+                  <h1 style="margin:0;font-size:42px;letter-spacing:14px;color:#4F46E5;font-weight:800;">${otp}</h1>
+                </div>
+                <p style="margin:0 0 8px;color:#888;font-size:13px;text-align:center;">⏳ This code will expire in <strong>10 minutes</strong>.</p>
+                <p style="margin:0;color:#888;font-size:13px;text-align:center;">Do not share this code with anyone.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#f9f9f9;padding:24px 40px;border-top:1px solid #eee;text-align:center;">
+                <p style="margin:0;color:#aaa;font-size:12px;line-height:1.6;">
+                  If you didn't create a Skatrium account, you can safely ignore this email.<br/>
+                  © ${new Date().getFullYear()} Skatrium. All rights reserved.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>
+  `;
+}
+
+function getWelcomeEmailTemplate(fullName: string, email: string): string {
+  return `
+  <!DOCTYPE html>
+  <html>
+  <body style="margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7;padding:40px 0;">
+      <tr>
+        <td align="center">
+          <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            <tr>
+              <td style="background:linear-gradient(135deg,#4F46E5,#7C3AED);padding:36px 40px;text-align:center;">
+                <h1 style="margin:0;color:#ffffff;font-size:26px;letter-spacing:1px;">Skatrium</h1>
+                <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Platform</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:40px;">
+                <h2 style="margin:0 0 12px;color:#1a1a2e;font-size:20px;">🎉 Registration Successful!</h2>
+                <p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.6;">
+                  Hi <strong>${fullName}</strong>, your Skatrium account has been successfully created and verified. You're now ready to get started!
+                </p>
+                <div style="background:#f0efff;border-left:4px solid #4F46E5;border-radius:6px;padding:16px 20px;margin-bottom:28px;">
+                  <p style="margin:0 0 6px;color:#333;font-size:14px;"><strong>📧 Email:</strong> ${email}</p>
+                  <p style="margin:0;color:#333;font-size:14px;"><strong>✅ Status:</strong> Verified</p>
+                </div>
+                <p style="margin:0 0 28px;color:#555;font-size:14px;line-height:1.6;">
+                  You can now log in to your account and explore everything Skatrium has to offer.
+                </p>
+                <div style="text-align:center;">
+               
+              </td>
+            </tr>
+            <tr>
+              <td style="background:#f9f9f9;padding:24px 40px;border-top:1px solid #eee;text-align:center;">
+                <p style="margin:0;color:#aaa;font-size:12px;line-height:1.6;">
+                  If you did not create this account, contact us at support@skatrium.com<br/>
+                  © ${new Date().getFullYear()} Skatrium. All rights reserved.
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>
+  `;
+}
 export const sosalServices = {
   register,
   updateProfile,

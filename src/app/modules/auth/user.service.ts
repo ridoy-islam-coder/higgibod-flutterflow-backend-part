@@ -85,11 +85,14 @@ const otpCache = new Map<string, { payload: TRegister; otp: number; expiresAt: D
 //   };
 // };
 
-const pendingRegistrations = new Map<string, {
-  payload: any;
-  otp: string;
-  otpExpires: Date;
-}>();
+const pendingRegistrations = new Map<
+  string,
+  {
+    payload: any;
+    otp: string;
+    otpExpires: Date;
+  }
+>();
 
 export const register = async (payload: any) => {
   const { fullName, email, password } = payload;
@@ -97,15 +100,19 @@ export const register = async (payload: any) => {
   if (!email || !password || !fullName) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Missing required fields');
   }
-
-  const existingUser = await User.findOne({ email }).setOptions({ skipFilter: true }); 
-  
-  // const existingUser = await User.collection.findOne({ email });
+ if (password.length < 6) {
+   throw new AppError(httpStatus.BAD_REQUEST, 'Password too short');
+ }
+  const existingUser = await User.findOne({ email }).setOptions({
+    skipFilter: true,
+  });
 
   if (existingUser) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'This email is already registered in our system.');
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'This email is already registered in our system.',
+    );
   }
-
 
   const otp = String(generateOtp());
   const expiresAt = moment().add(10, 'minute').toDate();
@@ -116,49 +123,102 @@ export const register = async (payload: any) => {
     otpExpires: expiresAt,
   });
 
+  // ✅ OTP Verification Email
   await sendEmail(
     email,
-    'Verify your FotoTidy account',
+    'Verify your Skatrium account',
     `
-      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: auto;">
-        <h2>Welcome to FotoTidy!</h2>
-        <p>Your email verification code is:</p>
-        <h1 style="letter-spacing: 8px; color: #4F46E5;">${otp}</h1>
-        <p>This code will expire in <strong>10 minutes</strong>.</p>
-      </div>
-    `,
+  <!DOCTYPE html>
+  <html>
+  <body style="margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7;padding:40px 0;">
+      <tr>
+        <td align="center">
+          <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+            
+            <!-- Header -->
+            <tr>
+              <td style="background:linear-gradient(135deg,#4F46E5,#7C3AED);padding:36px 40px;text-align:center;">
+                <h1 style="margin:0;color:#ffffff;font-size:26px;letter-spacing:1px;">Skatrium</h1>
+                <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:14px;"> Platform</p>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding:40px;">
+                <h2 style="margin:0 0 12px;color:#1a1a2e;font-size:20px;">Verify Your Email Address</h2>
+                <p style="margin:0 0 28px;color:#555;font-size:15px;line-height:1.6;">
+                  Hi <strong>${fullName}</strong>, thanks for signing up! Use the code below to verify your email address.
+                </p>
+
+                <!-- OTP Box -->
+                <div style="background:#f0efff;border:2px dashed #4F46E5;border-radius:10px;padding:24px;text-align:center;margin-bottom:28px;">
+                  <p style="margin:0 0 8px;color:#666;font-size:13px;text-transform:uppercase;letter-spacing:1px;">Your Verification Code</p>
+                  <h1 style="margin:0;font-size:42px;letter-spacing:14px;color:#4F46E5;font-weight:800;">${otp}</h1>
+                </div>
+
+                <p style="margin:0 0 8px;color:#888;font-size:13px;text-align:center;">
+                  ⏳ This code will expire in <strong>10 minutes</strong>.
+                </p>
+                <p style="margin:0;color:#888;font-size:13px;text-align:center;">
+                  Do not share this code with anyone.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background:#f9f9f9;padding:24px 40px;border-top:1px solid #eee;text-align:center;">
+                <p style="margin:0;color:#aaa;font-size:12px;line-height:1.6;">
+                  If you didn't create a Skatrium account, you can safely ignore this email.<br/>
+                  © ${new Date().getFullYear()} Skatrium. All rights reserved.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>
+  `,
   );
 
-  return { 
-    message: "Verification code sent to your email",
-    email 
+  return {
+    message: 'Verification code sent to your email',
+    email,
   };
-};
+};;
 
 export const verifyEmailregister = async (email: string, code: string) => {
- 
   const pending = pendingRegistrations.get(email);
 
   if (!pending) {
-    throw new AppError(httpStatus.BAD_REQUEST, "No pending registration found for this email or code expired");
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'No pending registration found for this email or code expired',
+    );
   }
 
-
   if (String(pending.otp) !== String(code)) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Invalid verification code");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Invalid verification code');
   }
 
   if (pending.otpExpires < new Date()) {
-    pendingRegistrations.delete(email); 
-    throw new AppError(httpStatus.BAD_REQUEST, "Verification code has expired");
+    pendingRegistrations.delete(email);
+    throw new AppError(httpStatus.BAD_REQUEST, 'Verification code has expired');
   }
 
   const doubleCheckUser = await User.findOne({ email });
   if (doubleCheckUser && doubleCheckUser.isVerified) {
     pendingRegistrations.delete(email);
-    throw new AppError(httpStatus.BAD_REQUEST, "User already exists with this email");
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'User already exists with this email',
+    );
   }
-
 
   const {
     fullName,
@@ -169,7 +229,7 @@ export const verifyEmailregister = async (email: string, code: string) => {
     subscribeToEmails,
     termsAccepted,
     accountType,
-    djname
+    djname,
   } = pending.payload;
 
   const user = await User.create({
@@ -183,12 +243,72 @@ export const verifyEmailregister = async (email: string, code: string) => {
     termsAccepted,
     accountType: accountType || 'emailvarifi',
     djname,
-    isVerified: true, 
+    isVerified: true,
   });
-
 
   pendingRegistrations.delete(email);
 
+  
+  await sendEmail(
+    email,
+    "Welcome to Skatrium – You're all set! 🎉",
+    `
+  <!DOCTYPE html>
+  <html>
+  <body style="margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7;padding:40px 0;">
+      <tr>
+        <td align="center">
+          <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+            <!-- Header -->
+            <tr>
+              <td style="background:linear-gradient(135deg,#4F46E5,#7C3AED);padding:36px 40px;text-align:center;">
+                <h1 style="margin:0;color:#ffffff;font-size:26px;letter-spacing:1px;">Skatrium </h1>
+                <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Platform</p>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding:40px;">
+                <h2 style="margin:0 0 12px;color:#1a1a2e;font-size:20px;">🎉 Registration Successful!</h2>
+                <p style="margin:0 0 24px;color:#555;font-size:15px;line-height:1.6;">
+                  Hi <strong>${fullName}</strong>, your Skatrium account has been successfully created and verified. You're now ready to get started!
+                </p>
+
+                <!-- Info Box -->
+                <div style="background:#f0efff;border-left:4px solid #4F46E5;border-radius:6px;padding:16px 20px;margin-bottom:28px;">
+                  <p style="margin:0 0 6px;color:#333;font-size:14px;"><strong>📧 Email:</strong> ${email}</p>
+                  <p style="margin:0;color:#333;font-size:14px;"><strong>✅ Status:</strong> Verified</p>
+                </div>
+
+                <p style="margin:0 0 24px;color:#555;font-size:14px;line-height:1.6;">
+                 You can now log in to your account and explore all the powerful  has to offer.
+                </p>
+
+             
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background:#f9f9f9;padding:24px 40px;border-top:1px solid #eee;text-align:center;">
+                <p style="margin:0;color:#aaa;font-size:12px;line-height:1.6;">
+                 
+                  © ${new Date().getFullYear()} Skatrium. All rights reserved.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>
+  `,
+  );
 
   const jwtPayload = {
     userId: user._id.toString(),
@@ -198,7 +318,7 @@ export const verifyEmailregister = async (email: string, code: string) => {
   const accessToken = createToken(
     jwtPayload,
     config.jwt.jwt_access_secret as string,
-    config.jwt.jwt_access_expires_in as string
+    config.jwt.jwt_access_expires_in as string,
   );
 
   return {
@@ -210,131 +330,7 @@ export const verifyEmailregister = async (email: string, code: string) => {
     },
     accessToken,
   };
-};
-
-// // ===== Verify Email =====
-// export const verifyEmailregister = async (email: string, otp: string) => {
-//   const user = await User.findOne({ email })
-//   if (!user) {
-//     throw new AppError(httpStatus.NOT_FOUND, 'User not found')
-//   }
-
-//   if (user.isEmailVerified) {
-//     throw new AppError(httpStatus.BAD_REQUEST, 'Email already verified')
-//   }
-
-//   // ✅ OTP check
-//   if (String(user.verification?.otp) !== String(otp)) {
-//     throw new AppError(httpStatus.BAD_REQUEST, 'Invalid OTP')
-//   }
-
-//   // ✅ Expiry check
-//   if (moment().isAfter(moment(user.verification?.expiresAt))) {
-//     throw new AppError(httpStatus.BAD_REQUEST, 'OTP has expired')
-//   }
-
-//   // ✅ Verified — verification clear করো
-//   await User.findByIdAndUpdate(user._id, {
-//     isEmailVerified: true,
-//     verification: {
-//       otp: null,
-//       expiresAt: null,
-//       status: true,
-//     },
-//   })
-
-//   const jwtPayload = {
-//     userId: user._id.toString(),
-//     role: user.role,
-//   }
-
-//   const accessToken = createToken(
-//     jwtPayload,
-//     config.jwt.jwt_access_secret as string,
-//     config.jwt.jwt_access_expires_in as string,
-//   )
-
-//   return {
-//     user: {
-//       id: user._id,
-//       email: user.email,
-//       role: user.role,
-//       isEmailVerified: true,
-//     },
-//     accessToken,
-//   }
-// }
-
-
-
-
-// // ✅ OTP verify হলে তখন DB তে save হবে
-// export const verifyEmail = async (email: string, code: string) => {
-//   const pending = pendingRegistrations.get(email);
-
-//   if (!pending) {
-//     throw new AppError(httpStatus.BAD_REQUEST, "No pending registration found for this email");
-//   }
-
-//   if (pending.otp !== code) {
-//     throw new AppError(httpStatus.BAD_REQUEST, "Invalid verification code");
-//   }
-
-//   if (pending.otpExpires < new Date()) {
-//     pendingRegistrations.delete(email);
-//     throw new AppError(httpStatus.BAD_REQUEST, "Verification code has expired");
-//   }
-
-//   // ✅ OTP সঠিক — এখন সব data DB তে save করো
-//   const {
-//     fullName,
-//     password,
-//     country,
-//     role,
-//     howDidYouHear,
-//     subscribeToEmails,
-//     termsAccepted,
-//   } = pending.payload;
-
-//   const user = await User.create({
-//     fullName,
-//     email,
-//     password,
-//     country,
-//     role,
-//     howDidYouHear,
-//     subscribeToEmails,
-//     termsAccepted,
-//     isEmailVerified: true, // ✅ সরাসরি verified হয়ে save হবে
-//   });
-
-//   // ✅ Memory থেকে সরিয়ে দাও
-//   pendingRegistrations.delete(email);
-
-//   // ✅ Token generate করো
-//   const jwtPayload = {
-//     userId: user._id.toString(),
-//     role: user.role,
-//   };
-
-//   const accessToken = createToken(
-//     jwtPayload,
-//     config.jwt.jwt_access_secret as string,
-//     config.jwt.jwt_access_expires_in as string
-//   );
-
-//   return {
-//     user: {
-//       id: user._id,
-//       email: user.email,
-//       role: user.role,
-//       isEmailVerified: user.isEmailVerified,
-//     },
-//     accessToken,
-//   };
-// };
-
-
+};;
 
 
 

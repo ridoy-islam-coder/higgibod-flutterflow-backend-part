@@ -68,7 +68,7 @@ const getProfile = catchAsync(async (req: Request, res: Response) => {
 
 
 export const register = catchAsync(async (req: Request, res: Response) => {
-
+  console.log('req.body', req.body); // ← এটা add করো
 
   //  Service call (ALL DATA + IMAGE)
   const result = await sosalServices.register({
@@ -129,9 +129,9 @@ export const register = catchAsync(async (req: Request, res: Response) => {
 
 
 const verifyEmailController = catchAsync(async (req: Request, res: Response) => {
-  const { email, code } = req.body
+  const { email, code: otp } = req.body;
 
-  const result = await verifyEmailregister(email, code)
+  const result = await verifyEmailregister(email, otp);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -140,7 +140,6 @@ const verifyEmailController = catchAsync(async (req: Request, res: Response) => 
     data: result,
   })
 })
-
 
  
 export const socialControllers = {

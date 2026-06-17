@@ -66,8 +66,6 @@ const UserSchema = new Schema<TUser, UserModel>(
     phoneNumber: {
       type: String,
       sparse: true, // ⚡ social login এর জন্য
-
-    
     },
     needsPasswordChange: {
       type: Boolean,
