@@ -15,7 +15,7 @@ import { Personalization } from '../Personalizationuser/Personalization.model';
 import { generateOtp } from '../../utils/otpGenerator';
 import moment from 'moment';
 import { sendEmail } from '../../utils/mailSender';
-import PendingRegistration from './pending-registration.model';
+
 
 import jsonwebtoken from 'jsonwebtoken';
 
