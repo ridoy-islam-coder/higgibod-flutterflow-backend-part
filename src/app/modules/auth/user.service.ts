@@ -353,7 +353,113 @@ export const verifyEmailregister = async (email: string, code: string) => {
 
 
 
+export const resendOtpregister = async (email: string) => {
+  const pending = pendingRegistrations.get(email);
 
+  if (!pending) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'No pending registration found for this email. Please register again.',
+    );
+  }
+
+  const doubleCheckUser = await User.findOne({ email });
+  if (doubleCheckUser && doubleCheckUser.isVerified) {
+    pendingRegistrations.delete(email);
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'User already exists with this email',
+    );
+  }
+
+  // Optional: prevent spam — only allow resend once previous OTP is past halfway expired
+  // (10 min total, so block resend within first 1 minute of generating old OTP)
+  const otpAgeMs = 10 * 60 * 1000 - (pending.otpExpires.getTime() - Date.now());
+  if (otpAgeMs < 60 * 1000) {
+    throw new AppError(
+      httpStatus.TOO_MANY_REQUESTS,
+      'Please wait a moment before requesting a new code',
+    );
+  }
+
+  const otp = String(generateOtp());
+  const expiresAt = moment().add(10, 'minute').toDate();
+
+  pendingRegistrations.set(email, {
+    payload: pending.payload,
+    otp,
+    otpExpires: expiresAt,
+  });
+
+  const fullName = pending.payload.fullName;
+
+  await sendEmail(
+    email,
+    'Your new Skatrium verification code',
+    `
+  <!DOCTYPE html>
+  <html>
+  <body style="margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,sans-serif;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f7;padding:40px 0;">
+      <tr>
+        <td align="center">
+          <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+
+            <!-- Header -->
+            <tr>
+              <td style="background:linear-gradient(135deg,#4F46E5,#7C3AED);padding:36px 40px;text-align:center;">
+                <h1 style="margin:0;color:#ffffff;font-size:26px;letter-spacing:1px;">Skatrium</h1>
+                <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:14px;">Platform</p>
+              </td>
+            </tr>
+
+            <!-- Body -->
+            <tr>
+              <td style="padding:40px;">
+                <h2 style="margin:0 0 12px;color:#1a1a2e;font-size:20px;">Here's Your New Code</h2>
+                <p style="margin:0 0 28px;color:#555;font-size:15px;line-height:1.6;">
+                  Hi <strong>${fullName}</strong>, you requested a new verification code. Use the code below to verify your email address.
+                </p>
+
+                <!-- OTP Box -->
+                <div style="background:#f0efff;border:2px dashed #4F46E5;border-radius:10px;padding:24px;text-align:center;margin-bottom:28px;">
+                  <p style="margin:0 0 8px;color:#666;font-size:13px;text-transform:uppercase;letter-spacing:1px;">Your Verification Code</p>
+                  <h1 style="margin:0;font-size:42px;letter-spacing:14px;color:#4F46E5;font-weight:800;">${otp}</h1>
+                </div>
+
+                <p style="margin:0 0 8px;color:#888;font-size:13px;text-align:center;">
+                  ⏳ This code will expire in <strong>10 minutes</strong>.
+                </p>
+                <p style="margin:0;color:#888;font-size:13px;text-align:center;">
+                  Do not share this code with anyone.
+                </p>
+              </td>
+            </tr>
+
+            <!-- Footer -->
+            <tr>
+              <td style="background:#f9f9f9;padding:24px 40px;border-top:1px solid #eee;text-align:center;">
+                <p style="margin:0;color:#aaa;font-size:12px;line-height:1.6;">
+                  If you didn't request this, you can safely ignore this email.<br/>
+                  © ${new Date().getFullYear()} Skatrium. All rights reserved.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+  </html>
+  `,
+  );
+
+  return {
+    message: 'A new verification code has been sent to your email',
+    email,
+  };
+};
 
 
 

@@ -3,7 +3,7 @@ import catchAsync from "../../utils/catchAsync";
 
 import  httpStatus  from 'http-status';
 import sendResponse from "../../utils/sendResponse";
-import { sosalServices, verifyEmailregister } from "./social.service";
+import { resendOtpService, sosalServices, verifyEmailregister } from "./social.service";
 import AppError from "../../error/AppError";
 
 // Register + Merchant Profile একসাথে
@@ -101,31 +101,6 @@ export const register = catchAsync(async (req: Request, res: Response) => {
 
 
 
-// export const register = catchAsync(async (req: Request, res: Response) => {
-//   if (!req.body.data) {
-//     throw new AppError(httpStatus.BAD_REQUEST, "data field is required");
-//   }
-
-//   let body;
-//   try {
-//     body = JSON.parse(req.body.data);
-//   } catch (error) {
-//     throw new AppError(httpStatus.BAD_REQUEST, "Invalid JSON in data field");
-//   }
-
-//   const result = await sosalServices.register({
-//     ...body,
-//     file: req.file,
-//   });
-
-//   sendResponse(res, {
-//     statusCode: httpStatus.CREATED,
-//     success: true,
-//     message: "Registration completed successfully.",
-//     data: result,
-//   });
-// });
-
 
 
 const verifyEmailController = catchAsync(async (req: Request, res: Response) => {
@@ -141,12 +116,24 @@ const verifyEmailController = catchAsync(async (req: Request, res: Response) => 
   })
 })
 
+
+const resendOtpController = catchAsync(async (req: Request, res: Response) => {
+  const { email } = req.body;
+  const result = await resendOtpService(email);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'OTP resent successfully',
+    data: result,
+  });
+});
  
 export const socialControllers = {
   register,
   updateProfile,
   getProfile,
   // login,
-  verifyEmailController
+  verifyEmailController,
+  resendOtpController,  
 };
  

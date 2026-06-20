@@ -9,7 +9,7 @@ import jwt, { JwtPayload, Secret  } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import config from '../../config';
 import sendResponse from '../../utils/sendResponse';
-import { authServices,register,userResetPasswordService, verifyEmailregister, } from './user.service';
+import { authServices,register,resendOtpregister,userResetPasswordService, verifyEmailregister, } from './user.service';
 import { UserRole } from '../user/user.interface';
 // import { AuthServices } from './user.service';
 import * as appleSignin from 'apple-signin-auth';
@@ -766,6 +766,23 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+
+
+const resendOtpController = catchAsync(async (req: Request, res: Response) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Email is required');
+  }
+
+  const result = await resendOtpregister(email);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'OTP resent successfully',
+    data: result,
+  });
+});
 export const authControllers = {
   userRegistration,
   login,
@@ -782,4 +799,5 @@ export const authControllers = {
   ornagizerlogin,
   appleLogin,
   verifyEmailController,
+  resendOtpController,  
 };

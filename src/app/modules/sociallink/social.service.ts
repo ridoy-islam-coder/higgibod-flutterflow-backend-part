@@ -629,6 +629,69 @@ function getWelcomeEmailTemplate(fullName: string, email: string): string {
   </html>
   `;
 }
+
+
+export const resendOtpService = async (rawEmail: string) => {
+  const email = rawEmail ? rawEmail.trim().toLowerCase() : '';
+
+  if (!email) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Email is required');
+  }
+
+  // ── ১. ইউজার খোঁজা ─────────────────────────
+  const user = await User.findOne({ email }).setOptions({ skipFilter: true });
+
+  if (!user) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'No registration found for this email. Please register again.',
+    );
+  }
+
+  if (user.isVerified) {
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'This email is already verified. Please log in.',
+    );
+  }
+
+  // ── ২. স্প্যাম প্রতিরোধ (optional) ─────────────────────────
+  // পুরোনো OTP এখনো ৪ মিনিটের কম পুরোনো হলে রিসেন্ড ব্লক করবে (৫ মিনিট মেয়াদের মধ্যে)
+  const oldExpiresAt = user.verification?.expiresAt;
+  if (oldExpiresAt) {
+    const remainingMs = oldExpiresAt.getTime() - Date.now();
+    const totalMs = 5 * 60 * 1000;
+    if (remainingMs > totalMs - 60 * 1000) {
+      throw new AppError(
+        httpStatus.TOO_MANY_REQUESTS,
+        'Please wait a moment before requesting a new code',
+      );
+    }
+  }
+
+  // ── ৩. নতুন OTP জেনারেট ও সেভ ─────────────────────────
+  const otpNumber = Number(generateOtp());
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  user.verification = {
+    otp: otpNumber,
+    expiresAt: expiresAt,
+    status: false,
+  };
+
+  await user.save();
+
+  // ── ৪. ইমেইল পাঠানো ─────────────────────────
+  await sendEmail(
+    email,
+    'Your new Skatrium verification code',
+    getOtpEmailTemplate(user.fullName, otpNumber),
+  );
+
+  return { email };
+};
+
+
 export const sosalServices = {
   register,
   updateProfile,
