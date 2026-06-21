@@ -155,6 +155,7 @@ const eventSchema = new Schema<IEvent>(
 
 eventSchema.index({ location: '2dsphere' });
 
+
 // ── filter deleted ────────────────────────────────────────
 eventSchema.pre('find', function (next) {
   this.find({ isDeleted: { $ne: true } });

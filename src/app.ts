@@ -75,6 +75,7 @@ import globalErrorHandler from './app/middleware/globalErrorhandler';
 import notFound from './app/middleware/notfound';
 import router from './app/routes';
 import config from './app/config';
+import { Event } from './app/modules/event/event.model';
 
 const app: Application = express();
 
@@ -93,10 +94,10 @@ app.use(
 );
 
 
-app.use(
-  '/api/v1/order/webhook', 
-  express.raw({ type: 'application/json' })
-);
+// app.use(
+//   '/api/v1/order/webhook', 
+//   express.raw({ type: 'application/json' })
+// );
 
 
 app.use(express.json()); 
@@ -111,6 +112,7 @@ app.use((req, res, next) => {
 })
 
 app.get('/', (req: Request, res: Response) => {
+
   res.send('Server is running perfectly!');
 });
 

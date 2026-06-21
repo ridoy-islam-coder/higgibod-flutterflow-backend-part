@@ -23,10 +23,10 @@ export const createEventService = async (
   const {
     title,
     category,
-    date, // এটি আপনার ইভেন্টের startDate হিসেবে কাজ করছে
+    date,
     endDate,
     time,
-    daySchedules, // 🔥 নতুন: ফ্রন্টএন্ড থেকে পাঠানো প্রতিদিনের আলাদা টাইমিংয়ের অ্যারে
+    daySchedules, 
     description,
     price,
     currency,
@@ -40,10 +40,12 @@ export const createEventService = async (
     skiteeventType,
   } = body;
 
-  // ওটিপি বা ইভেন্ট তৈরির বেসিক ভ্যালিডেশন
+
   if (!title || !date || !endDate) {
     throw new AppError(400, 'Title, start date, and end date are required');
   }
+    
+
 
   // ✅ Geo location build
   let geoLocation;
@@ -57,12 +59,11 @@ export const createEventService = async (
   // ✅ ডাটাবেজে ইভেন্ট তৈরি
   const event = await Event.create({
     title,
-    category: category || undefined, // যদি ক্যাটাগরি বাদ দিতে চান তবে undefined রাখতে পারেন
-    date, // মডেলের 'date' ফিল্ড (যা মূলত Start Date)
+    category: category || undefined, 
+    date, 
     endDate, // মডেলের 'endDate' ফিল্ড
     address,
-    // 🔥 এখানে আপনার নতুন daySchedules ফিল্ডটি যুক্ত করা হলো
-    // ফ্রন্টএন্ড থেকে ডাটা আসলে সেটা বসবে, না আসলে ডিফল্ট খালি অ্যারে [] হবে
+ 
     daySchedules: daySchedules || [],
 
     time: time || '',
