@@ -1060,11 +1060,11 @@ const getMyProducts = async (
   const total = await Product.countDocuments({ host: userId, isDeleted: false });
  
   const products = await Product.find({ host: userId, isDeleted: false })
-    .populate("category", "name")
+    .populate('category', 'name')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
-    .select("name price images category discountPrice colors sizes discount stock isDeleted createdAt");
+    .select('name price images category discountPrice colors currency sizes discount stock isDeleted createdAt',);
  
   return {
     products,
