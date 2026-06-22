@@ -110,17 +110,16 @@ const cancelOrder = async (orderId: string, userId: string) => {
 
 
 
-//new code  
-
 // export const createOrder = async (userId: string, body: any) => {
 //   const { shippingAddress, cartId } = body;
 
+//   // ১. ইউজারের কার্ট খুঁজে বের করা এবং প্রোডাক্টের ডিটেইলস পপুলেট করা
 //   const cart = await Cart.findOne({
 //     _id: cartId,
 //     user: userId,
 //   }).populate({
 //     path: "items.product",
-//     select: "name price discountPrice shippingCost stock images",
+//     select: "name price discountPrice shippingCost stock images host", // host ও সিলেক্ট করতে হবে
 //   });
 
 //   if (!cart) throw new AppError(404, "Cart not found");
@@ -130,6 +129,8 @@ const cancelOrder = async (orderId: string, userId: string) => {
 //   let totalShipping = 0;
 //   let subtotal = 0;
 //   const orderItemsSnapshot: any[] = [];
+//   const vendorEarnings: Array<{ productId: string; earningAmount: number }> = [];
+
 
 //   for (const item of cart.items as any[]) {
 //     const product = item.product;
@@ -139,13 +140,15 @@ const cancelOrder = async (orderId: string, userId: string) => {
 //     if (product.stock < item.quantity)
 //       throw new AppError(400, `${product.name} is out of stock`);
 
-//     // ✅ discountPrice > 0 হলে discountPrice, নাহলে original price
+//     // discountPrice > 0 হলে discountPrice, নাহলে original price
 //     const unitPrice =
 //       product.discountPrice > 0 ? product.discountPrice : product.price;
 
-//     subtotal += unitPrice * item.quantity;
+//     const itemTotal = unitPrice * item.quantity;
+//     subtotal += itemTotal;
 //     totalShipping += product.shippingCost || 0;
 
+//     // অর্ডারের স্ন্যাপশট তৈরি
 //     orderItemsSnapshot.push({
 //       product: product._id,
 //       quantity: item.quantity,
@@ -154,6 +157,13 @@ const cancelOrder = async (orderId: string, userId: string) => {
 //       price: unitPrice,
 //     });
 
+
+//     vendorEarnings.push({
+//       productId: product._id.toString(),
+//       earningAmount: itemTotal, // (দাম × পরিমাণ)
+//     });
+
+//     // Stripe Checkout এর জন্য লাইন আইটেম তৈরি
 //     lineItems.push({
 //       price_data: {
 //         currency: "usd",
@@ -161,7 +171,7 @@ const cancelOrder = async (orderId: string, userId: string) => {
 //           name: product.name,
 //           images: product.images?.[0]?.url ? [product.images[0].url] : [],
 //         },
-//         unit_amount: Math.round(unitPrice * 100),
+//         unit_amount: Math.round(unitPrice * 100), // Stripe সেন্টস (Cents) এ হিসাব করে
 //       },
 //       quantity: item.quantity,
 //     });
@@ -169,26 +179,25 @@ const cancelOrder = async (orderId: string, userId: string) => {
 
 //   const total = subtotal + totalShipping;
 
-//  // ✅ helper function
-// const generateOrderId = async (): Promise<string> => {
-//   let unique = false;
-//   let oderid = "";
+//   // ৩. ইউনিক অর্ডার আইডি জেনারেট করার হেল্পার ফাংশন
+//   const generateOrderId = async (): Promise<string> => {
+//     let unique = false;
+//     let oderid = "";
 
-//   while (!unique) {
-//     const random = Math.floor(10000 + Math.random() * 90000);
-//     oderid = `#${random}`;
-//     const existing = await Order.findOne({ oderid });
-//     if (!existing) {
-//       unique = true;
+//     while (!unique) {
+//       const random = Math.floor(10000 + Math.random() * 90000);
+//       oderid = `#${random}`;
+//       const existing = await Order.findOne({ oderid });
+//       if (!existing) {
+//         unique = true;
+//       }
 //     }
-//   }
-//   return oderid;
-// };
+//     return oderid;
+//   };
 
-//  // ✅ আগে oderid generate করুন
 //   const oderid = await generateOrderId();
 
-
+//   // ৪. ডাটাবেজে পেন্ডিং অর্ডার তৈরি করা (পেমেন্ট স্ট্যাটাস শুরুতে 'pending' দেওয়াই নিরাপদ)
 //   const pendingOrder = await Order.create({
 //     user: userId,
 //     items: orderItemsSnapshot,
@@ -197,10 +206,11 @@ const cancelOrder = async (orderId: string, userId: string) => {
 //     oderid,
 //     shippingCost: totalShipping,
 //     total,
-//     paymentStatus: "paid",
+//     paymentStatus: "pending", // পেমেন্ট কনফার্ম হওয়ার আগে pending রাখা ভালো, Webhook এটি paid করবে
 //     orderStatus: "processing",
 //   });
 
+//   // ৫. Stripe Checkout Session তৈরি করা
 //   const session = await stripe.checkout.sessions.create({
 //     payment_method_types: ["card"],
 //     line_items: lineItems,
@@ -211,6 +221,8 @@ const cancelOrder = async (orderId: string, userId: string) => {
 //       orderId: pendingOrder._id.toString(),
 //       userId: userId.toString(),
 //       cartId: cartId.toString(),
+   
+//       vendorEarnings: JSON.stringify(vendorEarnings), 
 //     },
 //     shipping_options:
 //       totalShipping > 0
@@ -229,6 +241,7 @@ const cancelOrder = async (orderId: string, userId: string) => {
 //         : [],
 //   });
 
+
 //   return {
 //     checkoutUrl: session.url,
 //     orderId: pendingOrder._id,
@@ -236,32 +249,34 @@ const cancelOrder = async (orderId: string, userId: string) => {
 //   };
 // };
 
-
-
-
-
 export const createOrder = async (userId: string, body: any) => {
   const { shippingAddress, cartId } = body;
 
-  // ১. ইউজারের কার্ট খুঁজে বের করা এবং প্রোডাক্টের ডিটেইলস পপুলেট করা
+  // ১. ইউজারের কার্ট খুঁজে বের করা এবং প্রোডাক্টের ডিটেইলস পপুলেট করা (currency ফিল্ডটি যুক্ত করা হলো)
   const cart = await Cart.findOne({
     _id: cartId,
     user: userId,
   }).populate({
-    path: "items.product",
-    select: "name price discountPrice shippingCost stock images host", // host ও সিলেক্ট করতে হবে
+    path: 'items.product',
+    select: 'name price discountPrice shippingCost stock images host currency', // 👈 currency ও সিলেক্ট করতে হবে
   });
 
-  if (!cart) throw new AppError(404, "Cart not found");
-  if (cart.items.length === 0) throw new AppError(400, "Cart is empty");
+  if (!cart) throw new AppError(404, 'Cart not found');
+  if (cart.items.length === 0) throw new AppError(400, 'Cart is empty');
+
+  // ডাইনামিক কারেন্সি সেটআপ (প্রথম প্রোডাক্টের কারেন্সি নেওয়া হচ্ছে, না থাকলে 'usd')
+  const firstProduct = cart.items[0]?.product as any;
+  const orderCurrency = firstProduct?.currency
+    ? firstProduct.currency.toLowerCase()
+    : 'usd';
 
   const lineItems: any[] = [];
   let totalShipping = 0;
   let subtotal = 0;
   const orderItemsSnapshot: any[] = [];
-  const vendorEarnings: Array<{ productId: string; earningAmount: number }> = [];
+  const vendorEarnings: Array<{ productId: string; earningAmount: number }> =
+    [];
 
-  // ২. কার্টের আইটেমগুলো লুপ করে প্রাইস, শিপিং এবং হোস্টের আর্নিংস ক্যালকুলেট করা
   for (const item of cart.items as any[]) {
     const product = item.product;
 
@@ -287,7 +302,6 @@ export const createOrder = async (userId: string, body: any) => {
       price: unitPrice,
     });
 
-    // Webhook এর জন্য প্রতি প্রোডাক্টের হোস্টের আয় ট্র্যাক করা
     vendorEarnings.push({
       productId: product._id.toString(),
       earningAmount: itemTotal, // (দাম × পরিমাণ)
@@ -296,7 +310,7 @@ export const createOrder = async (userId: string, body: any) => {
     // Stripe Checkout এর জন্য লাইন আইটেম তৈরি
     lineItems.push({
       price_data: {
-        currency: "usd",
+        currency: orderCurrency, // 👈 এখানে ডাইনামিক কারেন্সি বসানো হয়েছে (যেমন: 'eur', 'usd')
         product_data: {
           name: product.name,
           images: product.images?.[0]?.url ? [product.images[0].url] : [],
@@ -312,7 +326,7 @@ export const createOrder = async (userId: string, body: any) => {
   // ৩. ইউনিক অর্ডার আইডি জেনারেট করার হেল্পার ফাংশন
   const generateOrderId = async (): Promise<string> => {
     let unique = false;
-    let oderid = "";
+    let oderid = '';
 
     while (!unique) {
       const random = Math.floor(10000 + Math.random() * 90000);
@@ -327,7 +341,7 @@ export const createOrder = async (userId: string, body: any) => {
 
   const oderid = await generateOrderId();
 
-  // ৪. ডাটাবেজে পেন্ডিং অর্ডার তৈরি করা (পেমেন্ট স্ট্যাটাস শুরুতে 'pending' দেওয়াই নিরাপদ)
+  // ৪. ডাটাবেজে পেন্ডিং অর্ডার তৈরি করা
   const pendingOrder = await Order.create({
     user: userId,
     items: orderItemsSnapshot,
@@ -336,50 +350,47 @@ export const createOrder = async (userId: string, body: any) => {
     oderid,
     shippingCost: totalShipping,
     total,
-    paymentStatus: "pending", // পেমেন্ট কনফার্ম হওয়ার আগে pending রাখা ভালো, Webhook এটি paid করবে
-    orderStatus: "processing",
+    currency: firstProduct?.currency || 'USD', // 👈 অর্ডারেও কারেন্সি সেভ করে রাখা ভালো
+    paymentStatus: 'pending',
+    orderStatus: 'processing',
   });
 
   // ৫. Stripe Checkout Session তৈরি করা
   const session = await stripe.checkout.sessions.create({
-    payment_method_types: ["card"],
+    payment_method_types: ['card'],
     line_items: lineItems,
-    mode: "payment",
+    mode: 'payment',
     success_url: `${config.backend_url}/order/success?orderId=${pendingOrder._id}&session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${config.backend_url}/order/cancel`,
     metadata: {
       orderId: pendingOrder._id.toString(),
       userId: userId.toString(),
       cartId: cartId.toString(),
-      // এই স্ট্রিংটিই আমাদের Webhook ফাইল রীড করে BalanceModel এ টাকা ঢুকাবে
-      vendorEarnings: JSON.stringify(vendorEarnings), 
+      vendorEarnings: JSON.stringify(vendorEarnings),
     },
     shipping_options:
       totalShipping > 0
         ? [
             {
               shipping_rate_data: {
-                type: "fixed_amount",
+                type: 'fixed_amount',
                 fixed_amount: {
                   amount: Math.round(totalShipping * 100),
-                  currency: "usd",
+                  currency: orderCurrency, // 👈 শিপিং খরচের কারেন্সিও ডাইনামিক করা হলো
                 },
-                display_name: "Standard Shipping",
+                display_name: 'Standard Shipping',
               },
             },
           ]
         : [],
   });
 
-  // ৬. কন্ট্রোলারের জন্য ডাটা রিটার্ন করা
   return {
     checkoutUrl: session.url,
     orderId: pendingOrder._id,
     sessionId: session.id,
   };
 };
-
-
 
 
 

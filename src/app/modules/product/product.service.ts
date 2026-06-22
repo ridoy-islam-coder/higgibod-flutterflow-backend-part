@@ -83,6 +83,7 @@ export const createProductService = async (
     description,
     price,
     discount,
+    currency,
     stock,
     shippingCost,
     colors,
@@ -104,6 +105,7 @@ export const createProductService = async (
   const product = await Product.create({
     name,
     category,
+    currency: currency || 'USD', // ✅ default currency
     description: description || "",
     price: numericPrice,
     discount: numericDiscount,
@@ -139,6 +141,7 @@ export const updateProductService = async (
     name,
     category,
     description,
+    currency,
     price,
     discount,
     stock,
@@ -158,6 +161,7 @@ export const updateProductService = async (
     ...(colors && { colors: JSON.parse(colors) }),
     ...(sizes && { sizes: JSON.parse(sizes) }),
     ...(images && images.length > 0 && { images }),
+    ...(currency && { currency }), // ✅ currency update
   };
 
   const product = await Product.findByIdAndUpdate(id, updateData, { new: true });

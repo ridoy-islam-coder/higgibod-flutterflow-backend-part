@@ -42,6 +42,7 @@ export interface IProduct extends Document {
   price: number;
   discount?: number;
   tax?: number;
+  currency: string;
   shippingCost?: number;
   colors?: string[];
   sizes?: string[];

@@ -351,12 +351,13 @@ const buyTicket = async (
   if (!event) throw new Error("Event not found");
   if (event.isPast) throw new Error("This event has already passed");
 
- 
 
 
 
   const pricePerTicket = event.price || 0;
   const totalAmount = pricePerTicket * quantity;
+
+ const currencyCode = event.currency ? event.currency.toLowerCase() : 'usd';
 
   // ✅ Free event
   if (pricePerTicket === 0) {
@@ -417,7 +418,7 @@ const buyTicket = async (
       {
         quantity,
         price_data: {
-          currency: "usd",
+          currency: currencyCode,
           unit_amount: Math.round(pricePerTicket * 100),
           product_data: {
             name: `${event.title} — ${ticketType} Ticket`,
@@ -453,6 +454,7 @@ await Event.findByIdAndUpdate(eventId, {
     ticketNumber: ticket.ticketNumber,
     quantity,
     pricePerTicket,
+    currency: event.currency,
     totalAmount,
     isFree: false,
     checkoutUrl: session.url,

@@ -45,6 +45,10 @@ export const createEventService = async (
     throw new AppError(400, 'Title, start date, and end date are required');
   }
     
+  const existingEvent = await Event.findOne({ title });
+  if (existingEvent) {
+    throw new AppError(400, 'An event with this title already exists');
+  }
 
 
   // ✅ Geo location build
