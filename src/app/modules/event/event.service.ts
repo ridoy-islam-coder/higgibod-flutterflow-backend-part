@@ -458,7 +458,7 @@ const searchEvents = async (query: {
 
   const events = await Event.find({ ...filter })
     .select(
-      'title description date time location attendees gallery price coverImage',
+      'title description date time country location attendees gallery price coverImage',
     )
     .populate('host', 'image email fullName')
     .populate('attendees', 'image email fullName')
@@ -632,7 +632,8 @@ const getMyTicketnew = async (
   })
     .populate({
       path: 'event',
-      select: 'title date time location coverImage category price host isPast',
+      select:
+        'title date time location country coverImage category price host isPast',
       populate: { path: 'category', select: 'name image' },
     })
     .sort({ createdAt: -1 });
@@ -875,6 +876,7 @@ const getAllMyEvents = async (userId: string, query: any) => {
       coverImage
       gallery
       price 
+      country
       address
       daySchedules
       isHighlighted
@@ -921,7 +923,7 @@ const getRecentPayments = async (
     .sort({ updatedAt: -1 })
     .skip(skip)
     .limit(limit)
-    .select('title price attendees updatedAt');
+    .select('title price country attendees updatedAt');
 
   // Flatten payments
   const payments = events.flatMap(event =>
@@ -968,7 +970,7 @@ const getFeaturedEvents = async (page: number = 1, limit: number = 10) => {
     .skip(skip)
     .limit(limit)
     .select(
-      'title date time location coverImage price isFeatured isPinned isHighlighted isTopEvent attendees category host',
+      'title date time location country coverImage price isFeatured isPinned isHighlighted isTopEvent attendees category host',
     );
 
   return {
@@ -1091,7 +1093,7 @@ const getHomeEvents = async (
       .skip(skip)
       .limit(limit)
       .select(
-        'title date time location coverImage price isFeatured isPinned isHighlighted isTopEvent eventType attendees category host',
+        'title date time location country country coverImage price isFeatured isPinned isHighlighted isTopEvent eventType attendees category host',
       );
 
     // location ছাড়া events (string location যেমন "Dhaka")
@@ -1109,7 +1111,7 @@ const getHomeEvents = async (
       .populate('attendees', 'image')
       .sort({ createdAt: -1 })
       .select(
-        'title date time location coverImage price isFeatured isPinned isHighlighted isTopEvent eventType attendees category host',
+        'title date time location country coverImage price isFeatured isPinned isHighlighted isTopEvent eventType attendees category host',
       );
 
     // কাছের events আগে + বাকিগুলো পরে
@@ -1145,7 +1147,7 @@ const getHomeEvents = async (
     .skip(skip)
     .limit(limit)
     .select(
-      'title date time location coverImage price isFeatured isPinned isHighlighted isTopEvent eventType attendees category host',
+      'title date time location country coverImage price isFeatured isPinned isHighlighted isTopEvent eventType attendees category host',
     );
 
   return {
