@@ -731,7 +731,7 @@ const getProductDashboard = async (
         localField: "items.product",
         foreignField: "_id",
         as: "items.product",
-        pipeline: [{ $project: { name: 1, images: 1, price: 1 } }],
+        pipeline: [{ $project: { name: 1, images: 1, price: 1, currency: 1 } }],
       },
     },
     { $unwind: "$items.product" },
