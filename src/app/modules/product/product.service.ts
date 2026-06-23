@@ -1064,7 +1064,9 @@ const getMyProducts = async (
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
-    .select('name price images category discountPrice colors currency sizes discount stock isDeleted createdAt',);
+    .select(
+      'name price images category shippingCost description discountPrice colors currency sizes discount stock isDeleted createdAt',
+    );
  
   return {
     products,
