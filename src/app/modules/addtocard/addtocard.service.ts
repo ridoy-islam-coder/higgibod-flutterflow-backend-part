@@ -15,7 +15,7 @@ import { Cart } from "./addtotocard.model";
 const getCart = async (userId: string) => {
   const cart = await Cart.findOne({ user: userId }).populate(
     'items.product',
-    'name price images discountPrice shippingCost'
+    'name price images discountPrice currency shippingCost'
   );
 
   if (!cart || cart.items.length === 0) {
