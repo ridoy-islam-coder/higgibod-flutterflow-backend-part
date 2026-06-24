@@ -33,7 +33,7 @@ router.get(
 //done
 router.get(
   '/getevent-details/:id',
-  auth(USER_ROLE.USER, USER_ROLE.ORGANIZER, USER_ROLE.admin),
+  // auth(USER_ROLE.USER, USER_ROLE.ORGANIZER, USER_ROLE.admin),
   eventcontroller.getEventDetails,
 );
 //done
@@ -134,11 +134,6 @@ router.get(
   '/dashboard/cards',
   auth(USER_ROLE.ORGANIZER),
   eventcontroller.getTotalEarningCards,
-);
-router.get(
-  '/dashboard/:eventId',
-  auth(USER_ROLE.ORGANIZER),
-  eventcontroller.getEventChartData,
 );
 
 // ── All Events (upcoming / past / search) — Figma "All Events" screen ─────────
