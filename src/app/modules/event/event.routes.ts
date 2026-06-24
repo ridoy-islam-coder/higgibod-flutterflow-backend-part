@@ -141,11 +141,7 @@ router.get(
 // GET /api/v1/events/all?type=past
 // GET /api/v1/events/all?search=sunset
 // GET /api/v1/events/all?type=upcoming&search=sunset
-router.get(
-  '/all',
-  // auth(USER_ROLE.ORGANIZER),
-  eventcontroller.getAllMyEvents,
-);
+router.get('/all', auth(USER_ROLE.ORGANIZER), eventcontroller.getAllMyEvents);
 
 // ── Recent Payments ───────────────────────────────────────────────────────────
 router.get(
