@@ -1,21 +1,15 @@
-
-
 import express from 'express';
 import { PaymentController } from './subpayment.controller';
 import auth from '../../middleware/auth.middleware';
-import { UserRole } from '../user/user.interface';
 import { ro } from 'date-fns/locale';
-
+import { USER_ROLE } from '../user/user.constant';
 
 const router = express.Router();
-
-
-
 
 // ─── Public (Stripe webhook — auth লাগবে না) ──────────────────────────────────
 router.post(
   '/webhook',
-  express.raw({ type: 'application/json' }), 
+  express.raw({ type: 'application/json' }),
   PaymentController.stripeWebhook,
 );
 
@@ -23,12 +17,36 @@ router.post(
 router.get('/subscription', PaymentController.paymentSuccess);
 
 // ─── User Routes ───────────────────────────────────────────────────────────────
-router.post('/checkout', auth(UserRole.USER), PaymentController.createCheckoutSession);
-router.get('/history', auth(UserRole.admin,UserRole.MARCHANT,UserRole.KAATEDJ,UserRole.ORGANIZER,UserRole.USER), PaymentController.getMyPaymentHistory);
-// router.post('/cancel', auth(UserRole.USER), PaymentController.cancelSubscription);
+router.post(
+  '/checkout',
+  auth(USER_ROLE.USER),
+  PaymentController.createCheckoutSession,
+);
+router.get(
+  '/history',
+  auth(
+    USER_ROLE.admin,
+    USER_ROLE.MARCHANT,
+    USER_ROLE.KAATEDJ,
+    USER_ROLE.ORGANIZER,
+    USER_ROLE.USER,
+  ),
+  PaymentController.getMyPaymentHistory,
+);
+// router.post('/cancel', auth(USER_ROLE.USER), PaymentController.cancelSubscription);
 
 // ─── Admin Routes ──────────────────────────────────────────────────────────────
-router.get('/all-history', auth(UserRole.admin,UserRole.MARCHANT,UserRole.KAATEDJ,UserRole.ORGANIZER,UserRole.USER), PaymentController.getAllPaymentHistory);
+router.get(
+  '/all-history',
+  auth(
+    USER_ROLE.admin,
+    USER_ROLE.MARCHANT,
+    USER_ROLE.KAATEDJ,
+    USER_ROLE.ORGANIZER,
+    USER_ROLE.USER,
+  ),
+  PaymentController.getAllPaymentHistory,
+);
 
 // Checkout
 router.post(
@@ -37,17 +55,29 @@ router.post(
   PaymentController.createCheckoutSession,
 );
 
+router.patch(
+  '/cancel-trial',
+  auth(
+    USER_ROLE.admin,
+    USER_ROLE.MARCHANT,
+    USER_ROLE.KAATEDJ,
+    USER_ROLE.ORGANIZER,
+    USER_ROLE.USER,
+  ),
+  PaymentController.cancelTrial,
+);
 
-
-
-router.patch("/cancel-trial", auth(UserRole.admin,UserRole.MARCHANT,UserRole.KAATEDJ,UserRole.ORGANIZER,UserRole.USER), PaymentController.cancelTrial);
-
-
-router.get("/my-subscription", auth(UserRole.admin,UserRole.MARCHANT,UserRole.KAATEDJ,UserRole.ORGANIZER,UserRole.USER), PaymentController.getMySubscription);
-
-
-
-
+router.get(
+  '/my-subscription',
+  auth(
+    USER_ROLE.admin,
+    USER_ROLE.MARCHANT,
+    USER_ROLE.KAATEDJ,
+    USER_ROLE.ORGANIZER,
+    USER_ROLE.USER,
+  ),
+  PaymentController.getMySubscription,
+);
 
 router.get('/success', PaymentController.paymentSuccess);
 

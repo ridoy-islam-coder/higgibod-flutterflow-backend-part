@@ -1,44 +1,60 @@
-import { Router } from "express";
-import auth from "../../middleware/auth.middleware";
-import { USER_ROLE } from "./user.constant";
-import { userControllers } from "./user.controller";
-import validateRequest from "../../middleware/validateRequest";
-import { authValidation } from "../auth/auth.validation";
-import upload from "../../middleware/fileUpload";
-import { UserRole } from "./user.interface";
+import { Router } from 'express';
+import auth from '../../middleware/auth.middleware';
+import { USER_ROLE } from './user.constant';
+import { userControllers } from './user.controller';
+import validateRequest from '../../middleware/validateRequest';
+import { authValidation } from '../auth/auth.validation';
+import upload from '../../middleware/fileUpload';
 
 const router = Router();
 
-
-
-
-
-
-router.get("/getby-roll", auth(UserRole.USER,UserRole.ORGANIZER, UserRole.MARCHANT, UserRole.KAATEDJ,UserRole.admin), userControllers.getUsersByRole);
-
-
-router.get("/organizer-profile/:userId",auth(UserRole.USER, UserRole.ORGANIZER, UserRole.MARCHANT, UserRole.KAATEDJ,UserRole.KAATEDJ,UserRole.admin),userControllers.getOrganizerProfile);
-
-
-
-// GET /api/v1/users/:userId/marchant-profile
-router.get("/marchant-profile/:userId",auth(UserRole.USER, UserRole.ORGANIZER, UserRole.MARCHANT, UserRole.KAATEDJ,UserRole.KAATEDJ,UserRole.admin ),userControllers.getMarchantProfile);
-
-
-// GET /api/v1/subscribe-email
-router.get('/subscribe-email',auth(UserRole.admin),userControllers.getAllSubscribers,);
-
-
-
-
-
 router.get(
-  '/me',
-  auth(USER_ROLE.USER, USER_ROLE.USER),
-  userControllers.getme,
+  '/getby-roll',
+  auth(
+    USER_ROLE.USER,
+    USER_ROLE.ORGANIZER,
+    USER_ROLE.MARCHANT,
+    USER_ROLE.KAATEDJ,
+    USER_ROLE.admin,
+  ),
+  userControllers.getUsersByRole,
 );
 
+router.get(
+  '/organizer-profile/:userId',
+  auth(
+    USER_ROLE.USER,
+    USER_ROLE.ORGANIZER,
+    USER_ROLE.MARCHANT,
+    USER_ROLE.KAATEDJ,
+    USER_ROLE.KAATEDJ,
+    USER_ROLE.admin,
+  ),
+  userControllers.getOrganizerProfile,
+);
 
+// GET /api/v1/users/:userId/marchant-profile
+router.get(
+  '/marchant-profile/:userId',
+  auth(
+    USER_ROLE.USER,
+    USER_ROLE.ORGANIZER,
+    USER_ROLE.MARCHANT,
+    USER_ROLE.KAATEDJ,
+    USER_ROLE.KAATEDJ,
+    USER_ROLE.admin,
+  ),
+  userControllers.getMarchantProfile,
+);
+
+// GET /api/v1/subscribe-email
+router.get(
+  '/subscribe-email',
+  auth(USER_ROLE.admin),
+  userControllers.getAllSubscribers,
+);
+
+router.get('/me', auth(USER_ROLE.USER, USER_ROLE.USER), userControllers.getme);
 
 // For login user (user & admin both)
 router.patch(

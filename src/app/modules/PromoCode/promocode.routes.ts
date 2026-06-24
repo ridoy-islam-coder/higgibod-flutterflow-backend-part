@@ -1,18 +1,29 @@
 import { Router } from 'express';
 
-import { UserRole } from '../user/user.interface';
 import auth from '../../middleware/auth.middleware';
 import { PromoCodeController } from './promocode.controller';
-
+import { USER_ROLE } from '../user/user.constant';
 
 const router = Router();
 
 // ─── Admin Only ───────────────────────────────────────────────────────────────
-router.post('/generate', auth(UserRole.USER), PromoCodeController.generatePromoCode);
-router.get('/', auth(UserRole.admin), PromoCodeController.getAllPromoCodes);
-router.delete('/:id', auth(UserRole.admin), PromoCodeController.deletePromoCode);
+router.post(
+  '/generate',
+  auth(USER_ROLE.USER),
+  PromoCodeController.generatePromoCode,
+);
+router.get('/', auth(USER_ROLE.admin), PromoCodeController.getAllPromoCodes);
+router.delete(
+  '/:id',
+  auth(USER_ROLE.admin),
+  PromoCodeController.deletePromoCode,
+);
 
 // ─── User ─────────────────────────────────────────────────────────────────────
-router.post('/validate', auth(UserRole.USER,UserRole.MARCHANT,UserRole.ORGANIZER), PromoCodeController.validatePromoCode);
+router.post(
+  '/validate',
+  auth(USER_ROLE.USER, USER_ROLE.MARCHANT, USER_ROLE.ORGANIZER),
+  PromoCodeController.validatePromoCode,
+);
 
 export const PromoCodeRoutes = router;

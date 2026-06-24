@@ -33,7 +33,7 @@ router.get(
 //done
 router.get(
   '/getevent-details/:id',
-  auth(USER_ROLE.USER, USER_ROLE.ORGANIZER, USER_ROLE.admin),
+  // auth(USER_ROLE.USER, USER_ROLE.ORGANIZER, USER_ROLE.admin),
   eventcontroller.getEventDetails,
 );
 //done
@@ -135,22 +135,13 @@ router.get(
   auth(USER_ROLE.ORGANIZER),
   eventcontroller.getTotalEarningCards,
 );
-router.get(
-  '/dashboard/:eventId',
-  auth(USER_ROLE.ORGANIZER),
-  eventcontroller.getEventChartData,
-);
 
 // ── All Events (upcoming / past / search) — Figma "All Events" screen ─────────
 // GET /api/v1/events/all?type=upcoming
 // GET /api/v1/events/all?type=past
 // GET /api/v1/events/all?search=sunset
 // GET /api/v1/events/all?type=upcoming&search=sunset
-router.get(
-  '/all',
-  // auth(USER_ROLE.ORGANIZER),
-  eventcontroller.getAllMyEvents,
-);
+router.get('/all', auth(USER_ROLE.ORGANIZER), eventcontroller.getAllMyEvents);
 
 // ── Recent Payments ───────────────────────────────────────────────────────────
 router.get(

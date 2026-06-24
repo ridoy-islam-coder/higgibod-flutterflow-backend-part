@@ -153,10 +153,15 @@ export const getEventDetailsService = async (
     .populate('host', 'fullName image email')
     .populate('attendees', 'fullName image email')
     .populate('reviews.user', 'fullName image');
-  console.log(event);
 
   if (!event) throw new AppError(httpStatus.NOT_FOUND, 'Event not found');
-
+  console.log({
+    price: event?.price,
+    att: event?.attendees?.length,
+  });
+  const totalRevenue = Math.round(
+    Number(event?.price) * Number(event?.attendees?.length),
+  ).toFixed(2);
   const host = event.host as any;
 
   // ── Host: Followers count ─────────────────────────────────
@@ -205,6 +210,7 @@ export const getEventDetailsService = async (
 
   return {
     ...event.toObject(),
+    totalRevenue,
     host: {
       ...host.toObject(),
       followersCount,
@@ -1095,6 +1101,7 @@ const getRecentPayments = async (
     (event.attendees as any[]).map(attendee => ({
       eventTitle: event.title,
       amount: event.price,
+      currency: event.currency,
       user: attendee,
       paidAt: event.updatedAt,
     })),
