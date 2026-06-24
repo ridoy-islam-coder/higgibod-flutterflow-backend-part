@@ -345,16 +345,16 @@ export const register = async (payload: any) => {
     throw new AppError(httpStatus.BAD_REQUEST, 'Password too short');
   }
 
-  // ── ২. ডুপ্লিকেট ইমেল চেক ────────────────
+  // // ── ২. ডুপ্লিকেট ইমেল চেক ────────────────
   const existingUser = await User.findOne({ email }).setOptions({
     skipFilter: true,
   });
-  if (existingUser && existingUser.isVerified) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'This email is already registered in our system.',
-    );
-  }
+  // if (existingUser && existingUser.isVerified) {
+  //   throw new AppError(
+  //     httpStatus.BAD_REQUEST,
+  //     'This email is already registered in our system.',
+  //   );
+  // }
 
   // ── ③. ডুপ্লিকেট ফোন নাম্বার চেক ─────────────────────────
   // if (phoneNumber) {
