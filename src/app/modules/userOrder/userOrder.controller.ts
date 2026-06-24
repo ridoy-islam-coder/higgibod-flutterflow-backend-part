@@ -9,6 +9,7 @@ import config from "../../config";
 import { Order } from "./userOrder.model";
 import  httpStatus from 'http-status';
 import { uploadToS3 } from "../../utils/fileHelper";
+import { Cart } from "../addtocard/addtotocard.model";
 const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 
 
@@ -75,6 +76,10 @@ export const orderSuccessPage = catchAsync(async (req, res) => {
     return res.send(generateCancelHTML("Payment not completed."));
   }
 
+  const cartId = session.metadata?.cartId;
+  if (cartId) {
+    await Cart.findByIdAndDelete(cartId);
+  }
   res.send(generateSuccessHTML(order));
 });
 

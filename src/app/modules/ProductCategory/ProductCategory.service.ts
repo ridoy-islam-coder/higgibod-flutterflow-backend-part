@@ -4,19 +4,21 @@ import { Product } from "../product/product.model";
 import { ProductCategory } from "./ProductCategory.model";
 import  httpStatus  from 'http-status';
 
-// Create
+// Create// Create function
 const createProductCategory = async (payload: any) => {
-  const { name, isActive = true } = payload; // ✅ isActive নাও
+  const { name, isActive = true } = payload;
 
-  const existing = await ProductCategory.findOne({ name: name.trim() });
+  // 👇 এখানে .setOptions({ getDeleted: true }) যুক্ত করা হয়েছে
+  const existing = await ProductCategory.findOne({ name: name.trim() })
+    .setOptions({ getDeleted: true });
 
-  // ✅ deleted থাকলে restore করো
+  // ✅ deleted থাকলে restore করো (এখন এই কন্ডিশনটি ঠিকঠাক কাজ করবে!)
   if (existing && existing.isDeleted) {
     const restored = await ProductCategory.findByIdAndUpdate(
       existing._id,
       {
         isDeleted: false,
-        isActive: isActive, // ✅ isActive update করো
+        isActive: isActive, 
       },
       { new: true }
     );
@@ -33,7 +35,6 @@ const createProductCategory = async (payload: any) => {
 };
 
 
-// Get All (pagi// productCategory.service.ts
 
 
 // ✅ Event category র মতো same pattern
