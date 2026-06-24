@@ -75,6 +75,10 @@ export const orderSuccessPage = catchAsync(async (req, res) => {
     return res.send(generateCancelHTML("Payment not completed."));
   }
 
+  const cartId = session.metadata?.cartId;
+  if (cartId) {
+    await Cart.findByIdAndDelete(cartId);
+  }
   res.send(generateSuccessHTML(order));
 });
 
