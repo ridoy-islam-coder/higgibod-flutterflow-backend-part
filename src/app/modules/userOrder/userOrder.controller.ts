@@ -9,6 +9,7 @@ import config from "../../config";
 import { Order } from "./userOrder.model";
 import  httpStatus from 'http-status';
 import { uploadToS3 } from "../../utils/fileHelper";
+import { Cart } from "../addtocard/addtotocard.model";
 const stripe = new Stripe(config.stripe.stripe_secret_key as string);
 
 
