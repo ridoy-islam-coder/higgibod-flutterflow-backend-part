@@ -1,16 +1,11 @@
-
-import mongoose from "mongoose";
-import AppError from "../../error/AppError";
-import catchAsync from "../../utils/catchAsync";
-import { uploadManyToS3, uploadToS3 } from "../../utils/fileHelper";
-import sendResponse from "../../utils/sendResponse";
-import { Event } from "./event.model";
-import { eventServices } from "./event.service";
-import httpStatus  from 'http-status';
-
-
-
-
+import mongoose from 'mongoose';
+import AppError from '../../error/AppError';
+import catchAsync from '../../utils/catchAsync';
+import { uploadManyToS3, uploadToS3 } from '../../utils/fileHelper';
+import sendResponse from '../../utils/sendResponse';
+import { Event } from './event.model';
+import { eventServices } from './event.service';
+import httpStatus from 'http-status';
 
 export const createEvent = catchAsync(async (req, res) => {
   let coverImage;
@@ -27,7 +22,7 @@ export const createEvent = catchAsync(async (req, res) => {
       galleryFiles.map((file: any) => ({
         file,
         path: 'events/gallery',
-      }))
+      })),
     );
   }
 
@@ -35,7 +30,7 @@ export const createEvent = catchAsync(async (req, res) => {
     req.body,
     req.user,
     coverImage,
-    gallery
+    gallery,
   );
 
   sendResponse(res, {
@@ -46,14 +41,13 @@ export const createEvent = catchAsync(async (req, res) => {
   });
 });
 
-
 export const getAllEvents = catchAsync(async (req, res) => {
   const result = await eventServices.getAllEventsService(req.query);
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Events fetched successfully",
+    message: 'Events fetched successfully',
     meta: result.meta, // 👈 add this
     data: result.data,
   });
@@ -61,7 +55,12 @@ export const getAllEvents = catchAsync(async (req, res) => {
 
 export const getPastEvents = catchAsync(async (req, res) => {
   const result = await eventServices.getPastEventsService();
-  sendResponse(res, { statusCode: 200, success: true, message: "Past events fetched successfully", data: result });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Past events fetched successfully',
+    data: result,
+  });
 });
 
 // export const getEventDetails = catchAsync(async (req, res) => {
@@ -69,42 +68,22 @@ export const getPastEvents = catchAsync(async (req, res) => {
 //   sendResponse(res, { statusCode: 200, success: true, message: "Event details fetched successfully", data: result });
 // });
 
-
-
-
-
-
-
 // GET /api/v1/events/:id
 const getEventDetails = catchAsync(async (req, res) => {
   const currentUserId = req.user?._id; // token optional — না থাকলেও চলবে
- 
+
   const result = await eventServices.getEventDetailsService(
     req.params.id as string,
-    currentUserId 
+    currentUserId,
   );
- 
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Event details fetched successfully",
+    message: 'Event details fetched successfully',
     data: result,
   });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // ── Controller ──────────────────────────────────────────────────────────────
 export const updateEvent = catchAsync(async (req, res) => {
@@ -112,16 +91,26 @@ export const updateEvent = catchAsync(async (req, res) => {
   let gallery: { id: string; url: string }[] = [];
 
   if (req.files && (req.files as any).coverImage) {
-    coverImage = await uploadToS3((req.files as any).coverImage[0], 'events/cover');
+    coverImage = await uploadToS3(
+      (req.files as any).coverImage[0],
+      'events/cover',
+    );
   }
 
   if (req.files && (req.files as any).gallery) {
     gallery = await uploadManyToS3(
-      (req.files as any).gallery.map((file: any) => ({ file, path: 'events/gallery' }))
+      (req.files as any).gallery.map((file: any) => ({
+        file,
+        path: 'events/gallery',
+      })),
     );
   }
 
-  const result = await eventServices.updateEventService(req, coverImage, gallery);
+  const result = await eventServices.updateEventService(
+    req,
+    coverImage,
+    gallery,
+  );
 
   sendResponse(res, {
     statusCode: 200,
@@ -131,24 +120,37 @@ export const updateEvent = catchAsync(async (req, res) => {
   });
 });
 
-
 export const deleteEvent = catchAsync(async (req, res) => {
-  const result = await eventServices.deleteEventService(req.params.id as string);
-  sendResponse(res, { statusCode: 200, success: true, message: "Event deleted successfully", data: result });
+  const result = await eventServices.deleteEventService(
+    req.params.id as string,
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Event deleted successfully',
+    data: result,
+  });
 });
 
 export const attendEvent = catchAsync(async (req, res) => {
   const result = await eventServices.attendEventService(req);
-  sendResponse(res, { statusCode: 200, success: true, message: result.message, data: null });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: result.message,
+    data: null,
+  });
 });
 
 export const addReview = catchAsync(async (req, res) => {
   const result = await eventServices.addReviewService(req);
-  sendResponse(res, { statusCode: 200, success: true, message: "Review added successfully", data: result });
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Review added successfully',
+    data: result,
+  });
 });
-
-
-
 
 // const searchEvents = catchAsync(async (req, res) => {
 //   const result = await eventServices.searchEvents({
@@ -163,7 +165,7 @@ export const addReview = catchAsync(async (req, res) => {
 //     page: req.query.page ? Number(req.query.page) : 1,
 //     limit: req.query.limit ? Number(req.query.limit) : 10,
 //   });
- 
+
 //   sendResponse(res, {
 //     statusCode: 200,
 //     success: true,
@@ -171,11 +173,6 @@ export const addReview = catchAsync(async (req, res) => {
 //     data: result,
 //   });
 // });
- 
-
-
-
-
 
 const searchEvents = catchAsync(async (req, res) => {
   const result = await eventServices.searchEvents({
@@ -187,7 +184,7 @@ const searchEvents = catchAsync(async (req, res) => {
     maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
     date: req.query.date as string,
     startDate: req.query.startDate as string, // ✅ নতুন
-    endDate: req.query.endDate as string,     // ✅ নতুন
+    endDate: req.query.endDate as string, // ✅ নতুন
     organizer: req.query.organizer as string,
     page: req.query.page ? Number(req.query.page) : 1,
     limit: req.query.limit ? Number(req.query.limit) : 10,
@@ -201,16 +198,6 @@ const searchEvents = catchAsync(async (req, res) => {
   });
 });
 
-
-
-
-
-
-
-
-
-
-
 // const getFeaturedEvents = catchAsync(async (req, res) => {
 //   const result = await eventServices.getFeaturedEvents();
 //   sendResponse(res, {
@@ -220,14 +207,14 @@ const searchEvents = catchAsync(async (req, res) => {
 //     data: result,
 //   });
 // });
- 
+
 const getNearbyEvents = catchAsync(async (req, res) => {
   const location = req.query.location as string;
   if (!location) {
     return sendResponse(res, {
       statusCode: 400,
       success: false,
-      message: "Location is required",
+      message: 'Location is required',
       data: null,
     });
   }
@@ -235,21 +222,23 @@ const getNearbyEvents = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Nearby events fetched",
+    message: 'Nearby events fetched',
     data: result,
   });
 });
- 
+
 const getEventsByOrganizer = catchAsync(async (req, res) => {
-  const result = await eventServices.getEventsByOrganizer(req.params.id as string);
+  const result = await eventServices.getEventsByOrganizer(
+    req.params.id as string,
+  );
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Organizer events fetched",
+    message: 'Organizer events fetched',
     data: result,
   });
 });
- 
+
 // export const getAllCategories = catchAsync(async (req, res) => {
 //   const result = await eventServices.getAllCategories();
 
@@ -261,19 +250,17 @@ const getEventsByOrganizer = catchAsync(async (req, res) => {
 //   });
 // });
 
-
-
 export const getAllCategories = catchAsync(async (req, res) => {
   const { category } = req.query;
 
   const result = await Event.find({ category })
-    .populate("host", "fullName image")
+    .populate('host', 'fullName image')
     .sort({ date: 1 });
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Events fetched by category",
+    message: 'Events fetched by category',
     data: result,
   });
 });
@@ -281,34 +268,25 @@ export const getAllCategories = catchAsync(async (req, res) => {
 // ─── GET /api/events?isPast=true|false ───────────────────────────────────────
 const getEvents = catchAsync(async (req, res) => {
   try {
-    const isPast = req.query.isPast === "true";
+    const isPast = req.query.isPast === 'true';
     const events = isPast
       ? await eventServices.getPreviousEvents()
       : await eventServices.getUpcomingEvents();
-        sendResponse(res, {
-    statusCode: 200,
-    success: true,
-    message: "Events fetched successfully",
-    data: events,
-  });
-  
+    sendResponse(res, {
+      statusCode: 200,
+      success: true,
+      message: 'Events fetched successfully',
+      data: events,
+    });
   } catch (error: any) {
-       sendResponse(res, {
-    statusCode: 500,
-    success: false,
-    message: "Something went wrong",
-    data: null,
-  });
-
+    sendResponse(res, {
+      statusCode: 500,
+      success: false,
+      message: 'Something went wrong',
+      data: null,
+    });
   }
 });
-
-
-
-
-
-
-
 
 const getMyTicketsnewfilter = catchAsync(async (req, res) => {
   // ?filter=upcoming or ?filter=previous
@@ -329,19 +307,6 @@ const getMyTicketsnewfilter = catchAsync(async (req, res) => {
   });
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 export const addReviewadd = catchAsync(async (req, res) => {
   const { eventId } = req.params;
 
@@ -350,7 +315,7 @@ export const addReviewadd = catchAsync(async (req, res) => {
   const event = await Event.findById(eventId);
 
   if (!event) {
-    throw new AppError(404, "Event not found");
+    throw new AppError(404, 'Event not found');
   }
 
   // ✅ ensure reviews array exists (fix TS + runtime issue)
@@ -360,19 +325,19 @@ export const addReviewadd = catchAsync(async (req, res) => {
 
   // ❌ prevent duplicate review
   const alreadyReviewed = event.reviews.find(
-    (r: any) => r.user.toString() === userId.toString()
+    (r: any) => r.user.toString() === userId.toString(),
   );
 
   if (alreadyReviewed) {
-    throw new AppError(400, "You already reviewed this event");
+    throw new AppError(400, 'You already reviewed this event');
   }
 
   // ✅ single image upload
-  let image = { id: "", url: "" };
+  let image = { id: '', url: '' };
 
   if (req.files && (req.files as any).image) {
     const file = (req.files as any).image[0];
-    image = await uploadToS3(file, "events/reviews");
+    image = await uploadToS3(file, 'events/reviews');
   }
 
   // ✅ create review
@@ -391,71 +356,49 @@ export const addReviewadd = catchAsync(async (req, res) => {
 
   res.status(201).json({
     success: true,
-    message: "Review added successfully",
+    message: 'Review added successfully',
     data: newReview,
   });
 });
 
+export const getAutoSuggestions = catchAsync(async (req, res) => {
+  const { address } = req.query;
 
+  const suggestions = await eventServices.getmapSuggestions(address as string);
 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Suggestions fetched successfully',
+    data: suggestions,
+  });
+});
 
+export const getNearbyEventsController = catchAsync(async (req, res) => {
+  const { lat, lng, radius } = req.query;
 
+  console.log('Received coordinates:', { lat, lng, radius }); // Debug log
 
+  const events = await eventServices.getsearchEvents(
+    Number(lat),
+    Number(lng),
+    radius ? Number(radius) : 10,
+  );
+  console.log('Nearby events:', events); // Debug log
 
-
-export const getAutoSuggestions = catchAsync(
-  async (req , res) => {
-    const { address } = req.query;
-
-    const suggestions = await eventServices.getmapSuggestions(address as string);
-
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "Suggestions fetched successfully",
-      data: suggestions,
-    });
-  }
-);
-
-
-
-
-
-export const getNearbyEventsController = catchAsync(
-  async (req, res) => {
-    const { lat, lng, radius } = req.query;
-
-    console.log("Received coordinates:", { lat, lng, radius }); // Debug log
-
-    const events = await eventServices.getsearchEvents(
-      Number(lat),
-      Number(lng),
-      radius ? Number(radius) : 10
-    );
-    console.log("Nearby events:", events); // Debug log
-
-    sendResponse(res, {
-      statusCode: httpStatus.OK,
-      success: true,
-      message: "Nearby events fetched successfully",
-      data: events,
-    });
-  }
-);
-
-
-
-
-
-
-
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Nearby events fetched successfully',
+    data: events,
+  });
+});
 
 // // ── 3. Dashboard Stats ────────────────────────────────────────────────────────
 // const getDashboardStats = catchAsync(async (req, res) => {
 //   const userId = req.user?._id;
 //   const result = await eventServices.getDashboardStats(userId);
- 
+
 //   sendResponse(res, {
 //     statusCode: httpStatus.OK,
 //     success: true,
@@ -464,34 +407,47 @@ export const getNearbyEventsController = catchAsync(
 //   });
 // });
 
-
 const getDashboardStats = catchAsync(async (req, res) => {
-
   const userId = req.user?._id;
 
-  const year = req.query.year
-    ? Number(req.query.year)
-    : undefined;
+  const year = req.query.year ? Number(req.query.year) : undefined;
 
-  const result =
-    await eventServices.getDashboardStats(
-      userId,
-      year
-    );
+  const result = await eventServices.getDashboardStats(userId, year);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Dashboard stats fetched successfully",
+    message: 'Dashboard stats fetched successfully',
     data: result,
   });
 });
 
+const getEventChartData = catchAsync(async (req, res) => {
+  const year = req.query.year ? Number(req.query.year) : undefined;
 
+  const result = await eventServices.getEventChartData(
+    req.params.eventId as string,
+    year,
+  );
 
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Dashboard stats fetched successfully',
+    data: result,
+  });
+});
+const getTotalEarningCards = catchAsync(async (req, res) => {
+  const userId = req.user?._id;
+  const result = await eventServices.getTotalEarningCards(userId);
 
-
-
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Dashboard cards fetched successfully',
+    data: result,
+  });
+});
 
 // GET /api/v1/events/all?type=upcoming&search=sunset
 // GET /api/v1/events/all?type=past
@@ -499,20 +455,16 @@ const getDashboardStats = catchAsync(async (req, res) => {
 const getAllMyEvents = catchAsync(async (req, res) => {
   const userId = req.user?._id;
   const query = req.query; // { type, search }
- 
+
   const result = await eventServices.getAllMyEvents(userId, query);
- 
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Events fetched successfully",
+    message: 'Events fetched successfully',
     data: result,
   });
 });
-
-
-
-
 
 const getRecentPayments = catchAsync(async (req, res) => {
   const userId = req.user?._id;
@@ -526,29 +478,17 @@ const getRecentPayments = catchAsync(async (req, res) => {
     userId,
     page,
     limit,
-    searchTerm
+    searchTerm,
   );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Recent payments fetched successfully",
+    message: 'Recent payments fetched successfully',
     data: result.data,
     meta: result.meta,
   });
 });
-
-
-
-
-
-
-
-
-
-
-
-
 
 // GET /api/v1/events/:id/attendees?page=1&limit=10
 const getEventAttendees = catchAsync(async (req, res) => {
@@ -556,28 +496,28 @@ const getEventAttendees = catchAsync(async (req, res) => {
   const page = req.query.page ? Number(req.query.page) : 1;
   const limit = req.query.limit ? Number(req.query.limit) : 10;
   const skip = (page - 1) * limit;
- 
+
   const event = await Event.findById(id)
     .populate({
-      path: "attendees",
-      select: "fullName email image",
+      path: 'attendees',
+      select: 'fullName email image',
       options: {
         skip,
         limit,
       },
     })
-    .select("attendees title");
+    .select('attendees title');
 
-  if (!event) throw new AppError(httpStatus.NOT_FOUND, "Event not found");
- 
+  if (!event) throw new AppError(httpStatus.NOT_FOUND, 'Event not found');
+
   // total attendees count (pagination এর জন্য)
-  const eventForCount = await Event.findById(id).select("attendees");
+  const eventForCount = await Event.findById(id).select('attendees');
   const totalAttendees = (eventForCount?.attendees || []).length;
- 
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Attendees fetched successfully",
+    message: 'Attendees fetched successfully',
     data: {
       eventTitle: event.title,
       attendees: event.attendees || [],
@@ -591,11 +531,7 @@ const getEventAttendees = catchAsync(async (req, res) => {
   });
 });
 
-
-
-
-//new api 
-
+//new api
 
 // GET /api/v1/events/featured
 // ── Controller ────────────────────────────────────────────────────────────────
@@ -608,66 +544,69 @@ const getFeaturedEvents = catchAsync(async (req, res) => {
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Featured events fetched successfully",
+    message: 'Featured events fetched successfully',
     data: result,
   });
 });
- 
 
 // GET /api/v1/events/top?page=1&limit=10
 const getTopEvents = catchAsync(async (req, res) => {
   const page = req.query.page ? Number(req.query.page) : 1;
   const limit = req.query.limit ? Number(req.query.limit) : 10;
   const result = await eventServices.getTopEvents(page, limit);
-  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: "Top events fetched successfully", data: result });
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Top events fetched successfully',
+    data: result,
+  });
 });
- 
+
 // GET /api/v1/events/highlighted?page=1&limit=10
 const getHighlightedEvents = catchAsync(async (req, res) => {
   const page = req.query.page ? Number(req.query.page) : 1;
   const limit = req.query.limit ? Number(req.query.limit) : 10;
   const result = await eventServices.getHighlightedEvents(page, limit);
-  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: "Highlighted events fetched successfully", data: result });
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Highlighted events fetched successfully',
+    data: result,
+  });
 });
- 
+
 // GET /api/v1/events/pinned?page=1&limit=10
 const getPinnedEvents = catchAsync(async (req, res) => {
   const page = req.query.page ? Number(req.query.page) : 1;
   const limit = req.query.limit ? Number(req.query.limit) : 10;
   const result = await eventServices.getPinnedEvents(page, limit);
-  sendResponse(res, { statusCode: httpStatus.OK, success: true, message: "Pinned events fetched successfully", data: result });
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Pinned events fetched successfully',
+    data: result,
+  });
 });
-
-
-
-
-
 
 // GET /api/v1/events/home?lng=90.4125&lat=23.8103&page=1&limit=10
 // location optional — না দিলে newest first
 const getHomeEvents = catchAsync(async (req, res) => {
   const { lng, lat, page, limit } = req.query;
- 
+
   const result = await eventServices.getHomeEvents(
     lng ? Number(lng) : undefined,
     lat ? Number(lat) : undefined,
     page ? Number(page) : 1,
-    limit ? Number(limit) : 10
+    limit ? Number(limit) : 10,
   );
- 
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Events fetched successfully",
+    message: 'Events fetched successfully',
     data: result,
   });
 });
-
-
-
-
-
-
 
 // event.controller.ts
 // const getEventReviews = catchAsync(async (req, res) => {
@@ -687,13 +626,6 @@ const getHomeEvents = catchAsync(async (req, res) => {
 //     data: result,
 //   });
 // });
-
-
-
-
-
-
-
 
 // const getEventReviews = catchAsync(async (req, res) => {
 //   const { id } = req.params;
@@ -722,10 +654,10 @@ const getEventReviews = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { type, page, limit } = req.query;
 
-  if (!type || !["product", "event", "user"].includes(type as string)) {
+  if (!type || !['product', 'event', 'user'].includes(type as string)) {
     throw new AppError(
       httpStatus.BAD_REQUEST,
-      "type must be 'product', 'event' or 'user'"
+      "type must be 'product', 'event' or 'user'",
     );
   }
 
@@ -733,18 +665,16 @@ const getEventReviews = catchAsync(async (req, res) => {
     id as string,
     type as string,
     page ? Number(page) : 1,
-    limit ? Number(limit) : 10
+    limit ? Number(limit) : 10,
   );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Reviews fetched successfully",
+    message: 'Reviews fetched successfully',
     data: result,
   });
 });
-
-
 
 const getUpcomingEventsByHostcontroller = catchAsync(async (req, res) => {
   const { hostId } = req.params;
@@ -755,24 +685,21 @@ const getUpcomingEventsByHostcontroller = catchAsync(async (req, res) => {
   const result = await eventServices.getUpcomingEventsByHost(
     hostId as string,
     page,
-    limit
+    limit,
   );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Upcoming events fetched successfully",
+    message: 'Upcoming events fetched successfully',
     data: result.data,
     meta: result.meta,
   });
 });
 
-
-
 // ───────────────── Controller ─────────────────
 
 const getEventReviewsold = catchAsync(async (req, res) => {
-
   const page = Number(req.query.page) || 1;
   const limit = Number(req.query.limit) || 10;
 
@@ -780,13 +707,13 @@ const getEventReviewsold = catchAsync(async (req, res) => {
   const result = await eventServices.getEventReviewsnew(
     req.params.id as string,
     page,
-    limit
+    limit,
   );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Event reviews fetched successfully",
+    message: 'Event reviews fetched successfully',
 
     // ✅ correct
     data: result.data,
@@ -796,25 +723,26 @@ const getEventReviewsold = catchAsync(async (req, res) => {
   });
 });
 
-
-
-
 const getEventsByHost = catchAsync(async (req, res) => {
   const hostId = req.params.hostId as string;
   const page = req.query.page ? Number(req.query.page) : 1;
   const limit = req.query.limit ? Number(req.query.limit) : 10;
   const categoryId = req.query.categoryId as string; // ✅ নতুন
 
-  const result = await eventServices.getEventsByHost(hostId, page, limit, categoryId);
+  const result = await eventServices.getEventsByHost(
+    hostId,
+    page,
+    limit,
+    categoryId,
+  );
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
-    message: "Events fetched successfully",
+    message: 'Events fetched successfully',
     data: result,
   });
 });
-
 
 const addReplyToReview = catchAsync(async (req, res) => {
   const { comment, eventId, reviewId } = req.body;
@@ -839,17 +767,18 @@ const addReplyToReview = catchAsync(async (req, res) => {
   });
 });
 
-
 export const eventcontroller = {
-createEvent,
-getAllEvents,
-getPastEvents,
-getEventDetails,
-updateEvent,
-deleteEvent,
-attendEvent,
-addReview,
-// search + extra features
+  createEvent,
+  getAllEvents,
+  getPastEvents,
+  getEventDetails,
+  updateEvent,
+  deleteEvent,
+  attendEvent,
+  addReview,
+  getEventChartData,
+  getTotalEarningCards,
+  // search + extra features
   searchEvents,
   getFeaturedEvents,
   getNearbyEvents,
@@ -868,10 +797,9 @@ addReview,
   getHighlightedEvents,
   getPinnedEvents,
   getHomeEvents,
-   getEventReviews,
-    getUpcomingEventsByHostcontroller,
-    getEventReviewsold,
-    getEventsByHost,
-    addReplyToReview,
-
+  getEventReviews,
+  getUpcomingEventsByHostcontroller,
+  getEventReviewsold,
+  getEventsByHost,
+  addReplyToReview,
 };

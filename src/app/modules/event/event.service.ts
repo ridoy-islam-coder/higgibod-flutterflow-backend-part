@@ -26,7 +26,7 @@ export const createEventService = async (
     date,
     endDate,
     time,
-    daySchedules, 
+    daySchedules,
     description,
     price,
     currency,
@@ -40,16 +40,14 @@ export const createEventService = async (
     skiteeventType,
   } = body;
 
-
   if (!title || !date || !endDate) {
     throw new AppError(400, 'Title, start date, and end date are required');
   }
-    
+
   const existingEvent = await Event.findOne({ title });
   if (existingEvent) {
     throw new AppError(400, 'An event with this title already exists');
   }
-
 
   // ✅ Geo location build
   let geoLocation;
@@ -63,11 +61,11 @@ export const createEventService = async (
   // ✅ ডাটাবেজে ইভেন্ট তৈরি
   const event = await Event.create({
     title,
-    category: category || undefined, 
-    date, 
+    category: category || undefined,
+    date,
     endDate, // মডেলের 'endDate' ফিল্ড
     address,
- 
+
     daySchedules: daySchedules || [],
 
     time: time || '',
@@ -710,6 +708,7 @@ const getDashboardStats = async (userId: string, year?: number) => {
   const totalAttendees = attendeesResult[0]?.totalAttendees || 0;
 
   // ── Monthly Earnings ─────────────────────────
+
   const monthlyEarning = await Event.aggregate([
     {
       $match: {
@@ -761,6 +760,171 @@ const getDashboardStats = async (userId: string, year?: number) => {
     totalEarning,
     monthlyEarning: months,
   };
+};
+
+const getEventChartData = async (eventId: string, year?: number) => {
+  const selectedYear = year || new Date().getFullYear();
+
+  // ── Total Attendees ──────────────────────────
+  const attendeesResult = await Event.aggregate([
+    {
+      $match: {
+        _id: eventId,
+        isDeleted: { $ne: true },
+        date: {
+          $gte: new Date(`${selectedYear}-01-01`),
+          $lte: new Date(`${selectedYear}-12-31`),
+        },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        totalAttendees: {
+          $sum: { $size: '$attendees' },
+        },
+      },
+    },
+  ]);
+
+  const totalAttendees = attendeesResult[0]?.totalAttendees || 0;
+
+  const monthlyEarnings = await Event.aggregate([
+    {
+      $match: {
+        isDeleted: { $ne: true },
+        _id: new mongoose.Types.ObjectId(eventId), // optional
+      },
+    },
+
+    {
+      $unwind: '$daySchedules',
+    },
+
+    {
+      $match: {
+        'daySchedules.date': {
+          $gte: new Date(`${selectedYear}-01-01T00:00:00.000Z`),
+          $lte: new Date(`${selectedYear}-12-31T23:59:59.999Z`),
+        },
+      },
+    },
+
+    {
+      $addFields: {
+        month: {
+          $month: '$daySchedules.date',
+        },
+        earning: {
+          $multiply: ['$price', { $size: '$attendees' }],
+        },
+      },
+    },
+
+    // Group by month + currency
+    {
+      $group: {
+        _id: {
+          month: '$month',
+          currency: '$currency',
+        },
+        amount: {
+          $sum: '$earning',
+        },
+      },
+    },
+
+    // Group by month
+    {
+      $group: {
+        _id: '$_id.month',
+        totalEarnings: {
+          $sum: '$amount',
+        },
+        earnings: {
+          $push: {
+            currency: '$_id.currency',
+            amount: '$amount',
+          },
+        },
+      },
+    },
+
+    {
+      $project: {
+        _id: 0,
+        month: '$_id',
+        totalEarnings: 1,
+        earnings: 1,
+      },
+    },
+
+    {
+      $sort: {
+        month: 1,
+      },
+    },
+  ]);
+
+  const result = Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+
+    const found = monthlyEarnings.find(item => item.month === month);
+
+    return {
+      date: `${selectedYear}-${String(month).padStart(2, '0')}`,
+      totalEarnings: found?.totalEarnings || 0,
+      earnings: found?.earnings || [],
+    };
+  });
+
+  return {
+    year: selectedYear,
+    totalAttendees,
+    monthlyEarning: result,
+  };
+};
+
+const getTotalEarningCards = async (userId: string) => {
+  const totalEarningsByCurrency = await Event.aggregate([
+    {
+      $match: {
+        host: new Types.ObjectId(userId),
+        isDeleted: { $ne: true },
+      },
+    },
+
+    {
+      $addFields: {
+        earning: {
+          $multiply: ['$price', { $size: '$attendees' }],
+        },
+      },
+    },
+
+    {
+      $group: {
+        _id: '$currency',
+        amount: {
+          $sum: '$earning',
+        },
+      },
+    },
+
+    {
+      $project: {
+        _id: 0,
+        currency: '$_id',
+        amount: 1,
+      },
+    },
+
+    {
+      $sort: { currency: 1 },
+    },
+  ]);
+
+  return totalEarningsByCurrency;
 };
 
 // ── Dashboard Stats Controller ─────────────────────────────────────────────
@@ -1632,6 +1796,7 @@ const addReplyToReview = async (
 };
 
 export const eventServices = {
+  getTotalEarningCards,
   createEventService,
   getAllEventsService,
   getPastEventsService,
@@ -1663,4 +1828,5 @@ export const eventServices = {
   getEventReviewsnew,
   getEventsByHost,
   addReplyToReview,
+  getEventChartData,
 };
