@@ -197,10 +197,7 @@ const updateProfile = async (
 
     // 🛠️ ডুপ্লিকেট কি এরর (E11000) দূর করার লজিক 
     // phoneNumber ফাঁকা স্ট্রিং ("") অথবা null হলে সেটা ডাটাবেজে পাঠানো বন্ধ করবে
-    if (
-      userUpdateData.phoneNumber === "" || 
-      userUpdateData.phoneNumber === null
-    ) {
+    if (userUpdateData.phoneNumber === "") {
       delete userUpdateData.phoneNumber;
     }
 
