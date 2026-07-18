@@ -40,7 +40,7 @@ const UserSchema = new Schema<TUser, UserModel>(
   {
     email: {
       type: String,
-      unique: true,
+    //   unique: true,
      required: true,
   
     },

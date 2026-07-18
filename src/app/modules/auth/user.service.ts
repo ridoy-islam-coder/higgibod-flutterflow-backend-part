@@ -36,16 +36,18 @@ export const register = async (payload: any) => {
  if (password.length < 6) {
    throw new AppError(httpStatus.BAD_REQUEST, 'Password too short');
  }
-  const existingUser = await User.findOne({ email }).setOptions({
-    skipFilter: true,
-  });
 
-  if (existingUser) {
-    throw new AppError(
-      httpStatus.BAD_REQUEST,
-      'This email is already registered in our system.',
-    );
-  }
+
+  // const existingUser = await User.findOne({ email }).setOptions({
+  //   skipFilter: true,
+  // });
+
+  // if (existingUser) {
+  //   throw new AppError(
+  //     httpStatus.BAD_REQUEST,
+  //     'This email is already registered in our system.',
+  //   );
+  // }
 
   const otp = String(generateOtp());
   const expiresAt = moment().add(10, 'minute').toDate();
