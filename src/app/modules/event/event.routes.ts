@@ -22,7 +22,7 @@ router.post(
 router.get(
   '/getAll',
   auth(USER_ROLE.USER, USER_ROLE.admin),
-  eventcontroller.getAllEvents,
+  eventcontroller.getAllEventsService,
 );
 //not done
 router.get(
@@ -209,6 +209,18 @@ router.get(
   '/host/:hostId',
   auth(USER_ROLE.USER, USER_ROLE.ORGANIZER),
   eventcontroller.getEventsByHost,
+);
+
+router.get(
+  '/',
+  auth(
+    USER_ROLE.USER,
+    USER_ROLE.ORGANIZER,
+    USER_ROLE.admin,
+    USER_ROLE.MARCHANT,
+    USER_ROLE.KAATEDJ,
+  ),
+  eventcontroller.getAllEvents,
 );
 
 router.post(

@@ -1,9 +1,9 @@
-import { Request, Response } from "express";
-import catchAsync from "../../utils/catchAsync";
-import { userServices } from "./user.service";
-import sendResponse from "../../utils/sendResponse";
+import { Request, Response } from 'express';
+import catchAsync from '../../utils/catchAsync';
+import { userServices } from './user.service';
+import sendResponse from '../../utils/sendResponse';
 import httpStatus from 'http-status';
-import { uploadToS3 } from "../../utils/fileHelper";
+import { uploadToS3 } from '../../utils/fileHelper';
 
 // Get current user's profile
 const getme = catchAsync(async (req: Request, res: Response) => {
@@ -26,10 +26,18 @@ const updatePhoneNumber = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-
-
-
-
+const switchAccount = catchAsync(async (req: Request, res: Response) => {
+  const result = await userServices.switchAccount(
+    req?.user?.id,
+    req?.body?.role,
+  );
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Account switching successfully',
+    data: result,
+  });
+});
 
 const updateProfile = catchAsync(async (req: Request, res: Response) => {
   let image;
@@ -43,8 +51,7 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
   const isAdmin = req.user.role === 'USER' || req.user.role === 'influencer';
 
   // User can update own profile, admin can update others
-  const userIdToUpdate =
-    isAdmin && req.params.id ? req.params.id : req.user.id;
+  const userIdToUpdate = isAdmin && req.params.id ? req.params.id : req.user.id;
 
   // Admin updating own profile
   const isAdminUpdatingSelf =
@@ -61,23 +68,15 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
     delete updateData.gender;
   }
 
-    // Remove forbidden fields
+  // Remove forbidden fields
   const forbiddenFields = ['role', 'isVerified']; // phoneNumber allowed now
   for (const key of forbiddenFields) delete updateData[key];
 
   // Optional: remove gender if missing
   // if (!req.body.gender) delete updateData.gender;
 
-
   // Update profile
-  const result = await userServices.updateProfile(
-    userIdToUpdate,
-    updateData,
-  );
-
-
-
-
+  const result = await userServices.updateProfile(userIdToUpdate, updateData);
 
   // (Optional) Save notification ONLY (no socket)
   // await saveNotification({
@@ -96,7 +95,6 @@ const updateProfile = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
-
 
 // Get single user (used by admin)
 const getsingleUser = catchAsync(async (req: Request, res: Response) => {
@@ -135,6 +133,16 @@ const deleteAccount = catchAsync(async (req: Request, res: Response) => {
     data: result,
   });
 });
+const deleteUser = catchAsync(async (req: Request, res: Response) => {
+  const result = await userServices.deleteUser(req?.params?.id as string);
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'User account deleted successfully',
+    data: result,
+  });
+});
+
 //total users count by admin
 const getTotalUsersCount = catchAsync(async (_req: Request, res: Response) => {
   const count = await userServices.getTotalUsersCount();
@@ -191,49 +199,19 @@ const unblockUser = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
-
-
-// // GET /api/v1/users?role=ORGANIZER&search=john&page=1&limit=10
-// const getUsersByRole = catchAsync(async (req: Request, res: Response) => {
-//   const role = (req.query.role as string) || "ORGANIZER";
-
-//   const search = req.query.search as string;
-//   const page = req.query.page ? Number(req.query.page) : 1;
-//   const limit = req.query.limit ? Number(req.query.limit) : 10;
- 
-//   const validRoles = ["ORGANIZER", "MARCHANT", "USER", "KAATEDJ"];
-//   if (!validRoles.includes(role)) {
-//     return res.status(httpStatus.BAD_REQUEST).json({
-//       success: false,
-//       message: `Invalid role. Valid roles: ${validRoles.join(", ")}`,
-//     });
-//   }
-//  const currentUserId = req.user?._id; // ← add করো
-
-//   const result = await userServices.getUsersByRole(role, search, page, limit,currentUserId);
- 
-//   sendResponse(res, {
-//     statusCode: httpStatus.OK,
-//     success: true,
-//     message: `${role} profiles fetched successfully`,
-//     data: result,
-//   });
-// });
-
 const getUsersByRole = catchAsync(async (req: Request, res: Response) => {
-  const role = (req.query.role as string) || "ORGANIZER";
+  const role = (req.query.role as string) || 'ORGANIZER';
   const search = req.query.search as string;
   const page = req.query.page ? Number(req.query.page) : 1;
   const limit = req.query.limit ? Number(req.query.limit) : 10;
   const country = req.query.country as string;
   const planningEventTypes = req.query.planningEventTypes as string; // ✅ নতুন
 
-  const validRoles = ["ORGANIZER", "MARCHANT", "USER", "KAATEDJ"];
+  const validRoles = ['ORGANIZER', 'MARCHANT', 'USER', 'KAATEDJ'];
   if (!validRoles.includes(role)) {
     return res.status(httpStatus.BAD_REQUEST).json({
       success: false,
-      message: `Invalid role. Valid roles: ${validRoles.join(", ")}`,
+      message: `Invalid role. Valid roles: ${validRoles.join(', ')}`,
     });
   }
 
@@ -256,21 +234,20 @@ const getUsersByRole = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
 // GET /api/v1/users/:userId/profile
 const getOrganizerProfile = catchAsync(async (req: Request, res: Response) => {
   const organizerId = req.params.userId;
   const currentUserId = req.user?._id;
- 
+
   const result = await userServices.getOrganizerProfile(
     organizerId as string,
-    currentUserId
+    currentUserId,
   );
- 
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Organizer profile fetched successfully",
+    message: 'Organizer profile fetched successfully',
     data: result,
   });
 });
@@ -279,32 +256,25 @@ const getOrganizerProfile = catchAsync(async (req: Request, res: Response) => {
 const getMarchantProfile = catchAsync(async (req: Request, res: Response) => {
   const marchantId = req.params.userId;
   const currentUserId = req.user?._id;
- 
+
   const result = await userServices.getMarchantProfile(
     marchantId as string,
-    currentUserId
+    currentUserId,
   );
- 
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: " profile fetched successfully",
+    message: ' profile fetched successfully',
     data: result,
   });
 });
-
-
-
-
-
-
-
 
 // GET /api/v1/subscribe-email
 // Query: page, limit, search, status (active | inactive | all)
 const getAllSubscribers = catchAsync(async (req: Request, res: Response) => {
   const result = await userServices.getAllSubscribers(req.query);
- 
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
@@ -313,12 +283,10 @@ const getAllSubscribers = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
-
-
 export const userControllers = {
   getme,
   updateProfile,
+  switchAccount,
   getsingleUser,
   getAllUsers,
   deleteAccount,
@@ -332,4 +300,5 @@ export const userControllers = {
   getOrganizerProfile,
   getMarchantProfile,
   getAllSubscribers,
+  deleteUser,
 };

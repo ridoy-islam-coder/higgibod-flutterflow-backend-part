@@ -13,6 +13,9 @@ import { updatePastEvents } from '../../utils/updatePastEvents';
 import { isPast } from 'date-fns/isPast';
 import User from '../user/user.model';
 import { IReply } from './event.interface';
+import pickQuery from '../../utils/pickQuery';
+import { paginationHelper } from '../../helpers/pagination.helpers';
+import moment from 'moment';
 
 export const createEventService = async (
   body: any,
@@ -20,70 +23,75 @@ export const createEventService = async (
   coverImage?: { id: string; url: string },
   gallery?: { id: string; url: string }[],
 ) => {
-  const {
-    title,
-    category,
-    date,
-    endDate,
-    time,
-    daySchedules,
-    description,
-    price,
-    currency,
-    isFeatured,
-    isPinned,
-    isHighlighted,
-    isTopEvent,
-    longitude,
-    latitude,
-    address,
-    skiteeventType,
-  } = body;
+  try {
+    const {
+      title,
+      category,
+      date,
+      endDate,
+      time,
+      daySchedules,
+      description,
+      price,
+      currency,
+      isFeatured,
+      isPinned,
+      isHighlighted,
+      isTopEvent,
+      longitude,
+      latitude,
+      address,
+      skiteeventType,
+    } = body;
 
-  if (!title || !date || !endDate) {
-    throw new AppError(400, 'Title, start date, and end date are required');
+    // if (!title || !date || !endDate) {
+    //   throw new AppError(400, 'Title, start date, and end date are required');
+    // }
+
+    // const existingEvent = await Event.findOne({ title });
+    // if (existingEvent) {
+    //   throw new AppError(400, 'An event with this title already exists');
+    // }
+
+    // ✅ Geo location build
+    let geoLocation;
+    if (longitude && latitude) {
+      geoLocation = {
+        type: 'Point',
+        coordinates: [parseFloat(longitude), parseFloat(latitude)],
+      };
+    }
+
+    // ✅ ডাটাবেজে ইভেন্ট তৈরি
+    const event = await Event.create({
+      title,
+      category: category || undefined,
+      date,
+      endDate,
+      address,
+
+      daySchedules: daySchedules || [],
+
+      time: time || '',
+      location: geoLocation,
+      description: description || '',
+      price: price || 0,
+      currency: currency || 'USD',
+      coverImage: coverImage || { id: '', url: '' },
+      gallery: gallery || [],
+      host: user?.id,
+      isFeatured: isFeatured || false,
+      isPinned: isPinned || false,
+      isHighlighted: isHighlighted || false,
+      isTopEvent: isTopEvent || false,
+      skiteeventType: skiteeventType || '',
+    });
+
+    return event;
+  } catch (error: any) {
+    console.log(error);
+    throw new AppError(httpStatus.BAD_REQUEST, error?.message);
   }
-
-  const existingEvent = await Event.findOne({ title });
-  if (existingEvent) {
-    throw new AppError(400, 'An event with this title already exists');
-  }
-
-  // ✅ Geo location build
-  let geoLocation;
-  if (longitude && latitude) {
-    geoLocation = {
-      type: 'Point',
-      coordinates: [parseFloat(longitude), parseFloat(latitude)],
-    };
-  }
-
-  // ✅ ডাটাবেজে ইভেন্ট তৈরি
-  const event = await Event.create({
-    title,
-    category: category || undefined,
-    date,
-    endDate, // মডেলের 'endDate' ফিল্ড
-    address,
-
-    daySchedules: daySchedules || [],
-
-    time: time || '',
-    location: geoLocation,
-    description: description || '',
-    price: price || 0,
-    currency: currency || 'USD', // গ্লোবাল কারেন্সি
-    coverImage: coverImage || { id: '', url: '' },
-    gallery: gallery || [],
-    host: user?.id,
-    isFeatured: isFeatured || false,
-    isPinned: isPinned || false,
-    isHighlighted: isHighlighted || false,
-    isTopEvent: isTopEvent || false,
-    skiteeventType: skiteeventType || '',
-  });
-
-  return event;
 };
 
 export const getAllEventsService = async (query: any) => {
@@ -122,6 +130,217 @@ export const getAllEventsService = async (query: any) => {
   };
 };
 
+export const getAllEvents = async (query: Record<string, any>) => {
+  const { filters, pagination } = await pickQuery(query);
+  const { searchTerm, latitude, longitude, attendees, status, ...filtersData } =
+    filters;
+
+  if (filtersData.category) {
+    filtersData['category'] = new Types.ObjectId(filtersData.category);
+  }
+  if (filtersData.host) {
+    filtersData['host'] = new Types.ObjectId(filtersData.host);
+  }
+  if (filtersData.isPast) {
+    filtersData.isPast = filtersData.isPast === 'true' ? true : false;
+  }
+  if (filtersData.isHighlighted) {
+    filtersData.isHighlighted =
+      filtersData.isHighlighted === 'true' ? true : false;
+  }
+  if (filtersData.isPinned) {
+    filtersData.isPinned = filtersData.isPinned === 'true' ? true : false;
+  }
+  if (filtersData.isFeatured) {
+    filtersData.isFeatured = filtersData.isFeatured === 'true' ? true : false;
+  }
+  if (filtersData.isTopEvent) {
+    filtersData.isTopEvent = filtersData.isTopEvent === 'true' ? true : false;
+  }
+
+  // Initialize the aggregation pipeline
+  const pipeline: any[] = [];
+  if (latitude && longitude) {
+    pipeline.push({
+      $geoNear: {
+        near: {
+          type: 'Point',
+          coordinates: [parseFloat(longitude), parseFloat(latitude)],
+        },
+        key: 'location',
+        maxDistance: parseFloat(5 as unknown as string) * 1609, // 5 miles to meters
+        distanceField: 'dist.calculated',
+        spherical: true,
+      },
+    });
+  }
+
+  const now = new Date();
+
+  if (status === 'upcoming') {
+    pipeline.push({
+      $match: {
+        endDate: { $gt: now },
+      },
+    });
+  }
+
+  if (status === 'past') {
+    pipeline.push({
+      $match: {
+        endDate: { $lt: now },
+      },
+    });
+  }
+
+  if (searchTerm) {
+    pipeline.push({
+      $match: {
+        $or: ['title', 'currency', 'skiteeventType', 'eventType'].map(
+          field => ({
+            [field]: {
+              $regex: searchTerm,
+              $options: 'i',
+            },
+          }),
+        ),
+      },
+    });
+  }
+  if (attendees) {
+    const attendeesArray = attendees
+      ?.split(',')
+      .map((facility: string) => new Types.ObjectId(facility));
+    pipeline.push({
+      $match: {
+        attendees: { $in: attendeesArray },
+      },
+    });
+  }
+
+  if (Object.entries(filtersData).length) {
+    Object.entries(filtersData).forEach(([field, value]) => {
+      if (/^\[.*?\]$/.test(value)) {
+        const match = value.match(/\[(.*?)\]/);
+        const queryValue = match ? match[1] : value;
+        pipeline.push({
+          $match: {
+            [field]: { $in: [new Types.ObjectId(queryValue)] },
+          },
+        });
+        delete filtersData[field];
+      } else {
+        // 🔁 Convert to number if numeric string
+        if (!isNaN(value)) {
+          filtersData[field] = Number(value);
+        }
+      }
+    });
+
+    if (Object.entries(filtersData).length) {
+      pipeline.push({
+        $match: {
+          $and: Object.entries(filtersData).map(([field, value]) => ({
+            isDeleted: false,
+            [field]: value,
+          })),
+        },
+      });
+    }
+  }
+
+  // Sorting condition
+  const { page, limit, skip, sort } =
+    paginationHelper.calculatePagination(pagination);
+
+  if (sort) {
+    const sortArray = sort.split(',').map(field => {
+      const trimmedField = field.trim();
+      if (trimmedField.startsWith('-')) {
+        return { [trimmedField.slice(1)]: -1 };
+      }
+      return { [trimmedField]: 1 };
+    });
+
+    pipeline.push({ $sort: Object.assign({}, ...sortArray) });
+  }
+  pipeline.push({
+    $facet: {
+      totalData: [{ $count: 'total' }],
+      paginatedData: [
+        { $skip: skip },
+        { $limit: limit },
+        // Lookups
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'host',
+            foreignField: '_id',
+            as: 'host',
+            pipeline: [
+              {
+                $project: {
+                  fullName: 1,
+                  image: 1,
+                },
+              },
+            ],
+          },
+        },
+        {
+          $lookup: {
+            from: 'categories',
+            localField: 'category',
+            foreignField: '_id',
+            as: 'category',
+          },
+        },
+
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'attendees',
+            foreignField: '_id',
+            as: 'attendees',
+            pipeline: [
+              {
+                $project: {
+                  fullName: 1,
+                  image: 1,
+                },
+              },
+            ],
+          },
+        },
+        {
+          $lookup: {
+            from: 'reviews',
+            localField: 'reviews',
+            foreignField: '_id',
+            as: 'reviews',
+          },
+        },
+
+        {
+          $addFields: {
+            host: { $arrayElemAt: ['$host', 0] },
+            category: { $arrayElemAt: ['$category', 0] },
+          },
+        },
+      ],
+    },
+  });
+
+  const [result] = await Event.aggregate(pipeline);
+
+  const total = result?.totalData?.[0]?.total || 0;
+  const data = result?.paginatedData || [];
+  return {
+    meta: { page, limit, total },
+    data,
+  };
+};
+
 // event.getPastEvents
 export const getPastEventsService = async () => {
   const events = await Event.find({
@@ -133,16 +352,6 @@ export const getPastEventsService = async () => {
     .sort({ date: -1 });
   return events;
 };
-
-// event.getEventDetails
-// export const getEventDetailsService = async (id: string) => {
-//   const event = await Event.findById(id)
-//     .populate("host", "fullName image email")
-//     .populate("attendees", "fullName image email")
-//     .populate("reviews.user", "fullName image");
-//   if (!event) throw new AppError(404, "Event not found");
-//   return event;
-// };
 
 export const getEventDetailsService = async (
   id: string,
@@ -462,7 +671,7 @@ const searchEvents = async (query: {
 
   const events = await Event.find({ ...filter })
     .select(
-      'title description date currency time country location attendees gallery price coverImage',
+      'title description date currency time country location attendees gallery price coverImage daySchedules',
     )
     .populate('host', 'image email fullName')
     .populate('attendees', 'image email fullName')
@@ -1836,4 +2045,5 @@ export const eventServices = {
   getEventsByHost,
   addReplyToReview,
   getEventChartData,
+  getAllEvents,
 };

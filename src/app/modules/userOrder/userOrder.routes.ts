@@ -31,7 +31,7 @@ router.get("/order-history", auth(USER_ROLE.USER), orderController.getOrderHisto
 router.get("/order-details/:id", auth(USER_ROLE.USER), orderController.getOrderDetails);
 
  // ✅ Success & Cancel pages — auth ছাড়া (browser redirect)
-router.get("/success", orderController.orderSuccessPage);
+router.get('/success', orderController.orderSuccessPage);
 
 router.get("/cancel", orderController.orderCancelPage);
 

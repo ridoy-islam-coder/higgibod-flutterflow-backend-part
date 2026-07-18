@@ -5,6 +5,7 @@ import { userControllers } from './user.controller';
 import validateRequest from '../../middleware/validateRequest';
 import { authValidation } from '../auth/auth.validation';
 import upload from '../../middleware/fileUpload';
+import { accountSwitchValidation } from './user.validation';
 
 const router = Router();
 
@@ -90,8 +91,25 @@ router.get(
 
 router.patch(
   '/phone/update',
-  auth(USER_ROLE.USER, USER_ROLE.USER),
+  auth(
+    USER_ROLE.USER,
+    USER_ROLE.KAATEDJ,
+    USER_ROLE.MARCHANT,
+    USER_ROLE.ORGANIZER,
+    USER_ROLE.admin,
+  ),
   userControllers.updatePhoneNumber,
+);
+router.patch(
+  '/account-switch',
+  auth(
+    USER_ROLE.USER,
+    USER_ROLE.KAATEDJ,
+    USER_ROLE.MARCHANT,
+    USER_ROLE.ORGANIZER,
+  ),
+  validateRequest(accountSwitchValidation),
+  userControllers.switchAccount,
 );
 // router.get(
 //   '/profile',
@@ -119,10 +137,11 @@ router.get(
 );
 router.get(
   '/',
-  auth(USER_ROLE.USER, USER_ROLE.USER),
+  auth(USER_ROLE.USER, USER_ROLE.USER, USER_ROLE.admin),
   userControllers.getAllUsers,
 );
 
+router.delete('/:id', auth(USER_ROLE.admin), userControllers.deleteUser);
 router.delete(
   '/delete-account',
   auth(USER_ROLE.USER, USER_ROLE.MARCHANT),

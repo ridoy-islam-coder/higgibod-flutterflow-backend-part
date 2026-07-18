@@ -1,17 +1,17 @@
-export const generateSuccessHTML = (order: any) => {
+export const generateSuccessHTML = (order: any, message?: any) => {
   const itemsHTML = order.items
     .map(
       (item: any) => `
       <div class="item">
-        <img src="${item.product?.images?.[0]?.url || ""}" alt="${item.product?.name}" />
+        <img src="${item.product?.images?.[0]?.url || ''}" alt="${item.product?.name}" />
         <div class="item-info">
           <p class="item-name">${item.product?.name}</p>
-          <p class="item-meta">Qty: ${item.quantity} &nbsp;|&nbsp; Color: ${item.color || "-"} &nbsp;|&nbsp; Size: ${item.size || "-"}</p>
+          <p class="item-meta">Qty: ${item.quantity} &nbsp;|&nbsp; Color: ${item.color || '-'} &nbsp;|&nbsp; Size: ${item.size || '-'}</p>
           <p class="item-price">$${item.price} x ${item.quantity} = <strong>$${(item.price * item.quantity).toFixed(2)}</strong></p>
         </div>
-      </div>`
+      </div>`,
     )
-    .join("");
+    .join('');
 
   return `<!DOCTYPE html>
 <html lang="en">

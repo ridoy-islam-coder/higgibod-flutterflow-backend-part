@@ -1,15 +1,14 @@
-import mongoose, { Types } from "mongoose";
-import AppError from "../../error/AppError";
-import { Order } from "../userOrder/userOrder.model";
-import { Product } from "./product.model";
-import httpStatus  from 'http-status';
-
+import mongoose, { Types } from 'mongoose';
+import AppError from '../../error/AppError';
+import { Order } from '../userOrder/userOrder.model';
+import { Product } from './product.model';
+import httpStatus from 'http-status';
 
 // ✅ Get All Products
 export const getAllProductsService = async (req: any) => {
   const userId = req.user?.id;
   const products = await Product.find({ host: userId })
-    .populate("host", "fullName image")
+    .populate('host', 'fullName image')
     .sort({ createdAt: -1 });
   return products;
 };
@@ -17,14 +16,13 @@ export const getAllProductsService = async (req: any) => {
 // ✅ Get Product Details
 export const getProductDetailsService = async (id: string) => {
   const product = await Product.findById(id)
-    .populate("host", "fullName image")
-    .populate("reviews.user", "fullName image");
-  if (!product) throw new AppError(404, "Product not found");
+    .populate('host', 'fullName image')
+    .populate('reviews.user', 'fullName image');
+  if (!product) throw new AppError(404, 'Product not found');
   return product;
 };
 
 // ✅ Create Product
-
 
 // export const createProductService = async (
 //   req: any,
@@ -62,19 +60,12 @@ export const getProductDetailsService = async (id: string) => {
 //     material: material || "",
 //   });
 
-
-  
-
-
 //   return product;
 // };
 
-
-
-
 export const createProductService = async (
   req: any,
-  images: { id: string; url: string }[]
+  images: { id: string; url: string }[],
 ) => {
   const userId = req.user?.id;
   const {
@@ -92,49 +83,40 @@ export const createProductService = async (
   } = req.body;
 
   if (!name || !category || !price || !stock)
-    throw new AppError(400, "Name, category and price are required");
+    throw new AppError(400, 'Name, category and price are required');
 
   const numericPrice = Number(price);
   const numericDiscount = Number(discount) || 0;
 
   // ✅ discountPrice calculate
-  const discountPrice = numericPrice - (numericPrice * numericDiscount / 100);
+  const discountPrice = numericPrice - (numericPrice * numericDiscount) / 100;
 
-  console.log("Calculated discountPrice:", discountPrice);
+  console.log('Calculated discountPrice:', discountPrice);
 
   const product = await Product.create({
     name,
     category,
     currency: currency || 'USD', // ✅ default currency
-    description: description || "",
+    description: description || '',
     price: numericPrice,
     discount: numericDiscount,
-    discountPrice,           // ✅ save in DB
+    discountPrice, // ✅ save in DB
     stock: stock || 0,
     shippingCost: Number(shippingCost) || 0,
     colors: colors ? JSON.parse(colors) : [],
     sizes: sizes ? JSON.parse(sizes) : [],
     images: images || [],
     host: userId,
-    material: material || "",
+    material: material || '',
   });
 
   return product;
 };
 
-
-
-
-
-
-
-
-
-
 // ✅ Update Product
 export const updateProductService = async (
   req: any,
-  images?: { id: string; url: string }[]
+  images?: { id: string; url: string }[],
 ) => {
   const { id } = req.params;
   const {
@@ -164,8 +146,10 @@ export const updateProductService = async (
     ...(currency && { currency }), // ✅ currency update
   };
 
-  const product = await Product.findByIdAndUpdate(id, updateData, { new: true });
-  if (!product) throw new AppError(404, "Product not found");
+  const product = await Product.findByIdAndUpdate(id, updateData, {
+    new: true,
+  });
+  if (!product) throw new AppError(404, 'Product not found');
   return product;
 };
 
@@ -174,10 +158,10 @@ export const deleteProductService = async (id: string) => {
   const product = await Product.findByIdAndUpdate(
     id,
     { isDeleted: true },
-    { new: true }
+    { new: true },
   );
-  if (!product) throw new AppError(404, "Product not found");
-  return { message: "Product deleted successfully" };
+  if (!product) throw new AppError(404, 'Product not found');
+  return { message: 'Product deleted successfully' };
 };
 
 // ✅ Add Review
@@ -187,42 +171,25 @@ export const addProductReviewService = async (req: any) => {
   const { rating, comment } = req.body;
 
   if (!rating || !comment)
-    throw new AppError(400, "Rating and comment are required");
+    throw new AppError(400, 'Rating and comment are required');
 
   const product = await Product.findById(id);
-  if (!product) throw new AppError(404, "Product not found");
+  if (!product) throw new AppError(404, 'Product not found');
 
   const alreadyReviewed = product.reviews?.some(
-    (review: any) => review.user.toString() === userId
+    (review: any) => review.user.toString() === userId,
   );
   if (alreadyReviewed)
-    throw new AppError(400, "You have already reviewed this product");
+    throw new AppError(400, 'You have already reviewed this product');
 
   const updatedProduct = await Product.findByIdAndUpdate(
     id,
     { $push: { reviews: { user: userId, rating: Number(rating), comment } } },
-    { new: true }
-  ).populate("reviews.user", "fullName image");
+    { new: true },
+  ).populate('reviews.user', 'fullName image');
 
   return updatedProduct;
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 // const getTrendingProducts = async (limit = 8) => {
 //   const products = await Product.aggregate([
@@ -246,13 +213,9 @@ export const addProductReviewService = async (req: any) => {
 //     },
 //     { $unwind: { path: "$host", preserveNullAndEmptyArrays: true } },
 //   ]);
- 
+
 //   return products;
 // };
- 
-
-
-
 
 const getTrendingProducts = async (
   productId: string | undefined,
@@ -274,7 +237,7 @@ const getTrendingProducts = async (
   // categoryIds dile filter korbo — na dile all products asbe
   if (categoryIds.length > 0) {
     query.category = {
-      $in: categoryIds.map((id) => new Types.ObjectId(id)),
+      $in: categoryIds.map(id => new Types.ObjectId(id)),
     };
   }
 
@@ -297,64 +260,51 @@ const getTrendingProducts = async (
   };
 };
 
-
-
-
- 
 const getFeaturedProducts = async (limit = 5) => {
   const products = await Product.aggregate([
-    { $match: { isDeleted: { $ne: true }, "reviews.0": { $exists: true } } },
+    { $match: { isDeleted: { $ne: true }, 'reviews.0': { $exists: true } } },
     {
       $addFields: {
-        avgRating: { $avg: "$reviews.rating" },
+        avgRating: { $avg: '$reviews.rating' },
       },
     },
     { $sort: { avgRating: -1 } },
     { $limit: limit },
     {
       $lookup: {
-        from: "users",
-        localField: "host",
-        foreignField: "_id",
-        as: "host",
+        from: 'users',
+        localField: 'host',
+        foreignField: '_id',
+        as: 'host',
         pipeline: [{ $project: { name: 1, profileImage: 1 } }],
       },
     },
-    { $unwind: { path: "$host", preserveNullAndEmptyArrays: true } },
+    { $unwind: { path: '$host', preserveNullAndEmptyArrays: true } },
   ]);
- 
+
   return products;
 };
 
-
-
-
- 
 const getRelatedProducts = async (
   productId: string,
   category: string,
-  limit = 6
+  limit = 6,
 ) => {
   return await Product.find({
     _id: { $ne: productId },
-    category: { $regex: category, $options: "i" },
+    category: { $regex: category, $options: 'i' },
     isDeleted: { $ne: true },
   })
-    .populate("host", "name profileImage")
+    .populate('host', 'name profileImage')
     .limit(limit);
 };
- 
- 
+
 const getProductCategories = async () => {
-  const categories = await Product.distinct("category", {
+  const categories = await Product.distinct('category', {
     isDeleted: { $ne: true },
   });
   return categories.filter(Boolean);
 };
-
-
-
-
 
 // 📊 DASHBOARD SERVICE
 // 📊 SUMMARY SERVICE
@@ -395,19 +345,19 @@ export const getDashboardSummaryService = async (req: any) => {
   };
 };
 
-
 export const getMonthlyEarningsService = async (req: any) => {
   const adminId = req.user?.id;
 
-  const orders = await Order.find()
-    .populate("items.product", "host price quantity");
+  const orders = await Order.find().populate(
+    'items.product',
+    'host price quantity',
+  );
 
   const monthlyMap: Record<number, number> = {};
 
   orders.forEach((order: any) => {
     const adminItems = order.items.filter(
-      (item: any) =>
-        item.product?.host?.toString() === adminId
+      (item: any) => item.product?.host?.toString() === adminId,
     );
 
     if (adminItems.length > 0) {
@@ -423,42 +373,15 @@ export const getMonthlyEarningsService = async (req: any) => {
     }
   });
 
-  return Object.keys(monthlyMap).map((m) => ({
+  return Object.keys(monthlyMap).map(m => ({
     month: Number(m),
     total: monthlyMap[Number(m)],
   }));
 };
 
-
-
-
-
-
-//review product api 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//review product api
 
 // ── Home Dashboard ─────────────────────────────────────────────────────────────
-
-
-
 
 // // ── Home Dashboard ─────────────────────────────────────────────────────────────
 // const getProductDashboard = async (
@@ -469,17 +392,17 @@ export const getMonthlyEarningsService = async (req: any) => {
 // ) => {
 //   const targetYear = year || new Date().getFullYear();
 //   const skip = (page - 1) * limit;
- 
+
 //   // আমার সব product IDs
 //   const myProducts = await Product.find(
 //     { host: userId, isDeleted: false },
 //     { _id: 1 }
 //   );
 //   const productIds = myProducts.map((p) => p._id);
- 
+
 //   // ── Total Products Count ──────────────────────────────────
 //   const totalProducts = productIds.length;
- 
+
 //   // ── Total Sales & Earning ─────────────────────────────────
 //   const totalSalesResult = await Order.aggregate([
 //     {
@@ -501,12 +424,9 @@ export const getMonthlyEarningsService = async (req: any) => {
 //       },
 //     },
 //   ]);
- 
+
 //   const totalSales = totalSalesResult[0]?.totalSales || 0;
 //   const totalEarning = totalSalesResult[0]?.totalEarning || 0;
- 
-
-
 
 //   // ── Monthly Earning ───────────────────────────────────────
 //   const monthlyEarningRaw = await Order.aggregate([
@@ -533,7 +453,7 @@ export const getMonthlyEarningsService = async (req: any) => {
 //     },
 //     { $sort: { _id: 1 } },
 //   ]);
- 
+
 //   const monthlyEarning = Array.from({ length: 12 }, (_, i) => {
 //     const found = monthlyEarningRaw.find((m) => m._id === i + 1);
 //     return {
@@ -544,13 +464,13 @@ export const getMonthlyEarningsService = async (req: any) => {
 //       earning: found?.earning || 0,
 //     };
 //   });
- 
+
 //   // ── Recent Orders with pagination ─────────────────────────
 //   const totalOrders = await Order.countDocuments({
 //     "items.product": { $in: productIds },
 //     isDeleted: false,
 //   });
- 
+
 //   const recentOrders = await Order.find({
 //     "items.product": { $in: productIds },
 //     isDeleted: false,
@@ -561,7 +481,7 @@ export const getMonthlyEarningsService = async (req: any) => {
 //     .skip(skip)
 //     .limit(limit)
 //     .select("items subtotal total orderStatus paymentStatus createdAt");
- 
+
 //   return {
 //     totalProducts,
 //     totalSales,
@@ -577,13 +497,12 @@ export const getMonthlyEarningsService = async (req: any) => {
 //     },
 //   };
 // };
- 
 
 const getProductDashboard = async (
   userId: string,
   year?: number,
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
 ) => {
   const targetYear = year || new Date().getFullYear();
   const skip = (page - 1) * limit;
@@ -591,9 +510,9 @@ const getProductDashboard = async (
   // ✅ শুধু আমার product IDs
   const myProducts = await Product.find(
     { host: new Types.ObjectId(userId), isDeleted: false },
-    { _id: 1 }
+    { _id: 1 },
   );
-  const productIds = myProducts.map((p) => p._id);
+  const productIds = myProducts.map(p => p._id);
 
   // ✅ product না থাকলে early return
   if (productIds.length === 0) {
@@ -604,8 +523,8 @@ const getProductDashboard = async (
       year: targetYear,
       monthlyEarning: Array.from({ length: 12 }, (_, i) => ({
         month: i + 1,
-        monthName: new Date(targetYear, i, 1).toLocaleString("en", {
-          month: "short",
+        monthName: new Date(targetYear, i, 1).toLocaleString('en', {
+          month: 'short',
         }),
         earning: 0,
       })),
@@ -621,91 +540,214 @@ const getProductDashboard = async (
   const totalSalesResult = await Order.aggregate([
     {
       $match: {
-        paymentStatus: "paid",
+        paymentStatus: 'paid',
         isDeleted: false,
       },
     },
-    { $unwind: "$items" },
+    { $unwind: '$items' },
     {
       $match: {
-        "items.product": { $in: productIds },
+        'items.product': { $in: productIds },
+      },
+    },
+    {
+      $lookup: {
+        from: 'products',
+        localField: 'items.product',
+        foreignField: '_id',
+        as: 'product',
+        pipeline: [
+          {
+            $project: {
+              currency: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: {
+        path: '$product',
+        preserveNullAndEmptyArrays: false,
       },
     },
     {
       $group: {
-        _id: null,
-        totalSales: { $sum: "$items.quantity" },
-        totalEarning: {
-          $sum: { $multiply: ["$items.price", "$items.quantity"] },
+        _id: '$product.currency', // ✅ simpler & safe (currency already exists)
+        amount: {
+          $sum: {
+            $multiply: ['$items.price', '$items.quantity'],
+          },
+        },
+        totalSales: {
+          $sum: '$items.quantity',
         },
       },
     },
+    {
+      $project: {
+        _id: 0,
+        currency: { $ifNull: ['$_id', 'USD'] }, // ✅ final safety net
+        amount: 1,
+        totalSales: 1,
+      },
+    },
+    {
+      $sort: { currency: 1 },
+    },
   ]);
-  
 
-  const totalSales = totalSalesResult[0]?.totalSales || 0;
-  const totalEarning = totalSalesResult[0]?.totalEarning || 0;
+  // const totalSales = totalSalesResult[0]?.totalSales || 0;
+  // const totalEarning = totalSalesResult[0]?.totalEarning || 0;
+
+  const totalEarningByCurrency = totalSalesResult.map(item => ({
+    currency: item.currency,
+    amount: item.amount,
+  }));
+
+  const totalSalesByCurrency = totalSalesResult.map(item => ({
+    currency: item.currency,
+    totalSales: item.totalSales,
+  }));
 
   // ── Monthly Earning ───────────────────────────────────────
+  // const monthlyEarningRaw = await Order.aggregate([
+  //   {
+  //     $match: {
+  //       paymentStatus: "paid",
+  //       isDeleted: false,
+  //       createdAt: {
+  //         $gte: new Date(`${targetYear}-01-01`),
+  //         $lte: new Date(`${targetYear}-12-31T23:59:59`),
+  //       },
+  //     },
+  //   },
+  //   { $unwind: "$items" },
+  //   {
+  //     $match: {
+  //       "items.product": { $in: productIds },
+  //     },
+  //   },
+  //   {
+  //     $group: {
+  //       _id: { $month: "$createdAt" },
+  //       earning: {
+  //         $sum: { $multiply: ["$items.price", "$items.quantity"] },
+  //       },
+  //     },
+  //   },
+  //   { $sort: { _id: 1 } },
+  // ]);
+
+  // const monthlyEarning = Array.from({ length: 12 }, (_, i) => {
+  //   const found = monthlyEarningRaw.find((m) => m._id === i + 1);
+  //   return {
+  //     month: i + 1,
+  //     monthName: new Date(targetYear, i, 1).toLocaleString("en", {
+  //       month: "short",
+  //     }),
+  //     earning: found?.earning || 0,
+  //   };
+  // });
   const monthlyEarningRaw = await Order.aggregate([
     {
       $match: {
-        paymentStatus: "paid",
+        paymentStatus: 'paid',
         isDeleted: false,
         createdAt: {
           $gte: new Date(`${targetYear}-01-01`),
-          $lte: new Date(`${targetYear}-12-31T23:59:59`),
+          $lte: new Date(`${targetYear}-12-31T23:59:59.999Z`),
         },
       },
     },
-    { $unwind: "$items" },
+    {
+      $unwind: '$items',
+    },
     {
       $match: {
-        "items.product": { $in: productIds },
+        'items.product': { $in: productIds },
+      },
+    },
+    {
+      $lookup: {
+        from: 'products',
+        localField: 'items.product',
+        foreignField: '_id',
+        as: 'product',
+        pipeline: [
+          {
+            $project: {
+              currency: 1,
+            },
+          },
+        ],
+      },
+    },
+    {
+      $unwind: {
+        path: '$product',
+        preserveNullAndEmptyArrays: false,
       },
     },
     {
       $group: {
-        _id: { $month: "$createdAt" },
-        earning: {
-          $sum: { $multiply: ["$items.price", "$items.quantity"] },
+        _id: {
+          month: { $month: '$createdAt' },
+          currency: { $ifNull: ['$product.currency', 'USD'] },
+        },
+        price: {
+          $sum: {
+            $multiply: ['$items.price', '$items.quantity'],
+          },
         },
       },
     },
-    { $sort: { _id: 1 } },
+    {
+      $sort: {
+        '_id.month': 1,
+      },
+    },
   ]);
 
-  const monthlyEarning = Array.from({ length: 12 }, (_, i) => {
-    const found = monthlyEarningRaw.find((m) => m._id === i + 1);
+  const monthlyEarning = Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+
+    const monthData = monthlyEarningRaw.filter(
+      item => item._id.month === month,
+    );
+
     return {
-      month: i + 1,
-      monthName: new Date(targetYear, i, 1).toLocaleString("en", {
-        month: "short",
+      month: new Date(targetYear, index, 1).toLocaleString('en', {
+        month: 'short',
       }),
-      earning: found?.earning || 0,
+      amount: monthData.map(item => ({
+        currency: item._id?.currency || 'USD',
+        price: Number(item.price || 0),
+      })),
     };
   });
 
   // ── Total Orders Count ────────────────────────────────────
+
   const totalOrdersResult = await Order.aggregate([
     {
       $match: {
         isDeleted: false,
       },
     },
-    { $unwind: "$items" },
+    { $unwind: '$items' },
     {
       $match: {
-        "items.product": { $in: productIds },
+        'items.product': { $in: productIds },
       },
     },
     {
       $group: {
-        _id: "$_id",
+        _id: '$_id',
       },
     },
     {
-      $count: "total",
+      $count: 'total',
     },
   ]);
 
@@ -715,71 +757,67 @@ const getProductDashboard = async (
   const recentOrders = await Order.aggregate([
     {
       $match: {
-        "items.product": { $in: productIds },
+        'items.product': { $in: productIds },
         isDeleted: false,
       },
     },
-    { $unwind: "$items" },
+    { $unwind: '$items' },
     {
       $match: {
-        "items.product": { $in: productIds }, // ✅ শুধু আমার product এর items
+        'items.product': { $in: productIds }, // ✅ শুধু আমার product এর items
       },
     },
     {
       $lookup: {
-        from: "products",
-        localField: "items.product",
-        foreignField: "_id",
-        as: "items.product",
+        from: 'products',
+        localField: 'items.product',
+        foreignField: '_id',
+        as: 'items.product',
         pipeline: [{ $project: { name: 1, images: 1, price: 1, currency: 1 } }],
       },
     },
-    { $unwind: "$items.product" },
+    { $unwind: '$items.product' },
     {
       $lookup: {
-        from: "users",
-        localField: "user",
-        foreignField: "_id",
-        as: "userInfo",
+        from: 'users',
+        localField: 'user',
+        foreignField: '_id',
+        as: 'userInfo',
         pipeline: [{ $project: { fullName: 1, image: 1, email: 1 } }],
       },
     },
     {
-     // ✅ সঠিক
- $unwind: { path: "$userInfo", preserveNullAndEmptyArrays: true },
+      // ✅ সঠিক
+      $unwind: { path: '$userInfo', preserveNullAndEmptyArrays: true },
     },
     {
       $group: {
-        _id: "$_id",
-        user: { $first: "$userInfo" },
-        items: { $push: "$items" }, // ✅ শুধু আমার product এর items
-        subtotal: { $first: "$subtotal" },
-        total: { $first: "$total" },
-        orderStatus: { $first: "$orderStatus" },
-        paymentStatus: { $first: "$paymentStatus" },
-        createdAt: { $first: "$createdAt" },
+        _id: '$_id',
+        user: { $first: '$userInfo' },
+        items: { $push: '$items' }, // ✅ শুধু আমার product এর items
+        subtotal: { $first: '$subtotal' },
+        total: { $first: '$total' },
+        orderStatus: { $first: '$orderStatus' },
+        paymentStatus: { $first: '$paymentStatus' },
+        createdAt: { $first: '$createdAt' },
       },
     },
     // ✅ orderNumber add করো
-{
-  $addFields: {
-    orderId: "$_id",
-    orderNumber: {
-      $concat: [
-        "#",
-        {
-          $toUpper: {
-            $substrCP: [
-              { $toString: "$_id" },
-              19,
-              5,
-            ],
-          },
+    {
+      $addFields: {
+        orderId: '$_id',
+        orderNumber: {
+          $concat: [
+            '#',
+            {
+              $toUpper: {
+                $substrCP: [{ $toString: '$_id' }, 19, 5],
+              },
+            },
+          ],
         },
-      ],
+      },
     },
-  },
-},
     { $sort: { createdAt: -1 } },
     { $skip: skip },
     { $limit: limit },
@@ -787,8 +825,8 @@ const getProductDashboard = async (
 
   return {
     totalProducts,
-    totalSales,
-    totalEarning,
+    totalSales: totalSalesByCurrency,
+    totalEarning: totalEarningByCurrency,
     year: targetYear,
     monthlyEarning,
     recentOrders,
@@ -805,7 +843,7 @@ const getEarningOverview = async (
   userId: string,
   year?: number,
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
 ) => {
   const targetYear = year || new Date().getFullYear();
   const skip = (page - 1) * limit;
@@ -813,9 +851,9 @@ const getEarningOverview = async (
   // ✅ ObjectId convert
   const myProducts = await Product.find(
     { host: new Types.ObjectId(userId), isDeleted: false },
-    { _id: 1 }
+    { _id: 1 },
   );
-  const productIds = myProducts.map((p) => p._id);
+  const productIds = myProducts.map(p => p._id);
 
   // ✅ product না থাকলে early return
   if (productIds.length === 0) {
@@ -824,8 +862,8 @@ const getEarningOverview = async (
       year: targetYear,
       monthlyEarning: Array.from({ length: 12 }, (_, i) => ({
         month: i + 1,
-        monthName: new Date(targetYear, i, 1).toLocaleString("en", {
-          month: "short",
+        monthName: new Date(targetYear, i, 1).toLocaleString('en', {
+          month: 'short',
         }),
         earning: 0,
       })),
@@ -836,14 +874,14 @@ const getEarningOverview = async (
 
   // ── Total Earning ─────────────────────────────────────────
   const totalResult = await Order.aggregate([
-    { $match: { paymentStatus: "paid", isDeleted: false } },
-    { $unwind: "$items" },
-    { $match: { "items.product": { $in: productIds } } },
+    { $match: { paymentStatus: 'paid', isDeleted: false } },
+    { $unwind: '$items' },
+    { $match: { 'items.product': { $in: productIds } } },
     {
       $group: {
         _id: null,
         totalEarning: {
-          $sum: { $multiply: ["$items.price", "$items.quantity"] },
+          $sum: { $multiply: ['$items.price', '$items.quantity'] },
         },
       },
     },
@@ -854,7 +892,7 @@ const getEarningOverview = async (
   const monthlyRaw = await Order.aggregate([
     {
       $match: {
-        paymentStatus: "paid",
+        paymentStatus: 'paid',
         isDeleted: false,
         createdAt: {
           $gte: new Date(`${targetYear}-01-01`),
@@ -862,13 +900,13 @@ const getEarningOverview = async (
         },
       },
     },
-    { $unwind: "$items" },
-    { $match: { "items.product": { $in: productIds } } },
+    { $unwind: '$items' },
+    { $match: { 'items.product': { $in: productIds } } },
     {
       $group: {
-        _id: { $month: "$createdAt" },
+        _id: { $month: '$createdAt' },
         earning: {
-          $sum: { $multiply: ["$items.price", "$items.quantity"] },
+          $sum: { $multiply: ['$items.price', '$items.quantity'] },
         },
       },
     },
@@ -876,11 +914,11 @@ const getEarningOverview = async (
   ]);
 
   const monthlyEarning = Array.from({ length: 12 }, (_, i) => {
-    const found = monthlyRaw.find((m) => m._id === i + 1);
+    const found = monthlyRaw.find(m => m._id === i + 1);
     return {
       month: i + 1,
-      monthName: new Date(targetYear, i, 1).toLocaleString("en", {
-        month: "short",
+      monthName: new Date(targetYear, i, 1).toLocaleString('en', {
+        month: 'short',
       }),
       earning: found?.earning || 0,
     };
@@ -888,41 +926,41 @@ const getEarningOverview = async (
 
   // ── Total Transactions Count ──────────────────────────────
   const totalTransactionsResult = await Order.aggregate([
-    { $match: { paymentStatus: "paid", isDeleted: false } },
-    { $unwind: "$items" },
-    { $match: { "items.product": { $in: productIds } } },
-    { $group: { _id: "$_id" } },
-    { $count: "total" },
+    { $match: { paymentStatus: 'paid', isDeleted: false } },
+    { $unwind: '$items' },
+    { $match: { 'items.product': { $in: productIds } } },
+    { $group: { _id: '$_id' } },
+    { $count: 'total' },
   ]);
   const totalTransactions = totalTransactionsResult[0]?.total || 0;
 
   // ── Recent Transactions ───────────────────────────────────
   const recentTransactions = await Order.aggregate([
-    { $match: { paymentStatus: "paid", isDeleted: false } },
-    { $unwind: "$items" },
+    { $match: { paymentStatus: 'paid', isDeleted: false } },
+    { $unwind: '$items' },
     {
       $match: {
-        "items.product": { $in: productIds },
+        'items.product': { $in: productIds },
       },
     },
     {
       $lookup: {
-        from: "products",
-        localField: "items.product",
-        foreignField: "_id",
-        as: "items.product",
+        from: 'products',
+        localField: 'items.product',
+        foreignField: '_id',
+        as: 'items.product',
         pipeline: [{ $project: { name: 1, images: 1 } }],
       },
     },
-    { $unwind: "$items.product" },
+    { $unwind: '$items.product' },
     {
       $group: {
-        _id: "$_id",
-        orderId: { $first: "$_id" },
-        items: { $push: "$items" },
-        total: { $first: "$total" },
-        orderStatus: { $first: "$orderStatus" },
-        createdAt: { $first: "$createdAt" },
+        _id: '$_id',
+        orderId: { $first: '$_id' },
+        items: { $push: '$items' },
+        total: { $first: '$total' },
+        orderStatus: { $first: '$orderStatus' },
+        createdAt: { $first: '$createdAt' },
       },
     },
     // ✅ ObjectId → string → শেষের 5 char নাও
@@ -930,14 +968,10 @@ const getEarningOverview = async (
       $addFields: {
         orderNumber: {
           $concat: [
-            "#",
+            '#',
             {
               $toUpper: {
-                $substrCP: [
-                  { $toString: "$orderId" },
-                  19,
-                  5,
-                ],
+                $substrCP: [{ $toString: '$orderId' }, 19, 5],
               },
             },
           ],
@@ -967,34 +1001,36 @@ const getMyOrders = async (
   userId: string,
   status?: string,
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
 ) => {
   const skip = (page - 1) * limit;
- 
-  const myProducts = await Product.find({ host: userId, isDeleted: false }, { _id: 1 });
-  const productIds = myProducts.map((p) => p._id);
- 
-  const filter: any = { "items.product": { $in: productIds }, isDeleted: false };
+
+  const myProducts = await Product.find(
+    { host: userId, isDeleted: false },
+    { _id: 1 },
+  );
+  const productIds = myProducts.map(p => p._id);
+
+  const filter: any = {
+    'items.product': { $in: productIds },
+    isDeleted: false,
+  };
   if (status) filter.orderStatus = status;
- 
+
   const total = await Order.countDocuments(filter);
- 
+
   const orders = await Order.find(filter)
-    .populate({ path: "items.product", select: "name images price" })
-    .populate("user", "fullName image email")
+    .populate({ path: 'items.product', select: 'name images price' })
+    .populate('user', 'fullName image email')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
- 
+
   return {
     orders,
     pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 };
-
-
-
-
 
 // type OrderStatus =
 //   | "processing"
@@ -1046,19 +1082,19 @@ const getMyOrders = async (
 //   return existingOrder;
 // };
 
-
-
- 
 // ── 1. Get My Products (Product List) ────────────────────────────────────────
 const getMyProducts = async (
   userId: string,
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
 ) => {
   const skip = (page - 1) * limit;
- 
-  const total = await Product.countDocuments({ host: userId, isDeleted: false });
- 
+
+  const total = await Product.countDocuments({
+    host: userId,
+    isDeleted: false,
+  });
+
   const products = await Product.find({ host: userId, isDeleted: false })
     .populate('category', 'name')
     .sort({ createdAt: -1 })
@@ -1067,15 +1103,12 @@ const getMyProducts = async (
     .select(
       'name price images category shippingCost description discountPrice colors currency sizes discount stock isDeleted createdAt',
     );
- 
+
   return {
     products,
     pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 };
- 
-
-
 
 // ── 5. Get Single Product ─────────────────────────────────────────────────────
 const getSingleProduct = async (userId: string, productId: string) => {
@@ -1083,142 +1116,122 @@ const getSingleProduct = async (userId: string, productId: string) => {
     _id: productId,
     host: userId,
     isDeleted: false,
-  }).populate("category", "name");
- 
-  if (!product) throw new AppError(httpStatus.NOT_FOUND, "Product not found");
+  }).populate('category', 'name');
+
+  if (!product) throw new AppError(httpStatus.NOT_FOUND, 'Product not found');
   return product;
 };
 
-
-
-
-
-
-
-
-
- 
 // ── 1. Get My Product Orders (Manage Order screen) ────────────────────────────
 // GET /api/v1/products/manage-orders?status=processing&page=1&limit=10
 const getManageOrders = async (
   userId: string,
   status?: string,
   page: number = 1,
-  limit: number = 10
+  limit: number = 10,
 ) => {
   const skip = (page - 1) * limit;
- 
+
   // আমার সব product IDs
   const myProducts = await Product.find(
     { host: userId, isDeleted: false },
-    { _id: 1 }
+    { _id: 1 },
   );
-  const productIds = myProducts.map((p) => p._id);
- 
+  const productIds = myProducts.map(p => p._id);
+
   const filter: any = {
-    "items.product": { $in: productIds },
+    'items.product': { $in: productIds },
     isDeleted: false,
   };
- 
+
   // status filter — All দিলে filter নেই
-  if (status && status !== "all") {
+  if (status && status !== 'all') {
     filter.orderStatus = status;
   }
- 
+
   const total = await Order.countDocuments(filter);
- 
+
   const orders = await Order.find(filter)
     .populate({
-      path: "items.product",
-      select: "name images price",
+      path: 'items.product',
+      select: 'name images price',
     })
-    .populate("user", "fullName image phoneNumber")
+    .populate('user', 'fullName image phoneNumber')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
     .select(
-      "items shippingAddress subtotal shippingCost tax total orderStatus paymentStatus stripePaymentIntentId createdAt user"
+      'items shippingAddress subtotal shippingCost tax total orderStatus paymentStatus stripePaymentIntentId createdAt user',
     );
- 
+
   return {
     orders,
     pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
   };
 };
- 
+
 // ── 2. Get Single Order Details ───────────────────────────────────────────────
 // GET /api/v1/products/manage-orders/:orderId
 const getOrderDetails = async (userId: string, orderId: string) => {
   const myProducts = await Product.find(
     { host: userId, isDeleted: false },
-    { _id: 1 }
+    { _id: 1 },
   );
-  const productIds = myProducts.map((p) => p._id);
- 
+  const productIds = myProducts.map(p => p._id);
+
   const order = await Order.findOne({
     _id: orderId,
-    "items.product": { $in: productIds },
+    'items.product': { $in: productIds },
     isDeleted: false,
   })
     .populate({
-      path: "items.product",
-      select: "name images price",
+      path: 'items.product',
+      select: 'name images price',
     })
-    .populate("user", "fullName image phoneNumber email");
- 
-  if (!order) throw new AppError(httpStatus.NOT_FOUND, "Order not found");
- 
+    .populate('user', 'fullName image phoneNumber email');
+
+  if (!order) throw new AppError(httpStatus.NOT_FOUND, 'Order not found');
+
   return order;
 };
- 
+
 // ── 3. Update Order Status (Mark as Delivered) ────────────────────────────────
 // PATCH /api/v1/products/manage-orders/:orderId/status
 const updateManageOrderStatus = async (
   userId: string,
   orderId: string,
-  orderStatus: string
+  orderStatus: string,
 ) => {
   const myProducts = await Product.find(
     { host: userId, isDeleted: false },
-    { _id: 1 }
+    { _id: 1 },
   );
-  const productIds = myProducts.map((p) => p._id);
- 
+  const productIds = myProducts.map(p => p._id);
+
   const order = await Order.findOneAndUpdate(
     {
       _id: orderId,
-      "items.product": { $in: productIds },
+      'items.product': { $in: productIds },
       isDeleted: false,
     },
     { $set: { orderStatus } },
-    { new: true }
-  ).populate({ path: "items.product", select: "name images price" });
- 
-  if (!order) throw new AppError(httpStatus.NOT_FOUND, "Order not found");
+    { new: true },
+  ).populate({ path: 'items.product', select: 'name images price' });
+
+  if (!order) throw new AppError(httpStatus.NOT_FOUND, 'Order not found');
   return order;
 };
-
-
-
-
-
-
 
 const updateOrderStatus = async (
   userId: string,
   orderId: string,
-  orderStatus:
-    | "processing"
-    | "shipped"
-    | "delivered"
-    | "cancelled"
+  orderStatus: 'processing' | 'shipped' | 'delivered' | 'cancelled',
 ) => {
-
   // find order
   const existingOrder = await Order.findById(orderId);
 
   if (!existingOrder) {
-    throw new Error("Order not found");
+    throw new Error('Order not found');
   }
 
   // update status
@@ -1229,10 +1242,6 @@ const updateOrderStatus = async (
 
   return existingOrder;
 };
-
-
-
-
 
 // const getReviewsByProduct = async (
 //   productId: string,
@@ -1324,17 +1333,17 @@ const updateOrderStatus = async (
 //   };
 // };
 
-const getReviewsByProduct = async (
-  productId: string,
-  page = 1,
-  limit = 10,
-) => {
+const getReviewsByProduct = async (productId: string, page = 1, limit = 10) => {
   const skip = (page - 1) * limit;
 
   // মডেলের ফিল্ড নেম 'reviews.replies.user' অনুযায়ী পপুলেট করা হলো
   const product = await Product.findById(productId).populate([
     { path: 'reviews.user', select: 'fullName image' },
-    { path: 'reviews.replies.user', select: 'fullName image', strictPopulate: false },
+    {
+      path: 'reviews.replies.user',
+      select: 'fullName image',
+      strictPopulate: false,
+    },
   ]);
 
   if (!product) {
@@ -1354,13 +1363,14 @@ const getReviewsByProduct = async (
   const paginated = sorted.slice(skip, skip + limit);
 
   // 🎯 এখানে ম্যাপিং করে 'replies' অ্যারেকে আপনার চাওয়া 'reply' অবজেক্টে রূপান্তর করা হচ্ছে
-  const formattedReviews = paginated.map((review) => {
+  const formattedReviews = paginated.map(review => {
     const reviewObj = review.toObject ? review.toObject() : review;
-    
+
     // অ্যারের প্রথম রিপ্লাইটি নেওয়া হচ্ছে (যদি থাকে)
-    const firstReply = reviewObj.replies && reviewObj.replies.length > 0 
-      ? reviewObj.replies[0] 
-      : null;
+    const firstReply =
+      reviewObj.replies && reviewObj.replies.length > 0
+        ? reviewObj.replies[0]
+        : null;
 
     // পুরানো 'replies' বাদ দিয়ে নতুন 'reply' অবজেক্ট যোগ করা হচ্ছে
     delete reviewObj.replies;
@@ -1379,11 +1389,8 @@ const getReviewsByProduct = async (
       total: reviews.length,
       totalPage: Math.ceil(reviews.length / limit),
     },
-    
   };
 };
-
-
 
 const getProductsByHost = async (
   hostId: string,
@@ -1399,15 +1406,15 @@ const getProductsByHost = async (
   };
 
   // ✅ categoryId দিলে filter করবে, না দিলে সব আসবে
-  if (categoryId && categoryId.trim() !== "") {
+  if (categoryId && categoryId.trim() !== '') {
     filter.category = categoryId;
   }
 
   const total = await Product.countDocuments(filter);
 
   const products = await Product.find(filter)
-    .populate("category", "name")
-    .populate("host", "fullName email image")
+    .populate('category', 'name')
+    .populate('host', 'fullName email image')
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
@@ -1423,57 +1430,53 @@ const getProductsByHost = async (
   };
 };
 
-
-
-
 // product.service.ts
 const addReviewReply = async (
   productId: string,
   reviewId: string,
   userId: string,
-  comment: string
+  comment: string,
 ) => {
   const product = await Product.findOneAndUpdate(
     {
       _id: productId,
-      "reviews._id": reviewId,
+      'reviews._id': reviewId,
     },
     {
       $push: {
-        "reviews.$.replies": {
+        'reviews.$.replies': {
           user: new Types.ObjectId(userId),
           comment,
         },
       },
     },
-    { new: true }
+    { new: true },
   )
-    .populate("reviews.replies.user", "name email image")
-    .populate("reviews.user", "name email image");
+    .populate('reviews.replies.user', 'name email image')
+    .populate('reviews.user', 'name email image');
 
   if (!product) {
-    throw new AppError(httpStatus.NOT_FOUND, "Product or Review not found");
+    throw new AppError(httpStatus.NOT_FOUND, 'Product or Review not found');
   }
 
   return product;
 };
 
-
 export const productServices = {
-    getAllProductsService,
-    getProductDetailsService,
-    createProductService,
-    updateProductService,
-    deleteProductService,
-    addProductReviewService,
-    // extra features
+  getAllProductsService,
+  getProductDetailsService,
+  createProductService,
+  updateProductService,
+  deleteProductService,
+  addProductReviewService,
+  // extra features
   getTrendingProducts,
   getFeaturedProducts,
   getRelatedProducts,
   getProductCategories,
   getDashboardSummaryService,
   getMonthlyEarningsService,
-getReviewsByProduct,
+  getReviewsByProduct,
   getProductDashboard,
   getEarningOverview,
   getMyOrders,
@@ -1485,5 +1488,4 @@ getReviewsByProduct,
   updateManageOrderStatus,
   getProductsByHost,
   addReviewReply,
-  
 };

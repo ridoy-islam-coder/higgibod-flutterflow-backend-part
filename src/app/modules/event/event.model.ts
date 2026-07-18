@@ -46,7 +46,7 @@ const reviewSchema = new Schema<IReview>(
 
 const eventSchema = new Schema<IEvent>(
   {
-    title: { type: String, required: true },
+    title: { type: String },
     category: {
       type: Schema.Types.ObjectId,
       ref: 'Category',
@@ -154,7 +154,6 @@ const eventSchema = new Schema<IEvent>(
 );
 
 eventSchema.index({ location: '2dsphere' });
-
 
 // ── filter deleted ────────────────────────────────────────
 eventSchema.pre('find', function (next) {

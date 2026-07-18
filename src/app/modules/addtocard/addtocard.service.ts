@@ -1,4 +1,6 @@
-import { Cart } from "./addtotocard.model";
+import httpStatus from 'http-status';
+import AppError from '../../error/AppError';
+import { Cart } from './addtotocard.model';
 
 // const getCart = async (userId: string) => {
 //   const cart = await Cart.findOne({ user: userId }).populate(
@@ -7,15 +9,11 @@ import { Cart } from "./addtotocard.model";
 //   );
 //   return cart || { user: userId, items: [] };
 // };
- 
-
-
-
 
 const getCart = async (userId: string) => {
   const cart = await Cart.findOne({ user: userId }).populate(
     'items.product',
-    'name price images discountPrice currency shippingCost'
+    'name price images discountPrice currency shippingCost',
   );
 
   if (!cart || cart.items.length === 0) {
@@ -47,67 +45,66 @@ const getCart = async (userId: string) => {
 
   return {
     ...cart.toObject(),
-    subtotal,      // $45
-    shippingFee,   // $80
-    total,         // $125
+    subtotal, // $45
+    shippingFee, // $80
+    total, // $125
   };
 };
-
-
-
-
-
-
-
-
-
-
-
 
 const addToCart = async (
   userId: string,
   productId: string,
+  currency: string,
   quantity: number,
   color?: string,
-  size?: string
+  size?: string,
 ) => {
   let cart = await Cart.findOne({ user: userId });
- 
+
   if (!cart) {
     cart = await Cart.create({ user: userId, items: [] });
   }
- 
+
+  if (cart.items.length > 0 && cart.items[0]?.currency !== currency)
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      `Your cart already contains items in ${cart.items[0]?.currency}. Please complete your current order before adding items in a different currency.`,
+    );
   // Check if same product+color+size already in cart
   const existingIndex = cart.items.findIndex(
     (item: any) =>
       item.product.toString() === productId &&
-      item.color === (color || "") &&
-      item.size === (size || "")
+      item.color === (color || '') &&
+      item.size === (size || ''),
   );
- 
+
   if (existingIndex > -1) {
     // Update quantity
     cart.items[existingIndex].quantity += quantity;
   } else {
-    cart.items.push({ product: productId as any, quantity, color, size });
+    cart.items.push({
+      product: productId as any,
+      currency,
+      quantity,
+      color,
+      size,
+    });
   }
- 
+
   await cart.save();
-  return cart.populate("items.product", "name price images discount");
+  return cart.populate('items.product', 'name price images discount');
 };
- const updateCartItem = async (
+
+const updateCartItem = async (
   userId: string,
   productId: string,
   quantity: number,
   color?: string,
-  size?: string
+  size?: string,
 ) => {
   const cart = await Cart.findOne({ user: userId });
   if (!cart) throw new Error('Cart not found');
 
-  // ✅ productId must match
-  // ✅ color দিলে match করবে, না দিলে ignore
-  // ✅ size দিলে match করবে, না দিলে ignore
   const item = cart.items.find((i: any) => {
     const productMatch = i.product.toString() === productId;
     const colorMatch = color ? i.color === color : true;
@@ -132,27 +129,26 @@ const addToCart = async (
   return cart.populate('items.product', 'name price images discount');
 };
 
-
 const removeFromCart = async (userId: string, productId: string) => {
   const cart = await Cart.findOne({ user: userId });
-  if (!cart) throw new Error("Cart not found");
- 
+  if (!cart) throw new Error('Cart not found');
+
   cart.items = cart.items.filter(
-    (i: any) => i.product.toString() !== productId
+    (i: any) => i.product.toString() !== productId,
   );
- 
+
   await cart.save();
-  return cart.populate("items.product", "name price images discount");
+  return cart.populate('items.product', 'name price images discount');
 };
- 
+
 const clearCart = async (userId: string) => {
   return await Cart.findOneAndUpdate(
     { user: userId },
     { items: [] },
-    { new: true }
+    { new: true },
   );
 };
- 
+
 export const cartService = {
   getCart,
   addToCart,

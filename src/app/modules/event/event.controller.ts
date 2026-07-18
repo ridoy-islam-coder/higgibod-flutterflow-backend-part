@@ -41,15 +41,24 @@ export const createEvent = catchAsync(async (req, res) => {
   });
 });
 
-export const getAllEvents = catchAsync(async (req, res) => {
+export const getAllEventsService = catchAsync(async (req, res) => {
   const result = await eventServices.getAllEventsService(req.query);
 
   sendResponse(res, {
     statusCode: 200,
     success: true,
     message: 'Events fetched successfully',
-    meta: result.meta, // 👈 add this
-    data: result.data,
+    data: result,
+  });
+});
+export const getAllEvents = catchAsync(async (req, res) => {
+  const result = await eventServices.getAllEvents(req.query);
+
+  sendResponse(res, {
+    statusCode: 200,
+    success: true,
+    message: 'Events fetched successfully',
+    data: result,
   });
 });
 
@@ -62,11 +71,6 @@ export const getPastEvents = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
-// export const getEventDetails = catchAsync(async (req, res) => {
-//   const result = await eventServices.getEventDetailsService(req.params.id as string);
-//   sendResponse(res, { statusCode: 200, success: true, message: "Event details fetched successfully", data: result });
-// });
 
 // GET /api/v1/events/:id
 const getEventDetails = catchAsync(async (req, res) => {
@@ -152,28 +156,6 @@ export const addReview = catchAsync(async (req, res) => {
   });
 });
 
-// const searchEvents = catchAsync(async (req, res) => {
-//   const result = await eventServices.searchEvents({
-//     q: req.query.q as string,
-//     category: req.query.category as string,
-//     country: req.query.country as string,
-//     eventType: req.query.eventType as string,
-//     minPrice: req.query.minPrice ? Number(req.query.minPrice) : undefined,
-//     maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
-//     date: req.query.date as string,
-//     organizer: req.query.organizer as string,
-//     page: req.query.page ? Number(req.query.page) : 1,
-//     limit: req.query.limit ? Number(req.query.limit) : 10,
-//   });
-
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: "Events fetched successfully",
-//     data: result,
-//   });
-// });
-
 const searchEvents = catchAsync(async (req, res) => {
   const result = await eventServices.searchEvents({
     q: req.query.q as string,
@@ -183,8 +165,8 @@ const searchEvents = catchAsync(async (req, res) => {
     minPrice: req.query.minPrice ? Number(req.query.minPrice) : undefined,
     maxPrice: req.query.maxPrice ? Number(req.query.maxPrice) : undefined,
     date: req.query.date as string,
-    startDate: req.query.startDate as string, // ✅ নতুন
-    endDate: req.query.endDate as string, // ✅ নতুন
+    startDate: req.query.startDate as string,
+    endDate: req.query.endDate as string,
     organizer: req.query.organizer as string,
     page: req.query.page ? Number(req.query.page) : 1,
     limit: req.query.limit ? Number(req.query.limit) : 10,
@@ -197,16 +179,6 @@ const searchEvents = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
-// const getFeaturedEvents = catchAsync(async (req, res) => {
-//   const result = await eventServices.getFeaturedEvents();
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: "Featured events fetched",
-//     data: result,
-//   });
-// });
 
 const getNearbyEvents = catchAsync(async (req, res) => {
   const location = req.query.location as string;
@@ -238,17 +210,6 @@ const getEventsByOrganizer = catchAsync(async (req, res) => {
     data: result,
   });
 });
-
-// export const getAllCategories = catchAsync(async (req, res) => {
-//   const result = await eventServices.getAllCategories();
-
-//   sendResponse(res, {
-//     statusCode: 200,
-//     success: true,
-//     message: "Categories fetched successfully",
-//     data: result,
-//   });
-// });
 
 export const getAllCategories = catchAsync(async (req, res) => {
   const { category } = req.query;
@@ -393,19 +354,6 @@ export const getNearbyEventsController = catchAsync(async (req, res) => {
     data: events,
   });
 });
-
-// // ── 3. Dashboard Stats ────────────────────────────────────────────────────────
-// const getDashboardStats = catchAsync(async (req, res) => {
-//   const userId = req.user?._id;
-//   const result = await eventServices.getDashboardStats(userId);
-
-//   sendResponse(res, {
-//     statusCode: httpStatus.OK,
-//     success: true,
-//     message: "Dashboard stats fetched successfully",
-//     data: result,
-//   });
-// });
 
 const getDashboardStats = catchAsync(async (req, res) => {
   const userId = req.user?._id;
@@ -608,48 +556,6 @@ const getHomeEvents = catchAsync(async (req, res) => {
   });
 });
 
-// event.controller.ts
-// const getEventReviews = catchAsync(async (req, res) => {
-//   const { eventId } = req.params;
-//   const { page, limit } = req.query;
-
-//   const result = await eventServices.getEventReviews(
-//     eventId as string,
-//     page ? Number(page) : 1,
-//     limit ? Number(limit) : 10
-//   );
-
-//   sendResponse(res, {
-//     statusCode: httpStatus.OK,
-//     success: true,
-//     message: "Reviews fetched successfully",
-//     data: result,
-//   });
-// });
-
-// const getEventReviews = catchAsync(async (req, res) => {
-//   const { id } = req.params;
-//   const { type, page, limit } = req.query;
-
-//   if (!type || !["product", "event"].includes(type as string)) {
-//     throw new AppError(httpStatus.BAD_REQUEST, "type must be 'product' or 'event'");
-//   }
-
-//   const result = await eventServices.getEventReviews(
-//     id as string,
-//     type as string,
-//     page ? Number(page) : 1,
-//     limit ? Number(limit) : 10
-//   );
-
-//   sendResponse(res, {
-//     statusCode: httpStatus.OK,
-//     success: true,
-//     message: "Reviews fetched successfully",
-//     data: result,
-//   });
-// });
-
 const getEventReviews = catchAsync(async (req, res) => {
   const { id } = req.params;
   const { type, page, limit } = req.query;
@@ -769,7 +675,7 @@ const addReplyToReview = catchAsync(async (req, res) => {
 
 export const eventcontroller = {
   createEvent,
-  getAllEvents,
+  getAllEventsService,
   getPastEvents,
   getEventDetails,
   updateEvent,
@@ -802,4 +708,5 @@ export const eventcontroller = {
   getEventReviewsold,
   getEventsByHost,
   addReplyToReview,
+  getAllEvents,
 };

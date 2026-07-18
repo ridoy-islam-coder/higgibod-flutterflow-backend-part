@@ -1,5 +1,3 @@
-
-
 // import { Request, Response, NextFunction } from 'express';
 // import jwt, { JwtPayload } from 'jsonwebtoken';
 // import httpStatus from 'http-status';
@@ -8,9 +6,6 @@
 // import catchAsync from '../utils/catchAsync';
 // import { Admin } from '../modules/Dashboard/admin/admin.model';
 // import User from '../modules/user/user.model';
-
-
-
 
 // const auth = (...userRoles: string[]) => {
 //   return catchAsync(async (req: Request, res: Response, next: NextFunction) => {
@@ -60,7 +55,6 @@
 // };
 
 // export default auth;
-
 
 import { Request, Response, NextFunction } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
