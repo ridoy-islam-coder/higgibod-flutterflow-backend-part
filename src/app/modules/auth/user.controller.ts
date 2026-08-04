@@ -3,13 +3,19 @@ import { OAuth2Client } from 'google-auth-library';
 import catchAsync from '../../utils/catchAsync';
 import { Request, Response } from 'express';
 import User from '../user/user.model';
-import httpStatus  from 'http-status';
+import httpStatus from 'http-status';
 import AppError from '../../error/AppError';
-import jwt, { JwtPayload, Secret  } from 'jsonwebtoken';
+import jwt, { JwtPayload, Secret } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import config from '../../config';
 import sendResponse from '../../utils/sendResponse';
-import { authServices,register,resendOtpregister,userResetPasswordService, verifyEmailregister, } from './user.service';
+import {
+  authServices,
+  register,
+  resendOtpregister,
+  userResetPasswordService,
+  verifyEmailregister,
+} from './user.service';
 import { UserRole } from '../user/user.interface';
 // import { AuthServices } from './user.service';
 import * as appleSignin from 'apple-signin-auth';
@@ -19,15 +25,9 @@ import { USER_ROLE } from '../user/user.constant';
 import { Personalization } from '../Personalizationuser/Personalization.model';
 import SocialLink from '../sociallink/soscial.model';
 
-
-
-const googleClient = new OAuth2Client('23601987612-ko94q8ki1ui42igekam6f87kamceuvu4.apps.googleusercontent.com');
-
-
-
-
-
-
+const googleClient = new OAuth2Client(
+  '23601987612-ko94q8ki1ui42igekam6f87kamceuvu4.apps.googleusercontent.com',
+);
 
 const userRegistration = catchAsync(async (req: Request, res: Response) => {
   const result = await register(req.body);
@@ -40,27 +40,24 @@ const userRegistration = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
-const verifyEmailController = catchAsync(async (req: Request, res: Response) => {
-  const { email, code } = req.body;
-  const result = await verifyEmailregister(email, code);
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Email verified successfully",
-    data: result,
-  });
-});
-
-
-
-
-
-
+const verifyEmailController = catchAsync(
+  async (req: Request, res: Response) => {
+    const { email, code } = req.body;
+    const result = await verifyEmailregister(email, code);
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: 'Email verified successfully',
+      data: result,
+    });
+  },
+);
 
 const login = catchAsync(async (req: Request, res: Response) => {
   const { email, password, fcmToken } = req.body;
-  const user = await User.findOne({ email, isActive: true }).select('+password');
+  const user = await User.findOne({ email, isActive: true }).select(
+    '+password',
+  );
 
   if (!user || !user?.password) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
@@ -71,21 +68,21 @@ const login = catchAsync(async (req: Request, res: Response) => {
     throw new AppError(httpStatus.UNAUTHORIZED, 'Incorrect password');
   }
 
-    if (fcmToken) {
-      user.fcmToken = fcmToken;
-      await user.save({ validateBeforeSave: false });
-    }
+  if (fcmToken) {
+    user.fcmToken = fcmToken;
+    await user.save({ validateBeforeSave: false });
+  }
 
-//   if (user.role === 'ORGANIZER') {
-//   if (user.adminApproval !== 'approved') {
-//     throw new AppError(
-//       httpStatus.FORBIDDEN,
-//       user.adminApproval === 'pending'
-//         ? 'Your account is pending admin approval. Please wait.'
-//         : 'Your account has been rejected. Please contact support.',
-//     );
-//   }
-// }
+  //   if (user.role === 'ORGANIZER') {
+  //   if (user.adminApproval !== 'approved') {
+  //     throw new AppError(
+  //       httpStatus.FORBIDDEN,
+  //       user.adminApproval === 'pending'
+  //         ? 'Your account is pending admin approval. Please wait.'
+  //         : 'Your account has been rejected. Please contact support.',
+  //     );
+  //   }
+  // }
 
   const accessToken = jwt.sign(
     {
@@ -93,7 +90,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
       role: user.role,
     },
     config.jwt.jwt_access_secret as Secret,
-    { expiresIn: '30d'  },
+    { expiresIn: '30d' },
   );
 
   const refreshToken = jwt.sign(
@@ -102,7 +99,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
       role: user.role,
     },
     config.jwt.jwt_refresh_secret as Secret,
-    { expiresIn: '30d'  },
+    { expiresIn: '30d' },
   );
 
   sendResponse(res, {
@@ -117,37 +114,22 @@ const login = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// const login 
+// const login
 
 const ornagizerlogin = catchAsync(async (req: Request, res: Response) => {
-  const { email, password } = req.body;    //adminapproval: 'approved'
-  const user = await User.findOne({ email, isActive: true ,}).select('+password');
+  const { email, password } = req.body; //adminapproval: 'approved'
+  const user = await User.findOne({ email, isActive: true }).select(
+    '+password',
+  );
 
   if (!user || !user?.password) {
     throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
 
-
-
   const isPasswordMatched = await bcrypt.compare(password, user.password);
   if (!isPasswordMatched) {
     throw new AppError(httpStatus.UNAUTHORIZED, 'Incorrect password');
   }
-  
 
   //  // Admin approval check
   // if (user.adminApproval !== 'approved') {
@@ -187,27 +169,6 @@ const ornagizerlogin = catchAsync(async (req: Request, res: Response) => {
     },
   });
 });
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 const resetPassword = catchAsync(async (req: Request, res: Response) => {
   const token = req.headers.token as string;
@@ -289,9 +250,6 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
       { expiresIn: '24h' },
     );
 
-
-
-
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
@@ -305,13 +263,6 @@ const refreshToken = catchAsync(async (req: Request, res: Response) => {
     );
   }
 });
-
-
-
-
-
-
-
 
 export const facebookLogin = catchAsync(async (req: Request, res: Response) => {
   const { accessToken, role, fcmToken } = req.body;
@@ -380,35 +331,38 @@ export const facebookLogin = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
 const linkedInLogin = catchAsync(async (req: Request, res: Response) => {
   const { accessToken, role } = req.body;
 
   if (!accessToken) {
-    throw new AppError(httpStatus.BAD_REQUEST, "LinkedIn accessToken is required");
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'LinkedIn accessToken is required',
+    );
   }
 
   if (!role) {
-    throw new AppError(httpStatus.BAD_REQUEST, "Role is required");
+    throw new AppError(httpStatus.BAD_REQUEST, 'Role is required');
   }
 
   try {
-  
-    const profileRes = await axios.get("https://api.linkedin.com/v2/me", {
+    const profileRes = await axios.get('https://api.linkedin.com/v2/me', {
       headers: { Authorization: `Bearer ${accessToken}` },
     });
 
-  
     const emailRes = await axios.get(
-      "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))",
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      'https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))',
+      { headers: { Authorization: `Bearer ${accessToken}` } },
     );
 
-    const email = emailRes.data.elements[0]["handle~"].emailAddress;
+    const email = emailRes.data.elements[0]['handle~'].emailAddress;
     const name = `${profileRes.data.localizedFirstName} ${profileRes.data.localizedLastName}`;
 
     if (!email) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Unable to get email from LinkedIn");
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        'Unable to get email from LinkedIn',
+      );
     }
 
     // 3. Find or create user
@@ -419,11 +373,11 @@ const linkedInLogin = catchAsync(async (req: Request, res: Response) => {
         email,
         fullName: name,
         isVerified: true,
-        accountType: "linkedin", // important
+        accountType: 'linkedin', // important
         role: role,
-          image: {
-          id: "linkedin", // any default id
-          url: "https://i.ibb.co/z5YHLV9/profile.png", // LinkedIn থেকে profile picture পাওয়া একটু tricky, তাই default দিলাম
+        image: {
+          id: 'linkedin', // any default id
+          url: 'https://i.ibb.co/z5YHLV9/profile.png', // LinkedIn থেকে profile picture পাওয়া একটু tricky, তাই default দিলাম
         },
       });
     }
@@ -432,36 +386,39 @@ const linkedInLogin = catchAsync(async (req: Request, res: Response) => {
     const accessTokenJwt = jwt.sign(
       { id: user._id, role: user.role },
       config.jwt.jwt_access_secret as Secret,
-      { expiresIn: "24h" }
+      { expiresIn: '24h' },
     );
 
     const refreshToken = jwt.sign(
       { id: user._id, role: user.role },
       config.jwt.jwt_refresh_secret as Secret,
-      { expiresIn: "7d" }
+      { expiresIn: '7d' },
     );
 
     // 5. Send response
     sendResponse(res, {
       statusCode: httpStatus.OK,
       success: true,
-      message: "LinkedIn login successful",
+      message: 'LinkedIn login successful',
       data: { user, accessToken: accessTokenJwt, refreshToken },
     });
   } catch (err) {
     console.error(err);
-    throw new AppError(httpStatus.INTERNAL_SERVER_ERROR, "LinkedIn login failed");
+    throw new AppError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      'LinkedIn login failed',
+    );
   }
 });
-
-
-
 
 export const appleLogin = catchAsync(async (req: Request, res: Response) => {
   const { identityToken, role } = req.body;
 
   if (!identityToken) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'Apple identity token is required');
+    throw new AppError(
+      httpStatus.BAD_REQUEST,
+      'Apple identity token is required',
+    );
   }
 
   if (!role) {
@@ -471,10 +428,10 @@ export const appleLogin = catchAsync(async (req: Request, res: Response) => {
   // 🔹 Verify the Apple JWT
   let applePayload: ApplePayload;
   try {
-    applePayload = await appleSignin.verifyIdToken(identityToken, {
+    applePayload = (await appleSignin.verifyIdToken(identityToken, {
       audience: config.apple.client_id, // Bundle ID (iOS) or Service ID (Web)
       ignoreExpiration: false,
-    }) as ApplePayload;
+    })) as ApplePayload;
   } catch (err) {
     throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid Apple identity token');
   }
@@ -483,10 +440,8 @@ export const appleLogin = catchAsync(async (req: Request, res: Response) => {
 
   const { sub: appleId, email, name } = applePayload;
 
-
   const finalEmail = email || `${appleId}@apple.com`;
 
- 
   let user = await User.findOne({ email: finalEmail });
 
   if (!user) {
@@ -496,29 +451,27 @@ export const appleLogin = catchAsync(async (req: Request, res: Response) => {
 
     user = await User.create({
       email: finalEmail,
-      role: role, 
+      role: role,
       fullName,
       accountType: 'apple',
       isVerified: true,
-        image: {
-        id: 'apple', 
+      image: {
+        id: 'apple',
         url: 'https://i.ibb.co/z5YHLV9/profile.png',
       },
-  
     });
   }
-
 
   const accessTokenJwt = jwt.sign(
     { id: user._id, role: user.role },
     config.jwt.jwt_access_secret as Secret,
-    { expiresIn: '24h' }
+    { expiresIn: '24h' },
   );
 
   const refreshToken = jwt.sign(
     { id: user._id, role: user.role },
     config.jwt.jwt_refresh_secret as Secret,
-    { expiresIn: '7d' }
+    { expiresIn: '7d' },
   );
 
   // 🔹 Send response
@@ -534,17 +487,12 @@ export const appleLogin = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-
-
-
-
-
 const codeVerification = catchAsync(async (req: Request, res: Response) => {
- const { email } = req.body;
+  const { email } = req.body;
 
-    if (!email) {
-      throw new AppError(httpStatus.BAD_REQUEST, 'Email is required');
-    }
+  if (!email) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Email is required');
+  }
 
   const otp = await authServices.sendVerificationCode(email);
 
@@ -552,21 +500,15 @@ const codeVerification = catchAsync(async (req: Request, res: Response) => {
     statusCode: httpStatus.OK,
     success: true,
     message: 'OTP sent successfully, please verify before reset password',
-    data: { email, otp }, 
+    data: { email, otp },
   });
 });
 
-
-
-
-
-
-
 export const verifyOtpController = catchAsync(async (req, res) => {
   const { email, otp } = req.body;
-   if (!email || !otp) {
-      throw new AppError(httpStatus.BAD_REQUEST, 'Email and OTP are required');
-    }
+  if (!email || !otp) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Email and OTP are required');
+  }
 
   await authServices.userVerifyOtp(email, Number(otp));
   sendResponse(res, {
@@ -576,7 +518,6 @@ export const verifyOtpController = catchAsync(async (req, res) => {
     data: { email },
   });
 });
-
 
 export const userResetPassword = catchAsync(
   async (req: Request, res: Response) => {
@@ -602,33 +543,9 @@ export const userResetPassword = catchAsync(
       data: {},
     });
   },
-
-
-
 );
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- const sendOtp = catchAsync(async (req, res) => {
+const sendOtp = catchAsync(async (req, res) => {
   const { email } = req.body;
   if (!email) throw new AppError(400, 'Email is required');
 
@@ -640,11 +557,7 @@ export const userResetPassword = catchAsync(
   });
 });
 
-
-
-
-
- const verifyOtpOnly = catchAsync(async (req, res) => {
+const verifyOtpOnly = catchAsync(async (req, res) => {
   const { email, otp } = req.body;
   if (!email || !otp) throw new AppError(400, 'Email and OTP are required');
 
@@ -657,22 +570,9 @@ export const userResetPassword = catchAsync(
   });
 });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 const googleLogin = catchAsync(async (req: Request, res: Response) => {
   const { idToken, role, fcmToken } = req.body;
-  
+
   if (!idToken) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Firebase ID Token required');
   }
@@ -686,22 +586,19 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
   let decodedToken;
   try {
     decodedToken = await admin.auth().verifyIdToken(idToken);
-
   } catch (err) {
-
     throw new AppError(httpStatus.UNAUTHORIZED, 'Invalid or expired token');
   }
   const email = decodedToken.email;
   const fullName = decodedToken.name;
   const picture = decodedToken.picture;
- 
+
   if (!email) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Email not found');
   }
   let user = await User.findOne({ email });
- 
+
   if (user && (!user.isActive || user.isDeleted)) {
- 
     throw new AppError(httpStatus.FORBIDDEN, 'Your account is not active');
   }
   let isNewUser = false;
@@ -720,28 +617,23 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
         },
       });
       isNewUser = true;
-    
     } catch (err) {
-  
       throw err;
     }
   } else if (fcmToken) {
     user.fcmToken = fcmToken;
     await user.save({ validateBeforeSave: false });
- 
   }
-
 
   if (isNewUser) {
     try {
       await Personalization.create({ user: user._id });
-     await SocialLink.create({ user: user._id });
+      await SocialLink.create({ user: user._id });
     } catch (err) {
       console.error('Personalization.create failed:', err);
       console.error('SocialLink.create failed:', err);
     }
   }
-
 
   const accessToken = jwt.sign(
     { id: user._id, role: user.role },
@@ -765,8 +657,6 @@ const googleLogin = catchAsync(async (req: Request, res: Response) => {
     },
   });
 });
-
-
 
 const resendOtpController = catchAsync(async (req: Request, res: Response) => {
   const { email } = req.body;
@@ -799,5 +689,5 @@ export const authControllers = {
   ornagizerlogin,
   appleLogin,
   verifyEmailController,
-  resendOtpController,  
+  resendOtpController,
 };

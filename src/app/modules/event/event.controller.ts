@@ -401,7 +401,7 @@ const getTotalEarningCards = catchAsync(async (req, res) => {
 // GET /api/v1/events/all?type=past
 // GET /api/v1/events/all?search=skate
 const getAllMyEvents = catchAsync(async (req, res) => {
-  const userId = req.user?._id;
+  const userId = req?.user?._id;
   const query = req.query; // { type, search }
 
   const result = await eventServices.getAllMyEvents(userId, query);
