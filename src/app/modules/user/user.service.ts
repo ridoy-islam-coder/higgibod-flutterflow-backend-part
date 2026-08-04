@@ -12,6 +12,21 @@ import { Product } from '../product/product.model';
 import SocialLink from '../sociallink/soscial.model';
 import { Personalization } from '../Personalizationuser/Personalization.model';
 import { USER_ROLE } from './user.constant';
+import jwt, { Secret } from 'jsonwebtoken';
+import config from '../../config';
+import { Cart } from '../addtocard/addtotocard.model';
+import { EventWishlist } from '../Eventwishlist/wishlist.model';
+import { Wishlist } from '../Wishlist/wishlist.model';
+import { BalanceModel } from '../Balance/balance.model';
+import { WithdrawalModel } from '../withdrawal/withdrawal.model';
+import PromoCode from '../PromoCode/promocode.model';
+import { Order } from '../userOrder/userOrder.model';
+import { Ticket } from '../Ticke/ticke.model';
+import PaymentHistory from '../subPayment/subpayment.model';
+import { Report } from '../profilereview/profilereview.model';
+import { ProductReviewReport } from '../Productreviewreport/Productreviewreport.model';
+import { EventReviewReport } from '../Eventreviewreport/Eventreviewreport.model';
+import { Contact } from '../Contact/contact.model';
 
 const getme = async (id: string) => {
   const result = await User.findById(id);
@@ -106,15 +121,180 @@ const deleteAccount = async (id: string, password: string) => {
   return result;
 };
 const deleteUser = async (id: string) => {
-  const result = await User.findByIdAndUpdate(
-    id,
-    { $set: { isDeleted: true } },
-    { new: true },
-  );
-  if (!result) {
-    throw new AppError(httpStatus.BAD_REQUEST, 'User Delete Successfully');
+  const user = await User.findById(id).select('_id');
+  if (!user) {
+    throw new AppError(httpStatus.NOT_FOUND, 'User not found');
   }
-  return result;
+
+  const [
+    ownedProducts,
+    ownedEvents,
+    balance,
+    profileReviews,
+    productReviewGroups,
+    eventReviewGroups,
+  ] =
+    await Promise.all([
+      Product.find({ host: user._id }).select('_id'),
+      Event.find({ host: user._id }).select('_id'),
+      BalanceModel.findOne({ userId: user._id }).select('_id'),
+      Review.find({
+        $or: [{ organizer: user._id }, { reviewer: user._id }],
+      }).select('_id'),
+      Product.aggregate<{ reviewIds: unknown[] }>([
+        { $match: { 'reviews.user': user._id } },
+        {
+          $project: {
+            reviewIds: {
+              $map: {
+                input: {
+                  $filter: {
+                    input: '$reviews',
+                    as: 'review',
+                    cond: { $eq: ['$$review.user', user._id] },
+                  },
+                },
+                as: 'review',
+                in: '$$review._id',
+              },
+            },
+          },
+        },
+      ]),
+      Event.aggregate<{ reviewIds: unknown[] }>([
+        { $match: { 'reviews.user': user._id } },
+        {
+          $project: {
+            reviewIds: {
+              $map: {
+                input: {
+                  $filter: {
+                    input: '$reviews',
+                    as: 'review',
+                    cond: { $eq: ['$$review.user', user._id] },
+                  },
+                },
+                as: 'review',
+                in: '$$review._id',
+              },
+            },
+          },
+        },
+      ]),
+    ]);
+
+  const productIds = ownedProducts.map(product => product._id);
+  const eventIds = ownedEvents.map(event => event._id);
+  const reviewIds = profileReviews.map(review => review._id);
+  const productReviewIds = productReviewGroups.flatMap(
+    group => group.reviewIds,
+  );
+  const eventReviewIds = eventReviewGroups.flatMap(group => group.reviewIds);
+
+  // Remove documents that only belong to this account.
+  await Promise.all([
+    Cart.deleteMany({ user: user._id }),
+    EventWishlist.deleteMany({ user: user._id }),
+    Wishlist.deleteMany({ user: user._id }),
+    SocialLink.deleteMany({ user: user._id }),
+    Personalization.deleteMany({ user: user._id }),
+    Follow.deleteMany({
+      $or: [{ follower: user._id }, { following: user._id }],
+    }),
+    Order.deleteMany({ user: user._id }),
+    Ticket.deleteMany({ user: user._id }),
+    PaymentHistory.deleteMany({ user: user._id }),
+    Contact.deleteMany({ user: user._id }),
+    Review.deleteMany({
+      $or: [{ organizer: user._id }, { reviewer: user._id }],
+    }),
+    Report.deleteMany({
+      $or: [{ reportedBy: user._id }, { review: { $in: reviewIds } }],
+    }),
+    ProductReviewReport.deleteMany({
+      $or: [
+        { reportedBy: user._id },
+        ...(productIds.length ? [{ product: { $in: productIds } }] : []),
+        ...(productReviewIds.length
+          ? [{ review: { $in: productReviewIds } }]
+          : []),
+      ],
+    }),
+    EventReviewReport.deleteMany({
+      $or: [
+        { reportedBy: user._id },
+        ...(eventIds.length ? [{ event: { $in: eventIds } }] : []),
+        ...(eventReviewIds.length
+          ? [{ review: { $in: eventReviewIds } }]
+          : []),
+      ],
+    }),
+    PromoCode.deleteMany({ createdBy: user._id }),
+  ]);
+
+  if (balance) {
+    await WithdrawalModel.deleteMany({ driverProfileId: balance._id });
+  }
+  await BalanceModel.deleteMany({ userId: user._id });
+
+  // Keep historical products/events addressable, but hide content owned by the
+  // deleted account and remove the account from content owned by other users.
+  await Promise.all([
+    Product.updateMany({ host: user._id }, { $set: { isDeleted: true } }),
+    Event.updateMany({ host: user._id }, { $set: { isDeleted: true } }),
+    Product.updateMany(
+      { 'reviews.user': user._id },
+      { $pull: { reviews: { user: user._id } } },
+    ),
+    Product.updateMany(
+      { 'reviews.replies.user': user._id },
+      { $pull: { 'reviews.$[].replies': { user: user._id } } },
+    ),
+    Event.updateMany(
+      { 'reviews.user': user._id },
+      { $pull: { reviews: { user: user._id } } },
+    ),
+    Event.updateMany(
+      { 'reviews.replies.user': user._id },
+      { $pull: { 'reviews.$[].replies': { user: user._id } } },
+    ),
+    Event.updateMany(
+      { attendees: user._id },
+      { $pull: { attendees: user._id } },
+    ),
+    Review.updateMany(
+      { 'reply.organizer': user._id },
+      { $set: { reply: null } },
+    ),
+    PromoCode.updateMany(
+      { usedBy: user._id },
+      { $set: { usedBy: null, isUsed: false } },
+    ),
+    ...(productIds.length
+      ? [
+          Cart.updateMany(
+            { 'items.product': { $in: productIds } },
+            { $pull: { items: { product: { $in: productIds } } } },
+          ),
+          Wishlist.updateMany(
+            { products: { $in: productIds } },
+            { $pull: { products: { $in: productIds } } },
+          ),
+        ]
+      : []),
+    ...(eventIds.length
+      ? [
+          EventWishlist.updateMany(
+            { events: { $in: eventIds } },
+            { $pull: { events: { $in: eventIds } } },
+          ),
+        ]
+      : []),
+  ]);
+
+  await User.deleteOne({ _id: user._id });
+
+  return { id: user._id, deleted: true };
 };
 
 const updatePhoneNumber = async (id: string, payload: Partial<TUser>) => {
@@ -270,10 +450,37 @@ const unblockUser = async (id: string) => {
 const switchAccount = async (userId: string, role: string) => {
   if (role === USER_ROLE.admin)
     throw new AppError(httpStatus.BAD_REQUEST, 'You cannot switch as an admin');
-  const result = await User.findByIdAndUpdate(userId, { role: role });
+  const result = await User.findByIdAndUpdate(
+    userId,
+    { role: role },
+    { new: true },
+  );
+
   if (!result)
     throw new AppError(httpStatus.BAD_REQUEST, 'Account switching filed');
-  return result;
+
+  const accessToken = jwt.sign(
+    {
+      id: result?._id,
+      role: result.role,
+    },
+    config.jwt.jwt_access_secret as Secret,
+    { expiresIn: '30d' },
+  );
+
+  const refreshToken = jwt.sign(
+    {
+      id: result._id,
+      role: result.role,
+    },
+    config.jwt.jwt_refresh_secret as Secret,
+    { expiresIn: '30d' },
+  );
+  return {
+    accessToken,
+    refreshToken,
+    user: result,
+  };
 };
 
 const getUsersByRole = async (

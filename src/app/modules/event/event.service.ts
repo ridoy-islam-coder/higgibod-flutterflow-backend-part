@@ -1199,7 +1199,9 @@ const getAllMyEvents = async (userId: string, query: any) => {
     filter.endDate = { $lt: now };
     filter.isPast = true;
   }
-
+  if (userId) {
+    filter.host = new Types.ObjectId(userId);
+  }
   // ── Search By Title ──────────────────────────
   if (search && search.trim() !== '') {
     filter.title = {

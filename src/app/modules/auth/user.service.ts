@@ -1,22 +1,29 @@
 import jwt, { JwtPayload, Secret } from 'jsonwebtoken';
-import config from "../../config";
-import AppError from "../../error/AppError";
+import config from '../../config';
+import AppError from '../../error/AppError';
 
-import { createToken, verifyToken } from "./auth.utils";
-import { TchangePassword, Tlogin, TRegister, TresetPassword, VerifyOtpPayload } from "./user.interface";
-import  httpStatus  from 'http-status';
-import { generateOtp } from "../../utils/otpGenerator";
+import { createToken, verifyToken } from './auth.utils';
+import {
+  TchangePassword,
+  Tlogin,
+  TRegister,
+  TresetPassword,
+  VerifyOtpPayload,
+} from './user.interface';
+import httpStatus from 'http-status';
+import { generateOtp } from '../../utils/otpGenerator';
 import moment from 'moment';
 import { sendEmail } from '../../utils/mailSender';
-import bcrypt from "bcrypt";
+import bcrypt from 'bcrypt';
 import { UserRole } from '../user/user.interface';
 import User from '../user/user.model';
 import catchAsync from '../../utils/catchAsync';
 
-
-
 // otpCache: in-memory Map or Redis
-const otpCache = new Map<string, { payload: TRegister; otp: number; expiresAt: Date }>();
+const otpCache = new Map<
+  string,
+  { payload: TRegister; otp: number; expiresAt: Date }
+>();
 
 const pendingRegistrations = new Map<
   string,
@@ -33,10 +40,9 @@ export const register = async (payload: any) => {
   if (!email || !password || !fullName) {
     throw new AppError(httpStatus.BAD_REQUEST, 'Missing required fields');
   }
- if (password.length < 6) {
-   throw new AppError(httpStatus.BAD_REQUEST, 'Password too short');
- }
-
+  if (password.length < 6) {
+    throw new AppError(httpStatus.BAD_REQUEST, 'Password too short');
+  }
 
   // const existingUser = await User.findOne({ email }).setOptions({
   //   skipFilter: true,
@@ -125,7 +131,7 @@ export const register = async (payload: any) => {
     message: 'Verification code sent to your email',
     email,
   };
-};;
+};
 
 export const verifyEmailregister = async (email: string, code: string) => {
   const pending = pendingRegistrations.get(email);
@@ -183,11 +189,11 @@ export const verifyEmailregister = async (email: string, code: string) => {
 
   pendingRegistrations.delete(email);
 
-  
-  await sendEmail(
-    email,
-    "Welcome to Skatrium – You're all set! 🎉",
-    `
+  try {
+    await sendEmail(
+      email,
+      "Welcome to Skatrium – You're all set! 🎉",
+      `
   <!DOCTYPE html>
   <html>
   <body style="margin:0;padding:0;background-color:#f4f4f7;font-family:Arial,sans-serif;">
@@ -243,7 +249,10 @@ export const verifyEmailregister = async (email: string, code: string) => {
   </body>
   </html>
   `,
-  );
+    );
+  } catch (error) {
+    console.log(error);
+  }
 
   const jwtPayload = {
     userId: user._id.toString(),
@@ -265,28 +274,7 @@ export const verifyEmailregister = async (email: string, code: string) => {
     },
     accessToken,
   };
-};;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+};
 
 export const resendOtpregister = async (email: string) => {
   const pending = pendingRegistrations.get(email);
@@ -395,12 +383,6 @@ export const resendOtpregister = async (email: string) => {
     email,
   };
 };
-
-
-
-
-
-
 
 //change password
 const changePassword = async (id: string, payload: TchangePassword) => {
@@ -581,10 +563,11 @@ const refreshToken = async (token: string) => {
   };
 };
 
-
-
 // OTP cache for password reset
-const passwordResetOtpCache = new Map<string, { otp: number; expiresAt: Date }>();
+const passwordResetOtpCache = new Map<
+  string,
+  { otp: number; expiresAt: Date }
+>();
 
 export const sendVerificationCode = async (email: string) => {
   const user = await User.isUserExist(email);
@@ -595,11 +578,10 @@ export const sendVerificationCode = async (email: string) => {
 
   passwordResetOtpCache.set(email, { otp, expiresAt });
 
-
   await sendEmail(
-  email,
-  'Password Reset OTP',
-  `
+    email,
+    'Password Reset OTP',
+    `
   <div style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
     <!-- Email Container -->
     <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; padding: 30px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
@@ -643,21 +625,20 @@ export const sendVerificationCode = async (email: string) => {
       100% { transform: scale(1); box-shadow: 0 0 5px #4CAF50; }
     }
   </style>
-  `
-);
+  `,
+  );
 
-  return otp; 
+  return otp;
 };
-
-
 
 // Verified users map (email → VERIFIED)
 export const verifiedUsers = new Map<string, string>();
 
 // 2️⃣ Verify OTP
 export const userVerifyOtp = async (email: string, otpInput: number) => {
-   const user = await User.findOne({ email });
-  if (!user || !user.verification) throw new AppError(400, 'OTP not found or expired');
+  const user = await User.findOne({ email });
+  if (!user || !user.verification)
+    throw new AppError(400, 'OTP not found or expired');
 
   // if (user.verification.status) throw new AppError(400, 'OTP already verified');
 
@@ -674,21 +655,6 @@ export const userVerifyOtp = async (email: string, otpInput: number) => {
 
   return { email };
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 export const userResetPasswordService = async (
   email: string,
@@ -708,22 +674,20 @@ export const userResetPasswordService = async (
   user.password = newPassword;
 
   // ✅ clear OTP data
-//  user.verification = {
-//   otp: 0,
-//   expiresAt: null,
-//   status: false,
-// } as any;
+  //  user.verification = {
+  //   otp: 0,
+  //   expiresAt: null,
+  //   status: false,
+  // } as any;
 
-if (!user.verification) {
-  user.verification = {} as any;
-}
-user.verification.otp = 0;
-user.verification.expiresAt =  new Date(0);
-user.verification.status = false;
+  if (!user.verification) {
+    user.verification = {} as any;
+  }
+  user.verification.otp = 0;
+  user.verification.expiresAt = new Date(0);
+  user.verification.status = false;
 
-await user.save();
-
- 
+  await user.save();
 
   return null;
 };
@@ -731,7 +695,7 @@ await user.save();
 //forgot password এর জন্য OTP verify করার পরে password set করার জন্য এই service টা ব্যবহার করব।
 
 const Enteryouremail = async (email: string) => {
-  const user = await User.findOne({ email, });
+  const user = await User.findOne({ email });
 
   if (!user) throw new AppError(404, 'Email not found or not verified');
 
@@ -741,11 +705,10 @@ const Enteryouremail = async (email: string) => {
   passwordResetOtpCache.set(email, { otp, expiresAt });
 
   try {
- 
-  await sendEmail(
-  email,
-  'Password Reset OTP',
-  `
+    await sendEmail(
+      email,
+      'Password Reset OTP',
+      `
   <div style="font-family: Arial, sans-serif; background-color: #f9f9f9; padding: 20px;">
     <!-- Email Container -->
     <div style="max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 10px; padding: 30px; text-align: center; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
@@ -789,16 +752,14 @@ const Enteryouremail = async (email: string) => {
       100% { transform: scale(1); box-shadow: 0 0 5px #4CAF50; }
     }
   </style>
-  `
-);
+  `,
+    );
   } catch (err) {
     throw new AppError(500, 'Failed to send OTP email');
   }
 
   return { message: 'OTP sent successfully to your email' };
 };
-
-
 
 const verifyOtp = (email: string, inputOtp: number) => {
   const record = passwordResetOtpCache.get(email);
@@ -815,7 +776,6 @@ const verifyOtp = (email: string, inputOtp: number) => {
   // passwordResetOtpCache.delete(email);
   return true;
 };
-
 
 export const verifyOtpAndResetPassword = catchAsync(async (req, res) => {
   const { email, otp, newPassword } = req.body;
@@ -835,8 +795,7 @@ export const verifyOtpAndResetPassword = catchAsync(async (req, res) => {
   }
 
   // ✅ otp match check
-  if (record.otp !== Number(otp))
-    throw new AppError(400, 'Invalid OTP');
+  if (record.otp !== Number(otp)) throw new AppError(400, 'Invalid OTP');
 
   // ✅ cache clear
   passwordResetOtpCache.delete(email);
@@ -853,7 +812,7 @@ export const verifyOtpAndResetPassword = catchAsync(async (req, res) => {
   await User.findOneAndUpdate(
     { email },
     { password: hashedPassword },
-    { new: true }
+    { new: true },
   );
 
   res.status(200).json({
@@ -862,34 +821,27 @@ export const verifyOtpAndResetPassword = catchAsync(async (req, res) => {
   });
 });
 
-
-
-
-
-
-
-
 export const changeLanguage = catchAsync(async (req, res) => {
   const userId = req.user.id;
   const { language } = req.body;
 
   if (!language) {
-    throw new AppError(400, "Language is required");
+    throw new AppError(400, 'Language is required');
   }
 
-  if (!["en", "ar"].includes(language)) {
-    throw new AppError(400, "Invalid language");
+  if (!['en', 'ar'].includes(language)) {
+    throw new AppError(400, 'Invalid language');
   }
 
   const user = await User.findByIdAndUpdate(
     userId,
     { language },
-    { new: true }
+    { new: true },
   );
 
   res.status(200).json({
     success: true,
-    message: "Language updated successfully",
+    message: 'Language updated successfully',
     data: user,
   });
 });
